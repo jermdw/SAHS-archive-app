@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { UserPlus, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 export function AddFigure() {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -12,17 +13,33 @@ export function AddFigure() {
         setIsSubmitting(true);
         setError(null);
 
-        // Placeholder logic since Supabase isn't fully configured
-        setTimeout(() => {
-            // Check if it's the placeholder URL
-            if (supabase.supabaseUrl.includes('placeholder')) {
-                setError("Supabase environment variables are missing. Please configure .env with your real Supabase credentials.");
-                setIsSubmitting(false);
-                return;
-            }
+        try {
+            const target = e.target as typeof e.target & {
+                type: { value: string };
+                fullName: { value: string };
+                knownAs: { value: string };
+                dates: { value: string };
+                biography: { value: string };
+            };
+
+            const figureData = {
+                type: target.type.value,
+                full_name: target.fullName.value,
+                also_known_as: target.knownAs.value,
+                life_dates: target.dates.value,
+                biography: target.biography.value,
+                portrait_url: "",
+                created_at: new Date().toISOString()
+            };
+
+            await addDoc(collection(db, 'historic_figures'), figureData);
             setSuccess(true);
+        } catch (err: any) {
+            console.error("Error adding figure: ", err);
+            setError(err.message || "Failed to add figure. Please check your Firebase configuration.");
+        } finally {
             setIsSubmitting(false);
-        }, 1000);
+        }
     };
 
     if (success) {

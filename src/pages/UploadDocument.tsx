@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Upload, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 export function UploadDocument() {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -12,17 +13,31 @@ export function UploadDocument() {
         setIsSubmitting(true);
         setError(null);
 
-        // Placeholder logic since Supabase isn't fully configured
-        setTimeout(() => {
-            // Check if it's the placeholder URL
-            if (supabase.supabaseUrl.includes('placeholder')) {
-                setError("Supabase environment variables are missing. Please configure .env with your real Supabase credentials.");
-                setIsSubmitting(false);
-                return;
-            }
+        try {
+            const target = e.target as typeof e.target & {
+                title: { value: string };
+                category: { value: string };
+                date: { value: string };
+                description: { value: string };
+            };
+
+            const docData = {
+                title: target.title.value,
+                category: target.category.value,
+                date_approx: target.date.value,
+                description: target.description.value,
+                image_urls: [],
+                created_at: new Date().toISOString()
+            };
+
+            await addDoc(collection(db, 'documents'), docData);
             setSuccess(true);
+        } catch (err: any) {
+            console.error("Error adding document: ", err);
+            setError(err.message || "Failed to upload document. Please check your Firebase configuration.");
+        } finally {
             setIsSubmitting(false);
-        }, 1000);
+        }
     };
 
     if (success) {

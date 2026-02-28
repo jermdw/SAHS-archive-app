@@ -1,19 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
-import { mockDocuments } from '../lib/mockData';
+import { db } from '../lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import type { DocumentRecord } from '../types/database';
 
 export function Documents() {
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('All Categories');
+    const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDocuments = async () => {
+            try {
+                const querySnapshot = await getDocs(collection(db, 'documents'));
+                const docsData = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as DocumentRecord[];
+                setDocuments(docsData);
+            } catch (error) {
+                console.error("Error fetching documents: ", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDocuments();
+    }, []);
 
     // Simple client-side filtering
-    const filteredDocs = mockDocuments.filter(doc => {
+    const filteredDocs = documents.filter(doc => {
         const matchesSearch = doc.title.toLowerCase().includes(search.toLowerCase()) ||
             doc.description.toLowerCase().includes(search.toLowerCase());
         const matchesCategory = category === 'All Categories' || doc.category === category;
         return matchesSearch && matchesCategory;
     });
+
+    if (loading) {
+        return <div className="max-w-6xl mx-auto py-12 text-center text-charcoal/60 font-serif">Loading documents...</div>;
+    }
 
     return (
         <div className="max-w-6xl mx-auto h-full flex flex-col">

@@ -1,15 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { mockFigures } from '../lib/mockData';
 import { Link } from 'react-router-dom';
+import { db } from '../lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
+import type { HistoricFigure } from '../types/database';
 
 export function HistoricFigures() {
     const [search, setSearch] = useState('');
+    const [figures, setFigures] = useState<HistoricFigure[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const filteredFigures = mockFigures.filter(fig =>
+    useEffect(() => {
+        const fetchFigures = async () => {
+            try {
+                const querySnapshot = await getDocs(collection(db, 'historic_figures'));
+                const figuresData = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as HistoricFigure[];
+                setFigures(figuresData);
+            } catch (error) {
+                console.error("Error fetching figures: ", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchFigures();
+    }, []);
+
+    const filteredFigures = figures.filter(fig =>
         fig.full_name.toLowerCase().includes(search.toLowerCase()) ||
         fig.biography.toLowerCase().includes(search.toLowerCase())
     );
+
+    if (loading) {
+        return <div className="max-w-6xl mx-auto py-12 text-center text-charcoal/60 font-serif">Loading figures...</div>;
+    }
 
     return (
         <div className="max-w-6xl mx-auto h-full flex flex-col">

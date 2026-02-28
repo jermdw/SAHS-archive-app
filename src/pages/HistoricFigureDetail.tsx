@@ -1,11 +1,46 @@
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, BookOpen } from 'lucide-react';
-import { mockFigures, mockDocuments } from '../lib/mockData';
+import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
+import { db } from '../lib/firebase';
+import { doc, getDoc, collection, query, limit, getDocs } from 'firebase/firestore';
+import type { HistoricFigure, DocumentRecord } from '../types/database';
 
 export function HistoricFigureDetail() {
-    const { id } = useParams();
-    const figure = mockFigures.find(f => f.id === id);
+    const { id } = useParams<{ id: string }>();
+    const [figure, setFigure] = useState<HistoricFigure | null>(null);
+    const [relatedDocs, setRelatedDocs] = useState<DocumentRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchFigureAndDocs = async () => {
+            if (!id) return;
+            try {
+                const docRef = doc(db, 'historic_figures', id);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    setFigure({ id: docSnap.id, ...(docSnap.data() || {}) } as HistoricFigure);
+                }
+
+                // Fetch a couple of docs to serve as related
+                const docsQuery = query(collection(db, 'documents'), limit(2));
+                const docsSnap = await getDocs(docsQuery);
+                const rDocs = docsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as DocumentRecord[];
+                setRelatedDocs(rDocs);
+
+            } catch (error) {
+                console.error("Error fetching figure details:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchFigureAndDocs();
+    }, [id]);
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-full text-charcoal/60 font-serif text-lg">Loading figure...</div>;
+    }
 
     if (!figure) {
         return (
@@ -15,9 +50,6 @@ export function HistoricFigureDetail() {
             </div>
         );
     }
-
-    // Find some related documents (mock implementation, just getting first 2)
-    const relatedDocs = mockDocuments.slice(0, 2);
 
     return (
         <div className="flex flex-col h-full max-w-5xl mx-auto animate-in fade-in duration-500 pb-12">
