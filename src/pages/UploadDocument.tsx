@@ -14,23 +14,26 @@ export function UploadDocument() {
         setError(null);
 
         try {
-            const target = e.target as typeof e.target & {
-                title: { value: string };
-                category: { value: string };
-                date: { value: string };
-                description: { value: string };
-            };
+            const formData = new FormData(e.target as HTMLFormElement);
 
             const docData = {
-                title: target.title.value,
-                category: target.category.value,
-                date_approx: target.date.value,
-                description: target.description.value,
+                title: formData.get('title') as string,
+                category: formData.get('category') as string,
+                date_approx: formData.get('date') as string || "",
+                description: formData.get('description') as string || "",
                 image_urls: [],
                 created_at: new Date().toISOString()
             };
 
-            await addDoc(collection(db, 'documents'), docData);
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error("Database connection timed out. Please check your Firestore security rules (Database -> Rules) to ensure writes are allowed.")), 8000);
+            });
+
+            await Promise.race([
+                addDoc(collection(db, 'documents'), docData),
+                timeoutPromise
+            ]);
+
             setSuccess(true);
         } catch (err: any) {
             console.error("Error adding document: ", err);
@@ -94,12 +97,12 @@ export function UploadDocument() {
                     <div className="space-y-6">
                         <div>
                             <label htmlFor="title" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Document Title *</label>
-                            <input required type="text" id="title" placeholder="e.g. 1920 City Council Minutes" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
+                            <input required type="text" name="title" id="title" placeholder="e.g. 1920 City Council Minutes" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
                         </div>
 
                         <div>
                             <label htmlFor="category" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category *</label>
-                            <select required id="category" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none">
+                            <select required name="category" id="category" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none">
                                 <option value="">Select a category</option>
                                 <option value="Letter">Letter / Correspondence</option>
                                 <option value="Photograph">Photograph</option>
@@ -110,7 +113,7 @@ export function UploadDocument() {
 
                         <div>
                             <label htmlFor="date" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Approximate Date</label>
-                            <input type="text" id="date" placeholder="e.g. c. 1905 or October 12, 1950" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
+                            <input type="text" name="date" id="date" placeholder="e.g. c. 1905 or October 12, 1950" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
                         </div>
                     </div>
 
@@ -118,7 +121,7 @@ export function UploadDocument() {
                     <div className="space-y-6">
                         <div className="h-full flex flex-col">
                             <label htmlFor="description" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Historical Context / Description</label>
-                            <textarea id="description" placeholder="Provide background information, transcriptions, or notable details about this document..." className="w-full flex-1 min-h-[150px] bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
+                            <textarea id="description" name="description" placeholder="Provide background information, transcriptions, or notable details about this document..." className="w-full flex-1 min-h-[150px] bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
                         </div>
                     </div>
                 </div>

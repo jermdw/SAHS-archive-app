@@ -14,25 +14,28 @@ export function AddFigure() {
         setError(null);
 
         try {
-            const target = e.target as typeof e.target & {
-                type: { value: string };
-                fullName: { value: string };
-                knownAs: { value: string };
-                dates: { value: string };
-                biography: { value: string };
-            };
+            const formData = new FormData(e.target as HTMLFormElement);
 
             const figureData = {
-                type: target.type.value,
-                full_name: target.fullName.value,
-                also_known_as: target.knownAs.value,
-                life_dates: target.dates.value,
-                biography: target.biography.value,
+                type: formData.get('type') as string,
+                full_name: formData.get('fullName') as string,
+                also_known_as: formData.get('knownAs') as string || "",
+                life_dates: formData.get('dates') as string || "",
+                biography: formData.get('biography') as string || "",
                 portrait_url: "",
                 created_at: new Date().toISOString()
             };
 
-            await addDoc(collection(db, 'historic_figures'), figureData);
+            // Implement a timeout to prevent silent freezing
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error("Database connection timed out. Please check your Firestore security rules (Database -> Rules) to ensure writes are allowed.")), 8000);
+            });
+
+            await Promise.race([
+                addDoc(collection(db, 'historic_figures'), figureData),
+                timeoutPromise
+            ]);
+
             setSuccess(true);
         } catch (err: any) {
             console.error("Error adding figure: ", err);
@@ -83,7 +86,7 @@ export function AddFigure() {
                     <div className="space-y-6">
                         <div>
                             <label htmlFor="type" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Type *</label>
-                            <select required id="type" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none">
+                            <select required name="type" id="type" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none">
                                 <option value="Person">Person</option>
                                 <option value="Organization">Organization</option>
                                 <option value="Building">Building / Place</option>
@@ -92,17 +95,17 @@ export function AddFigure() {
 
                         <div>
                             <label htmlFor="fullName" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Full Name *</label>
-                            <input required type="text" id="fullName" placeholder="Enter full name" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
+                            <input required type="text" name="fullName" id="fullName" placeholder="Enter full name" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
                         </div>
 
                         <div>
                             <label htmlFor="knownAs" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Also Known As</label>
-                            <input type="text" id="knownAs" placeholder="Alternative names or aliases" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
+                            <input type="text" name="knownAs" id="knownAs" placeholder="Alternative names or aliases" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
                         </div>
 
                         <div>
                             <label htmlFor="dates" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Life Dates (or active years)</label>
-                            <input type="text" id="dates" placeholder="e.g. 1850 - 1920" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
+                            <input type="text" name="dates" id="dates" placeholder="e.g. 1850 - 1920" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
                         </div>
                     </div>
 
@@ -120,7 +123,7 @@ export function AddFigure() {
 
                         <div className="h-full flex flex-col">
                             <label htmlFor="biography" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Biography</label>
-                            <textarea id="biography" placeholder="Detailed history or story about this figure..." className="w-full flex-1 min-h-[120px] bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
+                            <textarea id="biography" name="biography" placeholder="Detailed history or story about this figure..." className="w-full flex-1 min-h-[120px] bg-cream/50 border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
                         </div>
                     </div>
                 </div>
