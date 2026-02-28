@@ -56,7 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout, isSAHSUser }}>
-            {!loading && children}
+            {loading ? (
+                <div className="min-h-screen bg-cream flex flex-col items-center justify-center gap-4">
+                    <div className="w-12 h-12 border-4 border-tan/30 border-t-tan rounded-full animate-spin"></div>
+                    <p className="font-serif text-charcoal/60 text-lg">Initializing SAHS Archive...</p>
+                </div>
+            ) : children}
         </AuthContext.Provider>
     );
 }

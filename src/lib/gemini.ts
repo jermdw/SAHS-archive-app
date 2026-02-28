@@ -2,9 +2,6 @@ import { GoogleGenAI, Type } from '@google/genai';
 import type { Schema } from '@google/genai';
 import type { ArchiveItem } from '../types/database';
 
-// Initialize the API using the new @google/genai SDK
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-
 // We define the schema we want Gemini to return to ensure it fits our item entry form
 const archiveItemSchema: Schema = {
     type: Type.OBJECT,
@@ -52,9 +49,13 @@ const archiveItemSchema: Schema = {
 };
 
 export async function extractMetadataFromFile(file: File): Promise<Partial<ArchiveItem> & { dc_type?: string }> {
-    if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        throw new Error("VITE_GEMINI_API_KEY is not configured.");
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error("VITE_GEMINI_API_KEY is not configured in your .env file.");
     }
+
+    // Initialize the API using the new @google/genai SDK dynamically
+    const ai = new GoogleGenAI({ apiKey });
 
     try {
         // 1. Convert File to Base64 String
@@ -95,7 +96,7 @@ export async function extractMetadataFromFile(file: File): Promise<Partial<Archi
         });
 
         // 4. Parse the JSON response
-        const text = response.text();
+        const text = response.text;
         if (!text) {
             throw new Error("Received empty response from Gemini.");
         }
