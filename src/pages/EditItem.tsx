@@ -93,6 +93,7 @@ export function EditItem() {
 
             setVal('title', metadata.title);
             setVal('description', metadata.description);
+            setVal('transcription', metadata.transcription);
             setVal('date', metadata.date);
             setVal('creator', metadata.creator);
             setVal('subject', metadata.subject);
@@ -104,6 +105,7 @@ export function EditItem() {
             setVal('format', metadata.format);
             setVal('language', metadata.language);
             setVal('dc_type', metadata.dc_type);
+            setVal('archive_reference', metadata.archive_reference);
             setVal('identifier', metadata.identifier);
             setVal('source', metadata.source);
             setVal('coverage', metadata.coverage);
@@ -156,6 +158,8 @@ export function EditItem() {
                 // Core DC Elements
                 title: formData.get('title') as string,
                 description: formData.get('description') as string || "",
+                transcription: formData.get('transcription') as string || "",
+                archive_reference: formData.get('archive_reference') as string || "",
                 date: formData.get('date') as string || "",
                 creator: formData.get('creator') as string || "",
                 subject: formData.get('subject') as string || "",
@@ -289,10 +293,10 @@ export function EditItem() {
                                 onClick={handleAutoExtract}
                                 disabled={isExtracting || !selectedFileName}
                                 className={`mt-4 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-bold text-sm transition-all border ${isExtracting
-                                        ? 'bg-tan-light/20 text-tan border-tan-light/50 cursor-not-allowed'
-                                        : !selectedFileName
-                                            ? 'bg-cream/50 text-charcoal/30 border-tan-light/30 cursor-not-allowed'
-                                            : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm'
+                                    ? 'bg-tan-light/20 text-tan border-tan-light/50 cursor-not-allowed'
+                                    : !selectedFileName
+                                        ? 'bg-cream/50 text-charcoal/30 border-tan-light/30 cursor-not-allowed'
+                                        : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm'
                                     }`}
                                 title={!selectedFileName ? "Select a new file above to extract metadata" : "Extract metadata from the selected file"}
                             >
@@ -321,6 +325,11 @@ export function EditItem() {
                                 <label htmlFor="description" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Description / Biography *</label>
                                 <textarea required id="description" name="description" defaultValue={item.description} placeholder={itemType === 'Document' ? "Historical context, transcriptions..." : "Life history, achievements..."} className="w-full min-h-[160px] bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
                             </div>
+
+                            <div>
+                                <label htmlFor="transcription" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Transcription</label>
+                                <textarea id="transcription" name="transcription" defaultValue={item.transcription} placeholder="Exact word-for-word OCR transcription (if applicable)..." className="w-full min-h-[160px] bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -333,6 +342,10 @@ export function EditItem() {
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label htmlFor="archive_reference" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Archive Reference</label>
+                            <input type="text" name="archive_reference" id="archive_reference" defaultValue={item.archive_reference} placeholder="e.g. LTR_Jun. 14, 1945_ Hollberg's" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
+                        </div>
                         <div>
                             <label htmlFor="date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Date (DC:Date)</label>
                             <input type="text" name="date" id="date" defaultValue={item.date} placeholder="e.g. c. 1905, 1850-1920" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />

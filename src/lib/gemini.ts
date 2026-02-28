@@ -12,7 +12,11 @@ const archiveItemSchema: Schema = {
         },
         description: {
             type: Type.STRING,
-            description: "A detailed description or biography. If the image contains legible text (like a letter or newspaper), please provide a full transcription here as well, separated from the description by a clear header '--- Transcription ---'.",
+            description: "A detailed description or biography providing historical context. DO NOT include the transcription here.",
+        },
+        transcription: {
+            type: Type.STRING,
+            description: "If the image contains legible text (like a letter or newspaper), provide a faithful verbatim OCR transcription here. Preserve line breaks and formatting.",
         },
         date: {
             type: Type.STRING,
@@ -42,6 +46,10 @@ const archiveItemSchema: Schema = {
             description: "The nature or genre, e.g., 'StillImage' or 'Text'."
         },
         identifier: { type: Type.STRING },
+        archive_reference: {
+            type: Type.STRING,
+            description: "An archival reference ID or number found on the document, e.g., 'LTR_Jun. 14, 1945_ Hollberg\\'s'.",
+        },
         source: { type: Type.STRING },
         coverage: { type: Type.STRING },
     },
@@ -69,7 +77,9 @@ export async function extractMetadataFromFile(file: File): Promise<Partial<Archi
 
         // 2. Determine if it's an image or PDF and structure the prompt
         // Note: The new SDK requires inlineData to have data and mimeType
-        const prompt = `Analyze this archival document or photograph. Please extract all available Dublin Core metadata elements and generate a comprehensive description. If there is legible text, include a full OCR transcription in the description field.`;
+        const prompt = `Analyze this archival document or photograph. Please extract all available Dublin Core metadata elements and generate a comprehensive historical description. 
+        CRITICAL: If there is legible text, extract it verbatim into the 'transcription' field. DO NOT put the transcription in the 'description' field.
+        Also specifically look for formal archive reference identification numbers or labels, and put them in the 'archive_reference' field.`;
 
         // 3. Call the Gemini 2.5 Flash model and enforce JSON output
         const response = await ai.models.generateContent({

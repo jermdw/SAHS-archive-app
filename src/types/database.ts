@@ -23,6 +23,8 @@ export interface ArchiveItem {
     title: string;          // Name given to the resource
     subject?: string;       // Topic of the resource (keywords/phrases)
     description: string;    // An account of the resource
+    transcription?: string; // OCR text transcription of the resource
+    archive_reference?: string; // Archive reference ID
     creator?: string;       // Entity primarily responsible for making the resource
     source?: string;        // The resource from which the described resource is derived
     publisher?: string;     // Entity responsible for making the resource available

@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit2, Trash2, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
@@ -140,6 +140,14 @@ export function ItemDetail() {
                                     <p className="font-medium text-charcoal">{item.date}</p>
                                 </div>
                             )}
+                            {item.archive_reference && (
+                                <div>
+                                    <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                                        <FileText size={12} /> Archive Reference
+                                    </p>
+                                    <p className="font-medium text-charcoal">{item.archive_reference}</p>
+                                </div>
+                            )}
                             {item.creator && (
                                 <div>
                                     <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5">Creator</p>
@@ -178,6 +186,19 @@ export function ItemDetail() {
                             <p>{item.description}</p>
                         </div>
                     </div>
+
+                    {/* Transcription Block */}
+                    {item.transcription && (
+                        <div className="mb-10 bg-tan-light/10 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">
+                            <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-3 mb-4">
+                                <FileText className="text-tan" size={20} />
+                                Transcription
+                            </h3>
+                            <div className="font-mono text-sm text-charcoal/80 leading-relaxed whitespace-pre-wrap">
+                                {item.transcription}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Secondary Media */}
                     {file_urls && file_urls.length > 1 && (
