@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, MapPin, Tag, SlidersHorizontal } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
@@ -35,17 +35,6 @@ export function SearchArchive() {
 
         fetchItems();
     }, []);
-
-    // Extract unique tags for the dropdown
-    const allTags = useMemo(() => {
-        const tags = new Set<string>();
-        items.forEach(item => {
-            if (item.tags) {
-                item.tags.forEach(t => tags.add(t));
-            }
-        });
-        return Array.from(tags).sort();
-    }, [items]);
 
     const filteredItems = items.filter(item => {
         // Keyword match across multiple fields

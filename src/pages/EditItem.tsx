@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
-import { doc, getDoc, updateDoc, collection, getDocs, orderBy, query, where } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, getDocs, query } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { extractMetadataFromFile } from '../lib/gemini';

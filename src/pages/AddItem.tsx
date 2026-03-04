@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Plus, Search, ZoomIn, FileText, Tag } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
-import { collection, addDoc, getDocs, orderBy, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ItemType, Collection, ArchiveItem } from '../types/database';
