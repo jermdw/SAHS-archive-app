@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy } from 'lucide-react';
+import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo.svg';
 
@@ -59,6 +59,9 @@ export function Sidebar() {
                         </Link>
                         <Link to="/archive?type=Historic Organization" className={getTypeClass('Historic Organization')}>
                             <Building size={18} /> Historic Orgs
+                        </Link>
+                        <Link to="/archive?type=Artifact" className={getTypeClass('Artifact')}>
+                            <Box size={18} /> Artifact Collection
                         </Link>
                         <NavLink to="/search" className={navLinkClass}>
                             <Search size={18} /> Advanced Search

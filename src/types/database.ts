@@ -6,7 +6,7 @@ export interface Collection {
     created_at: string;
 }
 
-export type ItemType = 'Document' | 'Historic Figure' | 'Historic Organization';
+export type ItemType = 'Document' | 'Historic Figure' | 'Historic Organization' | 'Artifact';
 
 // Dublin Core Metadata Element Set (v1.1)
 export interface ArchiveItem {
@@ -58,4 +58,6 @@ export interface ArchiveItem {
     physical_location?: string;
     related_figures?: string[]; // IDs of Historic Figures
     related_documents?: string[]; // IDs of Documents/Photos for Figures
+    related_organizations?: string[]; // IDs of Historic Organizations
+    donor?: string;         // Original donor of the item (specifically requested for Artifacts)
 }

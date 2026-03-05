@@ -3,7 +3,7 @@ import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, X, MapPin, Info, 
 import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
-import { doc, getDoc, collection, query, limit, getDocs, deleteDoc, where } from 'firebase/firestore';
+import { doc, getDoc, collection, query, getDocs, deleteDoc, where, documentId } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import type { ArchiveItem } from '../types/database';
 
@@ -13,9 +13,9 @@ export function ItemDetail() {
     const { isSAHSUser } = useAuth();
 
     const [item, setItem] = useState<ArchiveItem | null>(null);
-    const [relatedItems, setRelatedItems] = useState<ArchiveItem[]>([]);
     const [relatedFigureItems, setRelatedFigureItems] = useState<ArchiveItem[]>([]);
     const [relatedDocumentItems, setRelatedDocumentItems] = useState<ArchiveItem[]>([]);
+    const [relatedOrganizationItems, setRelatedOrganizationItems] = useState<ArchiveItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -31,35 +31,61 @@ export function ItemDetail() {
                     const data = { id: docSnap.id, ...(docSnap.data() || {}) } as ArchiveItem;
                     setItem(data);
 
-                    // Fetch a couple of docs to serve as related, based on overlapping tags if possible
-                    if (data.tags && data.tags.length > 0) {
-                        const relatedQuery = query(collection(db, 'archive_items'), where('tags', 'array-contains-any', data.tags), limit(3));
-                        const relatedSnap = await getDocs(relatedQuery);
-                        const rDocs = relatedSnap.docs
-                            .map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[];
-                        // Filter out self
-                        setRelatedItems(rDocs.filter(d => d.id !== data.id));
-                    } else {
-                        // Just get recent items if no tags
-                        const docsQuery = query(collection(db, 'archive_items'), limit(2));
-                        const docsSnap = await getDocs(docsQuery);
-                        const rDocs = docsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[];
-                        setRelatedItems(rDocs.filter(d => d.id !== data.id));
-                    }
 
-                    // Fetch explicit related figures if they exist
-                    if (data.related_figures && data.related_figures.length > 0) {
-                        const figuresQuery = query(collection(db, 'archive_items'), where('id', 'in', data.related_figures));
-                        const figuresSnap = await getDocs(figuresQuery);
-                        setRelatedFigureItems(figuresSnap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[]);
-                    }
 
-                    // Fetch explicit related documents (if this is a figure)
-                    if (data.related_documents && data.related_documents.length > 0) {
-                        const docsQuery = query(collection(db, 'archive_items'), where('id', 'in', data.related_documents));
-                        const docsSnap = await getDocs(docsQuery);
-                        setRelatedDocumentItems(docsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[]);
-                    }
+                    // 1) Forward explicit references defined on THIS item
+                    const fetchForward = async (ids: string[] | undefined) => {
+                        if (!ids || ids.length === 0) return [];
+                        // Firestore 'in' has a 30 item limit
+                        const chunkedIds = ids.slice(0, 30);
+                        const q = query(collection(db, 'archive_items'), where(documentId(), 'in', chunkedIds));
+                        const snap = await getDocs(q);
+                        return snap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[];
+                    };
+
+                    const [forwardFigures, forwardDocs, forwardOrgs] = await Promise.all([
+                        fetchForward(data.related_figures),
+                        fetchForward(data.related_documents),
+                        fetchForward(data.related_organizations)
+                    ]);
+
+                    // 2) Backward references (items that link TO this item)
+                    const fetchBackward = async (field: string) => {
+                        const q = query(collection(db, 'archive_items'), where(field, 'array-contains', id));
+                        const snap = await getDocs(q);
+                        return snap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[];
+                    };
+
+                    const [backwardFigures, backwardDocs, backwardOrgs] = await Promise.all([
+                        fetchBackward('related_figures'),
+                        fetchBackward('related_documents'),
+                        fetchBackward('related_organizations')
+                    ]);
+
+                    // Merge and deduplicate
+                    // An item linking TO us via "related_figures" means THEY considered US a figure.
+                    // But for display purposes, we want to group the merged items by THEIR item_type.
+                    const allLinkedItems = [
+                        ...forwardFigures, ...forwardDocs, ...forwardOrgs,
+                        ...backwardFigures, ...backwardDocs, ...backwardOrgs
+                    ];
+
+                    const uniqueLinkedMap = new Map<string, ArchiveItem>();
+                    allLinkedItems.forEach(item => {
+                        if (item.id !== id) uniqueLinkedMap.set(item.id!, item);
+                    });
+                    const uniqueLinked = Array.from(uniqueLinkedMap.values());
+
+                    // Now group the unique linked items based on their actual type
+                    const figures = uniqueLinked.filter(i => i.item_type === 'Historic Figure');
+                    const orgs = uniqueLinked.filter(i => i.item_type === 'Historic Organization');
+
+                    setRelatedFigureItems(figures);
+                    setRelatedOrganizationItems(orgs);
+                    // Documents and Artifacts can be displayed together in the DocumentCard grid, 
+                    // or we can separate them. For now, we put Docs + Artifacts + any other type into relatedDocumentItems
+                    const cards = uniqueLinked.filter(i => i.item_type !== 'Historic Figure' && i.item_type !== 'Historic Organization');
+                    setRelatedDocumentItems(cards);
                 }
 
             } catch (error) {
@@ -148,6 +174,15 @@ export function ItemDetail() {
                 )}
             </div>
 
+            <div className="mb-8 max-w-4xl">
+                <h1 className="text-5xl font-serif font-bold text-charcoal leading-tight mb-4 tracking-tight">
+                    {item.title}
+                </h1>
+                <div className="prose prose-lg text-charcoal/80 font-sans leading-relaxed whitespace-pre-wrap">
+                    <p>{item.description}</p>
+                </div>
+            </div>
+
             <div className="flex flex-col md:flex-row gap-10">
                 {/* Left Side: Portrait & Facts */}
                 <div className="w-full md:w-80 shrink-0 flex flex-col gap-6">
@@ -186,9 +221,17 @@ export function ItemDetail() {
                             {item.archive_reference && (
                                 <div>
                                     <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                                        <FileText size={12} /> Archive Reference
+                                        <FileText size={12} /> Filing Code
                                     </p>
                                     <p className="font-medium text-charcoal">{item.archive_reference}</p>
+                                </div>
+                            )}
+                            {item.identifier && (
+                                <div>
+                                    <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                                        <BookOpen size={12} /> Archive Reference
+                                    </p>
+                                    <p className="font-medium text-charcoal">{item.identifier}</p>
                                 </div>
                             )}
                             {item.creator && (
@@ -278,6 +321,19 @@ export function ItemDetail() {
                                 </div>
                             )}
 
+                            {/* Artifact Specific Facts */}
+                            {item.item_type === 'Artifact' && (
+                                <div className="pt-4 border-t border-tan-light/50 mt-4 space-y-4">
+                                    <h3 className="text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-4">Provenance & Sourcing</h3>
+                                    {item.donor && (
+                                        <div>
+                                            <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5">Original Donor / Contributor</p>
+                                            <p className="font-medium text-charcoal">{item.donor}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {item.category && (
                                 <div className="mb-4">
                                     <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-1">Archive Category</p>
@@ -327,29 +383,7 @@ export function ItemDetail() {
 
                 {/* Right Side: Biography & Related Docs */}
                 <div className="flex-1 flex flex-col">
-                    <div className="mb-10">
-                        <h1 className="text-5xl font-serif font-bold text-charcoal leading-tight mb-4 tracking-tight">
-                            {item.title}
-                        </h1>
-                        <div className="prose prose-lg text-charcoal/80 font-sans leading-relaxed whitespace-pre-wrap">
-                            <p>{item.description}</p>
-                        </div>
-                    </div>
 
-                    {/* Linked Documents for Figures */}
-                    {relatedDocumentItems.length > 0 && (
-                        <div className="mb-10 bg-cream/30 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">
-                            <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-3 mb-6">
-                                <BookOpen className="text-tan" size={20} />
-                                Primary Linked Documents
-                            </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                {relatedDocumentItems.map(doc => (
-                                    <DocumentCard key={doc.id} item={doc} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Transcription Block */}
                     {item.transcription && (
@@ -363,66 +397,94 @@ export function ItemDetail() {
                             </div>
                         </div>
                     )}
-
-                    {/* Related Figures */}
-                    {relatedFigureItems.length > 0 && (
-                        <div className="mb-10 pt-8 border-t border-tan-light/50">
-                            <h3 className="text-xl font-serif font-bold text-charcoal mb-6 flex items-center gap-2">
-                                <Users className="text-tan" size={24} />
-                                Associated Historic Figures
-                            </h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                                {relatedFigureItems.map(fig => (
-                                    <Link key={fig.id} to={`/items/${fig.id}`} className="group block text-center">
-                                        <div className="aspect-square bg-cream rounded-full overflow-hidden border-2 border-tan-light/50 mb-3 group-hover:border-tan transition-colors shadow-sm">
-                                            {fig.file_urls?.[0] ? (
-                                                <img src={fig.file_urls[0]} alt={fig.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-tan/20 font-serif text-3xl">{fig.title.charAt(0)}</div>
-                                            )}
-                                        </div>
-                                        <p className="font-serif font-bold text-charcoal group-hover:text-tan transition-colors">{fig.title}</p>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Secondary Media */}
-                    {file_urls && file_urls.length > 1 && (
-                        <div className="pt-8 border-t border-tan-light/50 mb-10">
-                            <h2 className="text-xl font-serif font-bold text-charcoal mb-4">Additional Media / Scans</h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                {file_urls.slice(1).map((url, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => setZoomedImage(url)}
-                                        className="group relative aspect-square bg-tan-light/20 rounded-xl overflow-hidden border border-tan-light/50 hover:shadow-md transition-all"
-                                    >
-                                        <img src={url} alt={`${item.title} media ${idx + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                        <div className="absolute inset-0 bg-charcoal/20 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
-                                            <ZoomIn size={20} />
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {relatedItems.length > 0 && (
-                        <div className="pt-8 border-t border-tan-light/50">
-                            <div className="flex items-center gap-3 mb-6">
-                                <BookOpen size={20} className="text-tan" />
-                                <h2 className="text-2xl font-serif font-bold text-charcoal">Related Items</h2>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                                {relatedItems.map(related => (
-                                    <DocumentCard key={related.id} item={related} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
+            </div>
+
+            {/* Bottom Full-Width Section: Relationships & Media */}
+            <div className="flex flex-col gap-10 mt-12 pt-8 border-t border-tan-light/50">
+                {/* Linked Documents for Figures / Artifacts */}
+                {relatedDocumentItems.length > 0 && (
+                    <div className="bg-cream/30 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">
+                        <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-3 mb-6">
+                            <BookOpen className="text-tan" size={20} />
+                            Linked Documents & Artifacts
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {relatedDocumentItems.map(doc => (
+                                <DocumentCard key={doc.id} item={doc} />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Related Figures */}
+                {relatedFigureItems.length > 0 && (
+                    <div>
+                        <h3 className="text-xl font-serif font-bold text-charcoal mb-6 flex items-center gap-2">
+                            <Users className="text-tan" size={24} />
+                            Associated Historic Figures
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-6">
+                            {relatedFigureItems.map(fig => (
+                                <Link key={fig.id} to={`/items/${fig.id}`} className="group block text-center">
+                                    <div className="aspect-square bg-cream rounded-full overflow-hidden border-2 border-tan-light/50 mb-3 group-hover:border-tan transition-colors shadow-sm max-w-[150px] mx-auto">
+                                        {fig.file_urls?.[0] ? (
+                                            <img src={fig.file_urls[0]} alt={fig.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-tan/20 font-serif text-3xl">{fig.title.charAt(0)}</div>
+                                        )}
+                                    </div>
+                                    <p className="font-serif font-bold text-charcoal group-hover:text-tan transition-colors">{fig.title}</p>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Related Organizations */}
+                {relatedOrganizationItems.length > 0 && (
+                    <div className="pt-4">
+                        <h3 className="text-xl font-serif font-bold text-charcoal mb-6 flex items-center gap-2">
+                            <BookOpen className="text-tan" size={24} />
+                            Associated Organizations
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+                            {relatedOrganizationItems.map(org => (
+                                <Link key={org.id} to={`/items/${org.id}`} className="group block text-center">
+                                    <div className="aspect-[4/3] bg-cream rounded-xl overflow-hidden border border-tan-light/50 mb-3 group-hover:border-tan transition-colors shadow-sm">
+                                        {org.file_urls?.[0] ? (
+                                            <img src={org.file_urls[0]} alt={org.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-tan/20 font-serif text-3xl">{org.title ? org.title.charAt(0) : "O"}</div>
+                                        )}
+                                    </div>
+                                    <p className="font-serif font-bold text-charcoal group-hover:text-tan transition-colors">{org.title}</p>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Secondary Media */}
+                {file_urls && file_urls.length > 1 && (
+                    <div className="pt-4">
+                        <h2 className="text-xl font-serif font-bold text-charcoal mb-4">Additional Media / Scans</h2>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                            {file_urls.slice(1).map((url, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => setZoomedImage(url)}
+                                    className="group relative aspect-square bg-tan-light/20 rounded-xl overflow-hidden border border-tan-light/50 hover:shadow-md transition-all"
+                                >
+                                    <img src={url} alt={`${item.title} media ${idx + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    <div className="absolute inset-0 bg-charcoal/20 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                                        <ZoomIn size={20} />
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

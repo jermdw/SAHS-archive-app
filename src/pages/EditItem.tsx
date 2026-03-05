@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
-import { doc, getDoc, updateDoc, collection, getDocs, query } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { extractMetadataFromFile } from '../lib/gemini';
@@ -33,8 +33,41 @@ export function EditItem() {
     const [docSearch, setDocSearch] = useState('');
     const [showDocResults, setShowDocResults] = useState(false);
 
+    const [allOrgs, setAllOrgs] = useState<{ id: string, title: string }[]>([]);
+    const [selectedRelatedOrgs, setSelectedRelatedOrgs] = useState<{ id: string, title: string }[]>([]);
+    const [orgSearch, setOrgSearch] = useState('');
+    const [showOrgResults, setShowOrgResults] = useState(false);
+
     // Collections
     const [collections, setCollections] = useState<Collection[]>([]);
+    const [selectedCollectionId, setSelectedCollectionId] = useState<string>("");
+
+    const handleCollectionChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        if (val === 'NEW_COLLECTION') {
+            const title = window.prompt("Enter the name of the new collection:");
+            if (title && title.trim()) {
+                try {
+                    const newCollData = {
+                        title: title.trim(),
+                        description: '',
+                        created_at: new Date().toISOString()
+                    };
+                    const docRef = await addDoc(collection(db, 'collections'), newCollData);
+                    const newColl = { id: docRef.id, ...newCollData } as Collection;
+                    setCollections(prev => [...prev, newColl].sort((a, b) => a.title.localeCompare(b.title)));
+                    setSelectedCollectionId(docRef.id);
+                } catch (err) {
+                    alert("Failed to create collection.");
+                    setSelectedCollectionId(item?.collection_id || "");
+                }
+            } else {
+                setSelectedCollectionId(item?.collection_id || "");
+            }
+        } else {
+            setSelectedCollectionId(val);
+        }
+    };
 
     useEffect(() => {
         const fetchItem = async () => {
@@ -46,6 +79,7 @@ export function EditItem() {
                     const data = { id: docSnap.id, ...(docSnap.data() || {}) } as ArchiveItem;
                     setItem(data);
                     setItemType(data.item_type || 'Document');
+                    setSelectedCollectionId(data.collection_id || "");
                 } else {
                     setError("Item not found.");
                 }
@@ -83,6 +117,11 @@ export function EditItem() {
                     .map(i => ({ id: i.id, title: i.title || "Untitled Document" }));
                 setAllDocs(docsList.sort((a, b) => a.title.localeCompare(b.title)));
 
+                const orgsList = allItemsData
+                    .filter(i => i.item_type === 'Historic Organization')
+                    .map(i => ({ id: i.id, title: i.title || i.org_name || "Unnamed Organization" }));
+                setAllOrgs(orgsList.sort((a, b) => a.title.localeCompare(b.title)));
+
             } catch (error) {
                 console.error("Error fetching collections/linked data:", error);
             }
@@ -99,6 +138,10 @@ export function EditItem() {
         if (item && allDocs.length > 0) {
             const linkedDocs = allDocs.filter(d => item.related_documents?.includes(d.id));
             setSelectedRelatedDocs(linkedDocs);
+        }
+        if (item && allOrgs.length > 0) {
+            const linkedOrgs = allOrgs.filter(o => item.related_organizations?.includes(o.id));
+            setSelectedRelatedOrgs(linkedOrgs);
         }
     }, [item, allFigures, allDocs]);
 
@@ -224,6 +267,9 @@ export function EditItem() {
                 // Linking
                 related_figures: selectedRelatedFigures.map(f => f.id),
                 related_documents: selectedRelatedDocs.map(d => d.id),
+                related_organizations: selectedRelatedOrgs.map(o => o.id),
+
+                donor: formData.get('donor') as string || "",
 
                 // Figure Specific Biographics
                 full_name: formData.get('full_name') as string || "",
@@ -258,6 +304,11 @@ export function EditItem() {
     const filteredDocs = allDocs.filter(d =>
         d.title.toLowerCase().includes(docSearch.toLowerCase()) &&
         !selectedRelatedDocs.find(sd => sd.id === d.id)
+    );
+
+    const filteredOrgs = allOrgs.filter(o =>
+        o.title.toLowerCase().includes(orgSearch.toLowerCase()) &&
+        !selectedRelatedOrgs.find(so => so.id === o.id)
     );
 
     if (isLoading) {
@@ -319,8 +370,8 @@ export function EditItem() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
                             <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Item Type *</label>
-                            <div className="flex bg-white rounded-lg border border-tan-light/50 p-1 mb-6">
-                                {(["Document", "Historic Figure", "Historic Organization"] as const).map(type => (
+                            <div className="flex bg-white rounded-lg border border-tan-light/50 p-1 mb-6 flex-wrap gap-1">
+                                {(["Document", "Historic Figure", "Historic Organization", "Artifact"] as const).map(type => (
                                     <button
                                         key={type}
                                         type="button"
@@ -381,7 +432,7 @@ export function EditItem() {
                         <div className="space-y-6">
                             <div>
                                 <label htmlFor="title" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Title / Name *</label>
-                                <input required type="text" name="title" id="title" defaultValue={item.title} placeholder={itemType === 'Document' ? "e.g. 1920 City Council Minutes" : itemType === 'Historic Organization' ? "e.g. Senoia General Store" : "e.g. William Senoia"} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
+                                <input required type="text" name="title" id="title" defaultValue={item.title} placeholder={itemType === 'Document' ? "e.g. 1920 City Council Minutes" : itemType === 'Historic Organization' ? "e.g. Senoia General Store" : itemType === 'Artifact' ? "e.g. Civil War Bayonet" : "e.g. William Senoia"} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
                             </div>
 
                             {itemType === 'Historic Organization' ? (
@@ -456,11 +507,12 @@ export function EditItem() {
                                         </div>
                                         <div>
                                             <label htmlFor="collection_id" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
-                                            <select name="collection_id" id="collection_id" defaultValue={item.collection_id || ""} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none">
+                                            <select name="collection_id" id="collection_id" value={selectedCollectionId} onChange={handleCollectionChange} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none">
                                                 <option value="">-- No Collection --</option>
                                                 {collections.map(c => (
                                                     <option key={c.id} value={c.id}>{c.title}</option>
                                                 ))}
+                                                <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
                                             </select>
                                         </div>
                                     </div>
@@ -476,6 +528,13 @@ export function EditItem() {
                                             </div>
                                         </div>
                                         <div>
+                                            <label htmlFor="date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Date (e.g. 1920, c. 1905)</label>
+                                            <input type="text" name="date" id="date" defaultValue={item.date} placeholder="Approximate or Exact Date" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4 mt-4">
+                                        <div>
                                             <label htmlFor="physical_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">File Location</label>
                                             <div className="relative">
                                                 <select name="physical_location" id="physical_location" defaultValue={item.physical_location} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
@@ -490,8 +549,8 @@ export function EditItem() {
                             )}
 
                             <div>
-                                <label htmlFor="description" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">{itemType === 'Historic Figure' ? 'Biography *' : 'Description / History *'}</label>
-                                <textarea required id="description" name="description" defaultValue={item.description} placeholder={itemType === 'Document' ? "Historical context, transcriptions..." : "Life history, achievements..."} className="w-full min-h-[160px] bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
+                                <label htmlFor="description" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">{itemType === 'Historic Figure' ? 'Biography *' : itemType === 'Historic Organization' ? 'History & Description *' : itemType === 'Artifact' ? 'Physical Description & History *' : 'Description / History *'}</label>
+                                <textarea required id="description" name="description" defaultValue={item.description} placeholder={itemType === 'Document' ? "Historical context, transcriptions..." : itemType === 'Historic Organization' ? "Historical details, mission, key figures, and legacy..." : itemType === 'Artifact' ? "Physical details, materials, historical use, and significance..." : "Life history, achievements..."} className="w-full min-h-[160px] bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
                             </div>
 
                             <div>
@@ -511,16 +570,24 @@ export function EditItem() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                            <label htmlFor="archive_reference" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Archive Reference</label>
-                            <input type="text" name="archive_reference" id="archive_reference" defaultValue={item.archive_reference} placeholder="e.g. LTR_Jun. 14, 1945_ Hollberg's" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
+                            <label htmlFor="archive_reference" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Filing Code</label>
+                            <input type="text" name="archive_reference" id="archive_reference" defaultValue={item.archive_reference} placeholder="e.g. SAHS-2024-001" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
                         </div>
                         <div>
-                            <label htmlFor="date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Date (DC:Date)</label>
-                            <input type="text" name="date" id="date" defaultValue={item.date} placeholder="e.g. c. 1905, 1850-1920" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
+                            <label htmlFor="identifier" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Archive Reference</label>
+                            <input type="text" name="identifier" id="identifier" defaultValue={item.identifier} placeholder="e.g. LTR_Jun. 14, 1945" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
+                        </div>
+                        <div>
+                            <label htmlFor="subject" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Subject (DC:Subject)</label>
+                            <input type="text" name="subject" id="subject" defaultValue={item.subject} placeholder="Topic keywords" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
                         </div>
                         <div>
                             <label htmlFor="creator" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Creator (DC:Creator)</label>
                             <input type="text" name="creator" id="creator" defaultValue={item.creator} placeholder="Author, photographer, or originating body" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
+                        </div>
+                        <div>
+                            <label htmlFor="donor" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Original Donor / Contributor</label>
+                            <input type="text" name="donor" id="donor" defaultValue={item.donor} placeholder="Donated by" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
                         </div>
                         <div>
                             <label htmlFor="subject" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Subject (DC:Subject)</label>
@@ -572,10 +639,6 @@ export function EditItem() {
                                 <div>
                                     <label htmlFor="dc_type" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">DC Type</label>
                                     <input type="text" name="dc_type" id="dc_type" defaultValue={item.type} placeholder="e.g. StillImage, Text" className="w-full bg-white border border-tan-light/50 px-4 py-2 rounded-lg text-sm" />
-                                </div>
-                                <div>
-                                    <label htmlFor="identifier" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Identifier</label>
-                                    <input type="text" name="identifier" id="identifier" defaultValue={item.identifier} placeholder="e.g. Archive Ref # SAHS-192" className="w-full bg-white border border-tan-light/50 px-4 py-2 rounded-lg text-sm" />
                                 </div>
                                 <div>
                                     <label htmlFor="source" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Source</label>
@@ -643,6 +706,8 @@ export function EditItem() {
                                     ))}
                                 </div>
                             )}
+
+
                         </div>
                     ) : (
                         <div>
@@ -699,6 +764,59 @@ export function EditItem() {
                             )}
                         </div>
                     )}
+                    <div className="pt-6 border-t border-tan-light/30">
+                        <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-3">Connect Historic Organizations</label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search organizations..."
+                                className="w-full bg-white border border-tan-light/50 px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-tan/20 transition-all text-sm"
+                                value={orgSearch}
+                                onChange={(e) => {
+                                    setOrgSearch(e.target.value);
+                                    setShowOrgResults(true);
+                                }}
+                                onFocus={() => setShowOrgResults(true)}
+                            />
+
+                            {showOrgResults && (
+                                <div className="absolute z-20 left-0 right-0 mt-2 bg-white border border-tan-light rounded-xl shadow-xl max-h-48 overflow-auto">
+                                    {filteredOrgs.length > 0 ? (
+                                        filteredOrgs.map(org => (
+                                            <button
+                                                key={org.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedRelatedOrgs([...selectedRelatedOrgs, org]);
+                                                    setOrgSearch('');
+                                                    setShowOrgResults(false);
+                                                }}
+                                                className="w-full text-left px-4 py-3 hover:bg-cream border-b border-tan-light/20 last:border-0 flex items-center justify-between group text-sm"
+                                            >
+                                                <span className="font-medium text-charcoal">{org.title}</span>
+                                                <Edit2 size={12} className="text-tan opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="px-4 py-3 text-xs text-charcoal/40 italic">No organizations found.</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {selectedRelatedOrgs.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-4">
+                                {selectedRelatedOrgs.map(org => (
+                                    <div key={org.id} className="flex items-center gap-2 bg-charcoal text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider animate-in zoom-in duration-200">
+                                        {org.title}
+                                        <button type="button" onClick={() => setSelectedRelatedOrgs(selectedRelatedOrgs.filter(o => o.id !== org.id))} className="hover:text-tan transition-colors">
+                                            <ChevronUp size={12} className="rotate-45" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="p-8 bg-cream/30 border-t border-tan-light/50 flex justify-end">

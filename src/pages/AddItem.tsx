@@ -23,6 +23,10 @@ export function AddItem() {
     const [selectedRelatedFigures, setSelectedRelatedFigures] = useState<{ id: string, title: string }[]>([]);
     const [figureSearch, setFigureSearch] = useState('');
     const [showFigureResults, setShowFigureResults] = useState(false);
+    const [allOrgs, setAllOrgs] = useState<{ id: string, title: string }[]>([]);
+    const [selectedRelatedOrgs, setSelectedRelatedOrgs] = useState<{ id: string, title: string }[]>([]);
+    const [orgSearch, setOrgSearch] = useState('');
+    const [showOrgResults, setShowOrgResults] = useState(false);
     const [allExistingTags, setAllExistingTags] = useState<string[]>([]);
     const [tagInput, setTagInput] = useState('');
     const [currentTags, setCurrentTags] = useState<string[]>([]);
@@ -34,6 +38,35 @@ export function AddItem() {
     const [selectedRelatedDocs, setSelectedRelatedDocs] = useState<{ id: string, title: string }[]>([]);
     const [docSearch, setDocSearch] = useState('');
     const [showDocResults, setShowDocResults] = useState(false);
+
+    const [selectedCollectionId, setSelectedCollectionId] = useState("");
+
+    const handleCollectionChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        if (val === 'NEW_COLLECTION') {
+            const title = window.prompt("Enter the name of the new collection:");
+            if (title && title.trim()) {
+                try {
+                    const newCollData = {
+                        title: title.trim(),
+                        description: '',
+                        created_at: new Date().toISOString()
+                    };
+                    const docRef = await addDoc(collection(db, 'collections'), newCollData);
+                    const newColl = { id: docRef.id, ...newCollData } as Collection;
+                    setCollections(prev => [...prev, newColl].sort((a, b) => a.title.localeCompare(b.title)));
+                    setSelectedCollectionId(docRef.id);
+                } catch (err) {
+                    alert("Failed to create collection.");
+                    setSelectedCollectionId("");
+                }
+            } else {
+                setSelectedCollectionId("");
+            }
+        } else {
+            setSelectedCollectionId(val);
+        }
+    };
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -58,6 +91,11 @@ export function AddItem() {
                     .filter(i => i.item_type === 'Document')
                     .map(i => ({ id: i.id, title: i.title || "Untitled Document" }));
                 setAllDocs(docs.sort((a, b) => a.title.localeCompare(b.title)));
+
+                const orgs = allItemsData
+                    .filter(i => i.item_type === 'Historic Organization')
+                    .map(i => ({ id: i.id, title: i.title || i.org_name || "Unnamed Organization" }));
+                setAllOrgs(orgs.sort((a, b) => a.title.localeCompare(b.title)));
 
                 // Fetch All Tags for suggestions
                 const tags = new Set<string>();
@@ -206,6 +244,8 @@ export function AddItem() {
                 physical_location: formData.get('physical_location') as any,
                 related_figures: selectedRelatedFigures.map(f => f.id),
                 related_documents: selectedRelatedDocs.map(d => d.id),
+                related_organizations: selectedRelatedOrgs.map(o => o.id),
+                donor: formData.get('donor') as string || "",
 
                 // Figure Specific Biographics
                 full_name: formData.get('full_name') as string || "",
@@ -271,6 +311,11 @@ export function AddItem() {
         !selectedRelatedDocs.find(sd => sd.id === d.id)
     );
 
+    const filteredOrgs = allOrgs.filter(o =>
+        o.title.toLowerCase().includes(orgSearch.toLowerCase()) &&
+        !selectedRelatedOrgs.find(so => so.id === o.id)
+    );
+
     if (success) {
         return (
             <div className="max-w-2xl mx-auto h-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
@@ -286,6 +331,7 @@ export function AddItem() {
                         setCurrentTags([]);
                         setSelectedRelatedFigures([]);
                         setSelectedRelatedDocs([]);
+                        setSelectedRelatedOrgs([]);
                         setUploadProgress(null);
                         (document.getElementById('add-item-form') as HTMLFormElement)?.reset();
                     }}
@@ -343,8 +389,8 @@ export function AddItem() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div>
                             <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3">Item Classification *</label>
-                            <div className="flex bg-white rounded-xl border border-tan-light/50 p-1.5 mb-8 gap-1">
-                                {(["Document", "Historic Figure", "Historic Organization"] as const).map(type => (
+                            <div className="flex bg-white rounded-xl border border-tan-light/50 p-1.5 mb-8 gap-1 flex-wrap">
+                                {(["Document", "Historic Figure", "Historic Organization", "Artifact"] as const).map(type => (
                                     <button
                                         key={type}
                                         type="button"
@@ -357,7 +403,7 @@ export function AddItem() {
                             </div>
 
                             <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3 underline underline-offset-4 decoration-tan/30">
-                                {itemType === 'Document' ? 'Document Scans / Photos' : 'Representative Media / Portraits'}
+                                {itemType === 'Document' ? 'Document Scans / Photos' : itemType === 'Artifact' ? 'Artifact Photos' : 'Representative Media / Portraits'}
                             </label>
                             <div
                                 onClick={() => fileInputRef.current?.click()}
@@ -443,7 +489,7 @@ export function AddItem() {
                         <div className="space-y-6">
                             <div>
                                 <label htmlFor="title" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Display Title / Name *</label>
-                                <input required type="text" name="title" id="title" placeholder={itemType === 'Historic Figure' ? "e.g. John Doe" : itemType === 'Historic Organization' ? "e.g. Senoia General Store" : "Descriptive title for the archive"} className="w-full bg-white border border-tan-light/50 px-4 py-4 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans text-lg font-medium" />
+                                <input required type="text" name="title" id="title" placeholder={itemType === 'Historic Figure' ? "e.g. John Doe" : itemType === 'Historic Organization' ? "e.g. Senoia General Store" : itemType === 'Artifact' ? "e.g. Civil War Bayonet" : "Descriptive title for the archive"} className="w-full bg-white border border-tan-light/50 px-4 py-4 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans text-lg font-medium" />
                             </div>
 
                             {itemType === 'Historic Organization' ? (
@@ -510,9 +556,10 @@ export function AddItem() {
                                         <div>
                                             <label htmlFor="collection_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
                                             <div className="relative">
-                                                <select name="collection_id" id="collection_id" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                <select name="collection_id" id="collection_id" value={selectedCollectionId} onChange={handleCollectionChange} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
                                                     <option value="">No Collection</option>
                                                     {collections.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                                                    <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
                                                 </select>
                                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
                                             </div>
@@ -539,6 +586,13 @@ export function AddItem() {
                                             </div>
                                         </div>
                                         <div>
+                                            <label htmlFor="date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Date (e.g. 1920, c. 1905)</label>
+                                            <input type="text" name="date" id="date" placeholder="Approximate or Exact Date" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4 mt-4">
+                                        <div>
                                             <label htmlFor="physical_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">File Location</label>
                                             <div className="relative">
                                                 <select name="physical_location" id="physical_location" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
@@ -554,9 +608,9 @@ export function AddItem() {
 
                             <div>
                                 <label htmlFor="description" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">
-                                    {itemType === 'Historic Figure' ? 'Biography *' : itemType === 'Historic Organization' ? 'History & Description *' : 'History & Description *'}
+                                    {itemType === 'Historic Figure' ? 'Biography *' : itemType === 'Historic Organization' ? 'History & Description *' : itemType === 'Artifact' ? 'Physical Description & History *' : 'History & Description *'}
                                 </label>
-                                <textarea required id="description" name="description" placeholder={itemType === 'Historic Figure' ? "Biographical details, family history, and significance..." : itemType === 'Historic Organization' ? "Historical details, mission, key figures, and legacy..." : "Provide background, provenance, or biographical details..."} className="w-full min-h-[140px] bg-white border border-tan-light/50 px-4 py-3 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans resize-none leading-relaxed"></textarea>
+                                <textarea required id="description" name="description" placeholder={itemType === 'Historic Figure' ? "Biographical details, family history, and significance..." : itemType === 'Historic Organization' ? "Historical details, mission, key figures, and legacy..." : itemType === 'Artifact' ? "Physical details, materials, historical use, and significance..." : "Provide background, provenance, or biographical details..."} className="w-full min-h-[140px] bg-white border border-tan-light/50 px-4 py-3 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans resize-none leading-relaxed"></textarea>
                             </div>
                         </div>
                     </div>
@@ -575,10 +629,14 @@ export function AddItem() {
                             )}
                         </h3>
 
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="archive_reference" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Museum Ref #</label>
+                                <label htmlFor="archive_reference" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Filing Code</label>
                                 <input type="text" name="archive_reference" id="archive_reference" placeholder="e.g. SAHS-2024-001" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
+                            </div>
+                            <div>
+                                <label htmlFor="identifier" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Archive Reference</label>
+                                <input type="text" name="identifier" id="identifier" placeholder="e.g. LTR_Jun. 14, 1945" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Origin Location</label>
@@ -587,6 +645,10 @@ export function AddItem() {
                             <div>
                                 <label htmlFor="creator" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Original Creator</label>
                                 <input type="text" name="creator" id="creator" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
+                            </div>
+                            <div>
+                                <label htmlFor="donor" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Original Donor</label>
+                                <input type="text" name="donor" id="donor" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
                             </div>
                         </div>
 
@@ -644,6 +706,8 @@ export function AddItem() {
                                         ))}
                                     </div>
                                 )}
+
+
                             </div>
                         ) : (
                             <div>
@@ -701,6 +765,60 @@ export function AddItem() {
                                 )}
                             </div>
                         )}
+                        <div className="pt-8 border-t border-tan-light/30">
+                            <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3 underline underline-offset-4 decoration-tan/30">Connect Historic Organizations</label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-3 text-charcoal/30" size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Search organizations in the archive..."
+                                    className="w-full bg-white border border-tan-light/50 pl-10 pr-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-tan/20 transition-all text-sm"
+                                    value={orgSearch}
+                                    onChange={(e) => {
+                                        setOrgSearch(e.target.value);
+                                        setShowOrgResults(true);
+                                    }}
+                                    onFocus={() => setShowOrgResults(true)}
+                                />
+
+                                {showOrgResults && (
+                                    <div className="absolute z-20 left-0 right-0 mt-2 bg-white border border-tan-light rounded-xl shadow-xl max-h-48 overflow-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                                        {filteredOrgs.length > 0 ? (
+                                            filteredOrgs.map(org => (
+                                                <button
+                                                    key={org.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedRelatedOrgs([...selectedRelatedOrgs, org]);
+                                                        setOrgSearch('');
+                                                        setShowOrgResults(false);
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 hover:bg-cream border-b border-tan-light/20 last:border-0 flex items-center justify-between group"
+                                                >
+                                                    <span className="font-medium text-charcoal">{org.title}</span>
+                                                    <Plus size={14} className="text-tan opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-4 py-3 text-xs text-charcoal/40 italic">No organizations found.</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {selectedRelatedOrgs.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    {selectedRelatedOrgs.map(org => (
+                                        <div key={org.id} className="flex items-center gap-2 bg-charcoal text-white px-3 py-1.5 rounded-full text-xs font-bold animate-in zoom-in duration-200">
+                                            {org.title}
+                                            <button type="button" onClick={() => setSelectedRelatedOrgs(selectedRelatedOrgs.filter(o => o.id !== org.id))} className="hover:text-tan transition-colors">
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="space-y-6">
