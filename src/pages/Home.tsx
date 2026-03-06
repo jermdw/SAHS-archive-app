@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Library, Users, FileText, Building } from 'lucide-react';
+import { Search, Library, Users, FileText, Building, Box } from 'lucide-react';
 
 const BACKGROUND_IMAGES = [
     // Placeholder images - Please replace with the links to the images you attached!
@@ -71,6 +71,13 @@ export function Home() {
                             View Orgs
                         </Link>
                         <Link
+                            to="/archive?type=Artifact"
+                            className="flex items-center gap-3 bg-cream text-charcoal px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:scale-105 transition-all shadow-lg"
+                        >
+                            <Box size={24} />
+                            View Artifacts
+                        </Link>
+                        <Link
                             to="/search"
                             className="flex items-center gap-3 bg-tan text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-tan-dark hover:scale-105 transition-all shadow-lg"
                         >
@@ -89,7 +96,7 @@ export function Home() {
                         Discover the stories, people, and events that shaped our community
                     </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 text-left">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 text-left">
                         <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow">
                             <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
                                 <FileText size={28} />
@@ -121,6 +128,16 @@ export function Home() {
                         </div>
 
                         <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow">
+                            <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
+                                <Box size={28} />
+                            </div>
+                            <h3 className="text-2xl font-serif font-bold text-charcoal mb-4">Artifact Collection</h3>
+                            <p className="text-charcoal-light leading-relaxed">
+                                Our collection of physical artifacts captures the material history of Senoia. From textiles and furniture to ceramics and historical memorabilia, these items provide a tangible connection to the past and the craftsmanship of previous generations.
+                            </p>
+                        </div>
+
+                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow lg:col-span-1">
                             <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
                                 <Search size={28} />
                             </div>
