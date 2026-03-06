@@ -38,7 +38,7 @@ export function DocumentCard({ item }: { item: ArchiveItem }) {
                         {item.date || 'Unknown Date'}
                     </span>
                     <span className="text-sm bg-beige text-charcoal-light px-3 py-1 rounded-full font-medium whitespace-nowrap font-sans">
-                        {item.type || item.item_type}
+                        {item.artifact_type || item.type || item.item_type}
                     </span>
                 </div>
             </div>

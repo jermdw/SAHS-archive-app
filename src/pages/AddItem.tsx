@@ -225,7 +225,7 @@ export function AddItem() {
                 item_type: itemType,
                 file_urls: fileUrls,
                 tags: currentTags,
-                collection_id: formData.get('collection_id') as string,
+                collection_id: (formData.get('collection_id') as string) || "",
                 created_at: new Date().toISOString(),
 
                 title: formData.get('title') as string,
@@ -271,6 +271,9 @@ export function AddItem() {
                 type: formData.get('dc_type') as string || "",
                 identifier: formData.get('identifier') as string || "",
                 source: formData.get('source') as string || "",
+
+                artifact_id: formData.get('artifact_id') as string || "",
+                artifact_type: formData.get('artifact_type') as string || "",
             };
 
             await addDoc(collection(db, 'archive_items'), itemData);
@@ -553,26 +556,47 @@ export function AddItem() {
                             ) : (
                                 <>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="collection_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
-                                            <div className="relative">
-                                                <select name="collection_id" id="collection_id" value={selectedCollectionId} onChange={handleCollectionChange} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                    <option value="">No Collection</option>
-                                                    {collections.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                                                    <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
-                                                </select>
-                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                        {itemType === 'Artifact' ? (
+                                            <div>
+                                                <label htmlFor="artifact_type" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Type</label>
+                                                <div className="relative">
+                                                    <select name="artifact_type" id="artifact_type" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                        {["textile", "photo", "print", "award/trophy", "memorabilia", "furniture", "ceramics", "miscellaneous", "technology", "signs", "jewelry", "metal", "glass", "agriculture"].map(t => (
+                                                            <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div>
-                                            <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
-                                            <div className="relative">
-                                                <select name="category" id="category" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                    {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
-                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                        ) : (
+                                            <div>
+                                                <label htmlFor="collection_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
+                                                <div className="relative">
+                                                    <select name="collection_id" id="collection_id" value={selectedCollectionId} onChange={handleCollectionChange} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                        <option value="">No Collection</option>
+                                                        {collections.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                                                        <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
+                                                    </select>
+                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
+                                        {itemType === 'Artifact' ? (
+                                            <div>
+                                                <label htmlFor="artifact_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">ID #</label>
+                                                <input type="text" name="artifact_id" id="artifact_id" placeholder="e.g. 2024.01.05" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
+                                                <div className="relative">
+                                                    <select name="category" id="category" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                        {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
+                                                    </select>
+                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">

@@ -325,6 +325,20 @@ export function ItemDetail() {
                             {item.item_type === 'Artifact' && (
                                 <div className="pt-4 border-t border-tan-light/50 mt-4 space-y-4">
                                     <h3 className="text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-4">Provenance & Sourcing</h3>
+                                    {item.artifact_type && (
+                                        <div>
+                                            <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5 whitespace-nowrap">Artifact Type</p>
+                                            <span className="inline-block bg-tan/10 text-tan px-3 py-1 rounded-full text-xs font-bold border border-tan/20 mt-1 capitalize">
+                                                {item.artifact_type}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {item.artifact_id && (
+                                        <div>
+                                            <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5">ID #</p>
+                                            <p className="font-medium text-charcoal">{item.artifact_id}</p>
+                                        </div>
+                                    )}
                                     {item.donor && (
                                         <div>
                                             <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5">Original Donor / Contributor</p>
@@ -334,7 +348,7 @@ export function ItemDetail() {
                                 </div>
                             )}
 
-                            {item.category && (
+                            {item.category && item.item_type !== 'Artifact' && (
                                 <div className="mb-4">
                                     <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-1">Archive Category</p>
                                     <span className="inline-block bg-tan/10 text-tan px-3 py-1 rounded-full text-xs font-bold border border-tan/20">
