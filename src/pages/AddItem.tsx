@@ -39,6 +39,7 @@ export function AddItem() {
     const [docSearch, setDocSearch] = useState('');
     const [showDocResults, setShowDocResults] = useState(false);
 
+    const [featuredImageIndex, setFeaturedImageIndex] = useState<number>(0);
     const [selectedCollectionId, setSelectedCollectionId] = useState("");
 
     const handleCollectionChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -224,6 +225,7 @@ export function AddItem() {
             const itemData: Omit<ArchiveItem, 'id'> = {
                 item_type: itemType,
                 file_urls: fileUrls,
+                featured_image_url: fileUrls[featuredImageIndex] || (fileUrls.length > 0 ? fileUrls[0] : undefined),
                 tags: currentTags,
                 collection_id: (formData.get('collection_id') as string) || "",
                 created_at: new Date().toISOString(),
@@ -443,16 +445,35 @@ export function AddItem() {
                                                         </div>
                                                     )}
                                                     {isImage && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setZoomedImage(URL.createObjectURL(file));
-                                                            }}
-                                                            className="absolute inset-0 bg-charcoal/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center text-white transition-opacity"
-                                                        >
-                                                            <ZoomIn size={20} />
-                                                        </button>
+                                                        <div className="absolute inset-0 bg-charcoal/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setZoomedImage(URL.createObjectURL(file));
+                                                                }}
+                                                                className="p-1.5 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
+                                                                title="Zoom"
+                                                            >
+                                                                <ZoomIn size={16} />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setFeaturedImageIndex(i);
+                                                                }}
+                                                                className={`p-1.5 rounded-full backdrop-blur-sm transition-colors ${featuredImageIndex === i ? 'bg-tan text-white' : 'bg-white/20 hover:bg-white/40 text-white'}`}
+                                                                title="Set as Featured Image"
+                                                            >
+                                                                <CheckCircle size={16} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {isImage && featuredImageIndex === i && (
+                                                        <div className="absolute top-1 left-1 bg-tan text-white p-0.5 rounded-full shadow-sm z-20">
+                                                            <CheckCircle size={10} />
+                                                        </div>
                                                     )}
                                                 </div>
                                             );

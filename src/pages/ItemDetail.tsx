@@ -125,7 +125,7 @@ export function ItemDetail() {
     }
 
     const { file_urls } = item;
-    const coverImage = file_urls && file_urls.length > 0 ? file_urls[0] : null;
+    const coverImage = item.featured_image_url || (file_urls && file_urls.length > 0 ? file_urls[0] : null);
 
     return (
         <div className="flex flex-col h-full max-w-full mx-auto animate-in fade-in duration-500 pb-12">
@@ -185,7 +185,7 @@ export function ItemDetail() {
 
             <div className="flex flex-col md:flex-row gap-10">
                 {/* Left Side: Portrait & Facts */}
-                <div className="w-full md:w-80 shrink-0 flex flex-col gap-6">
+                <div className="w-full md:w-96 lg:w-[450px] shrink-0 flex flex-col gap-6">
                     <div className="aspect-[3/4] bg-tan-light/20 rounded-2xl overflow-hidden border border-tan-light/50 relative shadow-md group cursor-zoom-in" onClick={() => coverImage && setZoomedImage(coverImage)}>
                         {coverImage ? (
                             <>
@@ -205,7 +205,7 @@ export function ItemDetail() {
                         )}
                     </div>
 
-                    <div className="bg-white rounded-xl border border-tan-light/50 p-6 shadow-sm">
+                    <div className="bg-white rounded-xl border border-tan-light/50 p-8 shadow-sm">
                         <h3 className="text-sm font-black text-charcoal/60 uppercase tracking-widest border-b border-tan-light/50 pb-2 mb-4">Information</h3>
                         <div className="space-y-4">
                             <div>

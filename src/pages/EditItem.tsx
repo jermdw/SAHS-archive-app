@@ -20,6 +20,7 @@ export function EditItem() {
     const [itemType, setItemType] = useState<ItemType>('Document');
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
     const [isExtracting, setIsExtracting] = useState(false);
+    const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(null);
 
 
     // Networking / Linking
@@ -80,6 +81,7 @@ export function EditItem() {
                     setItem(data);
                     setItemType(data.item_type || 'Document');
                     setSelectedCollectionId(data.collection_id || "");
+                    setFeaturedImageUrl(data.featured_image_url || null);
                 } else {
                     setError("Item not found.");
                 }
@@ -225,15 +227,18 @@ export function EditItem() {
                 const downloadUrl = await getDownloadURL(snapshot.ref);
                 // For simplicity now, replacing the primary image
                 fileUrls = [downloadUrl];
+                // If we upload a new image, make it the default featured image unless one is already set
+                if (!featuredImageUrl) setFeaturedImageUrl(downloadUrl);
             }
 
             // Parse tags
             const tagsString = formData.get('tags') as string;
             const tags = tagsString ? tagsString.split(',').map(t => t.trim()).filter(Boolean) : [];
 
-            const updateData = {
+            const updateData: Partial<ArchiveItem> = {
                 item_type: itemType,
                 file_urls: fileUrls,
+                featured_image_url: featuredImageUrl || (fileUrls.length > 0 ? fileUrls[0] : undefined),
                 tags: tags,
                 collection_id: (formData.get('collection_id') as string) || "",
                 updated_at: new Date().toISOString(),
@@ -430,6 +435,30 @@ export function EditItem() {
                                 <Sparkles size={16} className={isExtracting ? 'animate-pulse' : ''} />
                                 {isExtracting ? 'Analyzing Document with AI...' : 'Auto-Extract Metadata with AI'}
                             </button>
+
+                            {item.file_urls && item.file_urls.length > 0 && (
+                                <div className="mt-6 pt-6 border-t border-tan-light/30">
+                                    <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3">Profile / Featured Image</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {item.file_urls.map((url, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => setFeaturedImageUrl(url)}
+                                                className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${featuredImageUrl === url ? 'border-tan ring-2 ring-tan/20 shadow-md' : 'border-transparent opacity-60 hover:opacity-100 hover:border-tan-light/50'}`}
+                                            >
+                                                <img src={url} alt={`Selection ${idx}`} className="w-full h-full object-cover" />
+                                                {featuredImageUrl === url && (
+                                                    <div className="absolute top-1 right-1 bg-tan text-white p-0.5 rounded-full shadow-sm">
+                                                        <CheckCircle size={10} />
+                                                    </div>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-charcoal/50 mt-2 italic">Click an image above to set it as the primary display portrait/cover.</p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-6">

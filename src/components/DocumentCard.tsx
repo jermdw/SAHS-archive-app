@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import type { ArchiveItem } from '../types/database';
 
 export function DocumentCard({ item }: { item: ArchiveItem }) {
-    const imageUrl = item.file_urls && item.file_urls.length > 0 ? item.file_urls[0] : null;
+    const imageUrl = item.featured_image_url || (item.file_urls && item.file_urls.length > 0 ? item.file_urls[0] : null);
     const totalImages = item.file_urls ? item.file_urls.length : 0;
 
     return (

@@ -63,4 +63,5 @@ export interface ArchiveItem {
     artifact_id?: string;   // Unique ID for artifacts (e.g. ID #)
     artifact_type?: string; // Sub-type for artifacts (textile, photo, etc.)
     museum_location?: string; // Specific location in the museum (e.g. Box 4, Shelf 2)
+    featured_image_url?: string; // Primary display image selected from file_urls
 }
