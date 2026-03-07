@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, Folder } from 'lucide-react';
+import { Search, Filter, Folder, ArrowUpDown } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -31,6 +31,7 @@ export function BrowseArchive() {
     const [items, setItems] = useState<ArchiveItem[]>([]);
     const [collections, setCollections] = useState<Collection[]>([]);
     const [selectedCollection, setSelectedCollection] = useState<string>('All Collections');
+    const [sortBy, setSortBy] = useState<string>('created_desc');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -82,6 +83,30 @@ export function BrowseArchive() {
         const matchesCollection = selectedCollection === 'All Collections' || item.collection_id === selectedCollection;
 
         return matchesSearch && matchesType && matchesCollection;
+    });
+
+    // Unified client-side sorting
+    const sortedItems = [...filteredItems].sort((a, b) => {
+        switch (sortBy) {
+            case 'created_desc':
+                return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+            case 'created_asc':
+                return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+            case 'date_desc':
+                return (b.date || '').localeCompare(a.date || '');
+            case 'date_asc':
+                return (a.date || '').localeCompare(b.date || '');
+            case 'title_asc':
+                return (a.title || '').localeCompare(b.title || '');
+            case 'title_desc':
+                return (b.title || '').localeCompare(a.title || '');
+            case 'id_asc':
+                return (a.artifact_id || '').localeCompare(b.artifact_id || '');
+            case 'id_desc':
+                return (b.artifact_id || '').localeCompare(a.artifact_id || '');
+            default:
+                return 0;
+        }
     });
 
     const getHeaderText = () => {
@@ -163,16 +188,20 @@ export function BrowseArchive() {
                 </div>
                 <div className="w-px bg-tan-light/50 hidden lg:block" />
                 <div className="relative min-w-[200px]">
-                    <Folder className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
+                    <ArrowUpDown className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
                     <select
                         className="w-full bg-cream/50 pl-10 pr-10 py-3 rounded-lg outline-none appearance-none cursor-pointer focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-medium text-charcoal font-sans"
-                        value={selectedCollection}
-                        onChange={(e) => setSelectedCollection(e.target.value)}
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
                     >
-                        <option value="All Collections">All Collections</option>
-                        {collections.map(c => (
-                            <option key={c.id} value={c.id}>{c.title}</option>
-                        ))}
+                        <option value="created_desc">Date Added (Newest)</option>
+                        <option value="created_asc">Date Added (Oldest)</option>
+                        <option value="date_desc">Date of Origin (Newest)</option>
+                        <option value="date_asc">Date of Origin (Oldest)</option>
+                        <option value="title_asc">Alphabetical (A-Z)</option>
+                        <option value="title_desc">Alphabetical (Z-A)</option>
+                        <option value="id_asc">ID # (A-Z)</option>
+                        <option value="id_desc">ID # (Z-A)</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-charcoal/60"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -181,17 +210,16 @@ export function BrowseArchive() {
             </div>
 
             <div className="flex-1">
-                {filteredItems.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">
-                        {filteredItems.map(item => (
-                            <DocumentCard key={item.id} item={item} />
-                        ))}
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">
+                    {sortedItems.map(item => (
+                        <DocumentCard key={item.id} item={item} />
+                    ))}
+                </div>
                 ) : (
-                    <div className="text-center py-24 bg-white rounded-xl border border-tan-light/50 shadow-sm">
-                        <p className="text-charcoal-light text-xl font-serif italic mb-2">No items found.</p>
-                        <p className="text-charcoal-light/70 font-sans">Try modifying your search or filters.</p>
-                    </div>
+                <div className="text-center py-24 bg-white rounded-xl border border-tan-light/50 shadow-sm">
+                    <p className="text-charcoal-light text-xl font-serif italic mb-2">No items found.</p>
+                    <p className="text-charcoal-light/70 font-sans">Try modifying your search or filters.</p>
+                </div>
                 )}
             </div>
         </div>
