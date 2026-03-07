@@ -62,4 +62,5 @@ export interface ArchiveItem {
     donor?: string;         // Original donor of the item (specifically requested for Artifacts)
     artifact_id?: string;   // Unique ID for artifacts (e.g. ID #)
     artifact_type?: string; // Sub-type for artifacts (textile, photo, etc.)
+    museum_location?: string; // Specific location in the museum (e.g. Box 4, Shelf 2)
 }

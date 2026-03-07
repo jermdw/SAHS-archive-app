@@ -273,6 +273,7 @@ export function EditItem() {
 
                 artifact_id: formData.get('artifact_id') as string || "",
                 artifact_type: formData.get('artifact_type') as string || "",
+                museum_location: formData.get('museum_location') as string || "",
                 // Figure Specific Biographics
                 full_name: formData.get('full_name') as string || "",
                 also_known_as: formData.get('also_known_as') as string || "",
@@ -623,6 +624,10 @@ export function EditItem() {
                         <div>
                             <label htmlFor="tags" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Archive Tags (Comma Separated)</label>
                             <input type="text" name="tags" id="tags" defaultValue={item.tags?.join(', ')} placeholder="e.g. Civil War, Main Street, Architecture" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label htmlFor="museum_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Museum Location (Specific Shelf/Box)</label>
+                            <input type="text" name="museum_location" id="museum_location" defaultValue={item.museum_location} placeholder="e.g. Shelf 4, Drawer B, Box 12" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
                         </div>
                     </div>
 

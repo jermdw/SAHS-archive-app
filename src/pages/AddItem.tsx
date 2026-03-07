@@ -274,6 +274,7 @@ export function AddItem() {
 
                 artifact_id: formData.get('artifact_id') as string || "",
                 artifact_type: formData.get('artifact_type') as string || "",
+                museum_location: formData.get('museum_location') as string || "",
             };
 
             await addDoc(collection(db, 'archive_items'), itemData);
@@ -677,6 +678,10 @@ export function AddItem() {
                             <div>
                                 <label htmlFor="donor" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Original Donor</label>
                                 <input type="text" name="donor" id="donor" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label htmlFor="museum_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Museum Location (Specific Shelf/Box)</label>
+                                <input type="text" name="museum_location" id="museum_location" placeholder="e.g. Shelf 4, Drawer B, Box 12" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
                             </div>
                         </div>
 

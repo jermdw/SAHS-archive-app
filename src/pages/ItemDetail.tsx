@@ -380,8 +380,14 @@ export function ItemDetail() {
                                 )}
                                 {item.physical_location && (
                                     <div>
-                                        <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1"><MapPin size={12} /> Location</p>
+                                        <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1"><MapPin size={12} /> Origin / Place</p>
                                         <p className="font-medium text-charcoal">{item.physical_location}</p>
+                                    </div>
+                                )}
+                                {item.museum_location && (
+                                    <div>
+                                        <p className="text-xs text-charcoal/50 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1"><Info size={12} /> Museum Location</p>
+                                        <p className="font-medium text-charcoal">{item.museum_location}</p>
                                     </div>
                                 )}
                                 {item.coverage && (
