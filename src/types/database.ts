@@ -5,6 +5,7 @@ export interface Collection {
     featured_image_url?: string;
     file_urls?: string[];
     created_at: string;
+    item_count?: number;
 }
 
 export type ItemType = 'Document' | 'Historic Figure' | 'Historic Organization' | 'Artifact';
@@ -20,6 +21,7 @@ export interface ArchiveItem {
     category?: string;
     file_urls: string[]; // For documents, scans, or portraits
     created_at: string;
+    updated_at?: string;
 
     // Figure specific
     full_name?: string;

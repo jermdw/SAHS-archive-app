@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
+import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
@@ -67,7 +67,6 @@ export function EditItem() {
     const [isLoading, setIsLoading] = useState(true);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
     const [item, setItem] = useState<ArchiveItem | null>(null);
     const [itemType, setItemType] = useState<ItemType>('Document');
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
@@ -761,8 +760,8 @@ export function EditItem() {
                                             <label htmlFor="physical_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">File Location</label>
                                             <div className="relative">
                                                 <select name="physical_location" id="physical_location" defaultValue={item.physical_location} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                    <option value="Digital Archive">Digital Archive</option>
                                                     <option value="SAHS (Physical Archive)">SAHS (Physical Archive)</option>
+                                                    <option value="Digital Archive">Digital Archive</option>
                                                 </select>
                                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
                                             </div>

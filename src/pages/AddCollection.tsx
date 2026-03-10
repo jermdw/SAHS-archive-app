@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FolderPlus, Image as ImageIcon, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';

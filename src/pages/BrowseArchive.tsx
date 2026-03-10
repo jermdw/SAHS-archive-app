@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, Folder, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, ArrowUpDown } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import type { ArchiveItem, ItemType, Collection } from '../types/database';
+import type { ArchiveItem, ItemType } from '../types/database';
 
 export function BrowseArchive() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -29,8 +29,7 @@ export function BrowseArchive() {
     };
 
     const [items, setItems] = useState<ArchiveItem[]>([]);
-    const [collections, setCollections] = useState<Collection[]>([]);
-    const [selectedCollection, setSelectedCollection] = useState<string>('All Collections');
+    const [selectedCollection] = useState<string>('All Collections');
     const [sortBy, setSortBy] = useState<string>('created_desc');
     const [loading, setLoading] = useState(true);
 
@@ -52,22 +51,7 @@ export function BrowseArchive() {
             }
         };
 
-        const fetchCollections = async () => {
-            try {
-                const q = query(collection(db, 'collections'), orderBy('title', 'asc'));
-                const querySnapshot = await getDocs(q);
-                const collectionsData = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })) as Collection[];
-                setCollections(collectionsData);
-            } catch (error) {
-                console.error("Error fetching collections:", error);
-            }
-        };
-
         fetchItems();
-        fetchCollections();
     }, []);
 
     // Unified client-side filtering
