@@ -1,9 +1,12 @@
 # SAHS Archive Application
 
+[![Deploy to Firebase Hosting](https://github.com/Senoia-Area-Historical-Society/SAHS-archive-app/actions/workflows/deploy.yml/badge.svg)](https://github.com/Senoia-Area-Historical-Society/SAHS-archive-app/actions/workflows/deploy.yml)
+
 The official digital archives platform for the **Senoia Area Historical Society (SAHS)**. This application provides a modern, high-performance interface for browsing, searching, and managing historical documents, artifacts, figures, and organizations related to the rich history of Senoia, Georgia.
 
 ## 🚀 Live Site
-Visit the public archive at: **[archives.senoiahistory.com](https://archives.senoiahistory.com)**
+- Visit us online at: **[senoiahistory.com](https://senoiahistory.com)**
+- Visit the public archive at: **[archives.senoiahistory.com](https://archives.senoiahistory.com)**
 
 ## ✨ Key Features
 - **Unified Search**: Quickly find documents, artifacts, and historical figures across the entire archive.
@@ -43,4 +46,4 @@ npm run build
 ```
 
 ---
-© 2025 Senoia Area Historical Society
+© 2026 Senoia Area Historical Society
