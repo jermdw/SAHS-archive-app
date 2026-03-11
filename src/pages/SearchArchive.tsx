@@ -15,6 +15,8 @@ export function SearchArchive() {
     const [searchYear, setSearchYear] = useState('');
     const [searchPlace, setSearchPlace] = useState('');
     const [searchTag, setSearchTag] = useState('');
+    const [searchArtifactId, setSearchArtifactId] = useState('');
+    const [sortBy, setSortBy] = useState<'newest' | 'az' | 'za' | 'id_asc' | 'id_desc'>('newest');
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -66,7 +68,38 @@ export function SearchArchive() {
         // Tag match (partial match)
         const matchesTag = !searchTag || (item.tags && item.tags.some(t => t.toLowerCase().includes(searchTag.toLowerCase())));
 
-        return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag;
+        // Artifact ID match (exact match)
+        const matchesArtifactId = !searchArtifactId || (item.artifact_id && item.artifact_id.toLowerCase() === searchArtifactId.toLowerCase());
+
+        return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId;
+    }).sort((a, b) => {
+        if (sortBy === 'newest') {
+            return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        }
+
+        if (sortBy === 'id_asc') {
+            const idA = parseInt(a.artifact_id || '0', 10);
+            const idB = parseInt(b.artifact_id || '0', 10);
+            if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
+            return (a.artifact_id || '').localeCompare(b.artifact_id || '');
+        }
+
+        if (sortBy === 'id_desc') {
+            const idA = parseInt(a.artifact_id || '0', 10);
+            const idB = parseInt(b.artifact_id || '0', 10);
+            if (!isNaN(idA) && !isNaN(idB)) return idB - idA;
+            return (b.artifact_id || '').localeCompare(a.artifact_id || '');
+        }
+
+        if (sortBy === 'az') {
+            return a.title.localeCompare(b.title);
+        }
+
+        if (sortBy === 'za') {
+            return b.title.localeCompare(a.title);
+        }
+
+        return 0;
     });
 
     const resetFilters = () => {
@@ -75,6 +108,8 @@ export function SearchArchive() {
         setSearchYear('');
         setSearchPlace('');
         setSearchTag('');
+        setSearchArtifactId('');
+        setSortBy('newest');
     };
 
     if (loading) {
@@ -190,6 +225,45 @@ export function SearchArchive() {
                         </div>
                     </div>
 
+                    {/* Filter: Sort By */}
+                    <div>
+                        <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Sort By</label>
+                        <div className="relative">
+                            <SlidersHorizontal className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
+                            <select
+                                className="w-full bg-cream pl-11 pr-10 py-3 rounded-lg border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value as any)}
+                            >
+                                <option value="newest">Newest First</option>
+                                <option value="az">A-Z (Title)</option>
+                                <option value="za">Z-A (Title)</option>
+                                <option value="id_asc">Numerical (ID # Low-High)</option>
+                                <option value="id_desc">Numerical (ID # High-Low)</option>
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <ChevronDownIcon />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Filter: Artifact ID */}
+                    {(selectedType === 'All Items' || selectedType === 'Artifact') && (
+                        <div className="md:col-span-1 border-t md:border-t-0 pt-4 md:pt-0">
+                            <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Artifact ID #</label>
+                            <div className="relative">
+                                <InfoIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" />
+                                <input
+                                    type="text"
+                                    placeholder="Enter artifact ID number..."
+                                    className="w-full bg-cream pl-11 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
+                                    value={searchArtifactId}
+                                    onChange={(e) => setSearchArtifactId(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Reset Button */}
                     <div className="md:col-span-2 lg:col-span-3 flex justify-between items-center mt-2">
                         <button
@@ -236,6 +310,16 @@ function ChevronDownIcon() {
     return (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-charcoal-light">
             <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+    );
+}
+
+function InfoIcon({ className }: { className?: string }) {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
         </svg>
     );
 }

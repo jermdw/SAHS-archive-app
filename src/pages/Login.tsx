@@ -20,7 +20,8 @@ export function Login() {
             await loginWithGoogle();
             navigate(from, { replace: true });
         } catch (err: any) {
-            setError(err.message || "Failed to log in.");
+            console.error("Login error details:", err);
+            setError(err.code ? `${err.message} (${err.code})` : err.message || "Failed to log in.");
             setIsLoading(false);
         }
     };

@@ -363,7 +363,7 @@ export function EditItem() {
             const updateData: Partial<ArchiveItem> = {
                 item_type: itemType,
                 file_urls: fileUrls,
-                featured_image_url: finalFeaturedUrl || (fileUrls.length > 0 ? fileUrls[0] : undefined),
+                featured_image_url: finalFeaturedUrl || (fileUrls.length > 0 ? fileUrls[0] : null),
                 tags: tags,
                 collection_id: (formData.get('collection_id') as string) || "",
                 updated_at: new Date().toISOString(),

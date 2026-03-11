@@ -84,10 +84,18 @@ export function BrowseArchive() {
                 return (a.title || '').localeCompare(b.title || '');
             case 'title_desc':
                 return (b.title || '').localeCompare(a.title || '');
-            case 'id_asc':
+            case 'id_asc': {
+                const idA = parseInt(a.artifact_id || '0', 10);
+                const idB = parseInt(b.artifact_id || '0', 10);
+                if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
                 return (a.artifact_id || '').localeCompare(b.artifact_id || '');
-            case 'id_desc':
+            }
+            case 'id_desc': {
+                const idA = parseInt(a.artifact_id || '0', 10);
+                const idB = parseInt(b.artifact_id || '0', 10);
+                if (!isNaN(idA) && !isNaN(idB)) return idB - idA;
                 return (b.artifact_id || '').localeCompare(a.artifact_id || '');
+            }
             default:
                 return 0;
         }
@@ -184,8 +192,8 @@ export function BrowseArchive() {
                         <option value="date_asc">Date of Origin (Oldest)</option>
                         <option value="title_asc">Alphabetical (A-Z)</option>
                         <option value="title_desc">Alphabetical (Z-A)</option>
-                        <option value="id_asc">ID # (A-Z)</option>
-                        <option value="id_desc">ID # (Z-A)</option>
+                        <option value="id_asc">Numerical (ID # Low-High)</option>
+                        <option value="id_desc">Numerical (ID # High-Low)</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-charcoal/60"><polyline points="6 9 12 15 18 9"></polyline></svg>
