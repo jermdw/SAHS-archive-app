@@ -28,6 +28,8 @@ dist-ssr
 .env.local
 .env
 .github/workflows/sahs-archives-website.code-workspace
+.firebase/
+.firebaserc
 
 # Migration data and secrets
 migration/service-account.json
