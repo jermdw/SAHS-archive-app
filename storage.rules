@@ -5,7 +5,7 @@ service firebase.storage {
     // Helper function to check if user has a @senoiahistory.com email
     function isSAHSUser() {
       return request.auth != null && 
-             request.auth.token.email.endsWith('@senoiahistory.com');
+             request.auth.token.email.matches('.*@senoiahistory[.]com');
     }
 
     // archive_media folder: Anyone can read, only SAHS users can write
