@@ -30,6 +30,7 @@ export interface ArchiveItem {
     death_date?: string | null;
     birthplace?: string | null;
     occupation?: string | null;
+    biography_sources?: string | null;
 
     // Organization specific
     org_name?: string | null;

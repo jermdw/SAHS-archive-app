@@ -416,6 +416,19 @@ export function ItemDetail() {
                 <div className="flex-1 flex flex-col">
 
 
+                    {/* Biography Sources Block */}
+                    {item.item_type === 'Historic Figure' && item.biography_sources && (
+                        <div className="mb-10 bg-tan-light/10 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">
+                            <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-3 mb-4">
+                                <BookOpen className="text-tan" size={20} />
+                                Biography Sources
+                            </h3>
+                            <div className="font-sans text-[15px] text-charcoal/80 leading-relaxed whitespace-pre-wrap">
+                                {item.biography_sources}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Transcription Block */}
                     {item.transcription && (
                         <div className="mb-10 bg-tan-light/10 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">

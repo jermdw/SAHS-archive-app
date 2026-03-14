@@ -6,8 +6,10 @@ import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
+import { useAuth } from '../contexts/AuthContext';
 
 export function EditItem() {
+    const { user } = useAuth();
     // Simplified PendingFilePreview
     const PendingFilePreview = ({
         file,
@@ -412,6 +414,7 @@ export function EditItem() {
                 death_date: formData.get('death_date') as string || "",
                 birthplace: formData.get('birthplace') as string || "",
                 occupation: formData.get('occupation') as string || "",
+                biography_sources: formData.get('biography_sources') as string || "",
 
                 // Organization Specific Biographics
                 org_name: formData.get('org_name') as string || "",
@@ -615,20 +618,22 @@ export function EditItem() {
                                 </div>
                             )}
 
-                            <button
-                                type="button"
-                                onClick={handleAutoExtract}
-                                disabled={isExtracting || selectedFiles.length === 0}
-                                className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-bold text-sm transition-all border ${isExtracting
-                                    ? 'bg-tan-light/20 text-tan border-tan-light/50 cursor-not-allowed'
-                                    : selectedFiles.length === 0
-                                        ? 'bg-cream/50 text-charcoal/30 border-tan-light/30 cursor-not-allowed'
-                                        : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm'
-                                    }`}
-                            >
-                                <Sparkles size={16} className={isExtracting ? 'animate-pulse' : ''} />
-                                {isExtracting ? 'Analyzing Document with AI...' : 'Auto-Extract from Newest Scan'}
-                            </button>
+                            {['catnolan@senoiahistory.com', 'jeremywarren@senoiahistory.com'].includes(user?.email || '') && (
+                                <button
+                                    type="button"
+                                    onClick={handleAutoExtract}
+                                    disabled={isExtracting || selectedFiles.length === 0}
+                                    className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-bold text-sm transition-all border ${isExtracting
+                                        ? 'bg-tan-light/20 text-tan border-tan-light/50 cursor-not-allowed'
+                                        : selectedFiles.length === 0
+                                            ? 'bg-cream/50 text-charcoal/30 border-tan-light/30 cursor-not-allowed'
+                                            : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm'
+                                        }`}
+                                >
+                                    <Sparkles size={16} className={isExtracting ? 'animate-pulse' : ''} />
+                                    {isExtracting ? 'Analyzing Document with AI...' : 'Auto-Extract from Newest Scan'}
+                                </button>
+                            )}
                         </div>
 
                         <div className="space-y-6">
@@ -779,6 +784,13 @@ export function EditItem() {
                                 <label htmlFor="description" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">{itemType === 'Historic Figure' ? 'Biography *' : itemType === 'Historic Organization' ? 'History & Description *' : itemType === 'Artifact' ? 'Physical Description & History *' : 'Description / History *'}</label>
                                 <textarea required id="description" name="description" defaultValue={item.description ?? undefined} placeholder={itemType === 'Document' ? "Historical context, transcriptions..." : itemType === 'Historic Organization' ? "Historical details, mission, key figures, and legacy..." : itemType === 'Artifact' ? "Physical details, materials, historical use, and significance..." : "Life history, achievements..."} className="w-full min-h-[160px] bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
                             </div>
+
+                            {itemType === 'Historic Figure' && (
+                                <div>
+                                    <label htmlFor="biography_sources" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Biography Sources</label>
+                                    <textarea id="biography_sources" name="biography_sources" defaultValue={item.biography_sources ?? undefined} placeholder="List sources, books, links, or documents used for this biography..." className="w-full min-h-[100px] bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
+                                </div>
+                            )}
 
                             <div>
                                 <label htmlFor="transcription" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Transcription</label>

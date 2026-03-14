@@ -5,8 +5,10 @@ import { collection, addDoc, getDocs, query } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ItemType, Collection, ArchiveItem } from '../types/database';
+import { useAuth } from '../contexts/AuthContext';
 
 export function AddItem() {
+    const { user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -287,6 +289,7 @@ export function AddItem() {
                 death_date: formData.get('death_date') as string || "",
                 birthplace: formData.get('birthplace') as string || "",
                 occupation: formData.get('occupation') as string || "",
+                biography_sources: formData.get('biography_sources') as string || "",
 
                 // Organization Specific Biographics
                 org_name: formData.get('org_name') as string || "",
@@ -537,20 +540,22 @@ export function AddItem() {
                                 )}
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={handleAutoExtract}
-                                disabled={isExtracting || selectedFiles.length === 0}
-                                className={`mt-6 w-full flex items-center justify-center gap-3 py-4 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isExtracting
-                                    ? 'bg-tan-light/10 text-tan border-tan-light/30 cursor-not-allowed'
-                                    : selectedFiles.length === 0
-                                        ? 'bg-cream/50 text-charcoal/20 border-tan-light/20 cursor-not-allowed'
-                                        : 'bg-indigo-50/50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 hover:shadow-md'
-                                    }`}
-                            >
-                                <Sparkles size={18} className={isExtracting ? 'animate-pulse' : ''} />
-                                {isExtracting ? 'Analyzing Document Content...' : 'Auto-Fill using AI Intelligence'}
-                            </button>
+                            {['catnolan@senoiahistory.com', 'jeremywarren@senoiahistory.com'].includes(user?.email || '') && (
+                                <button
+                                    type="button"
+                                    onClick={handleAutoExtract}
+                                    disabled={isExtracting || selectedFiles.length === 0}
+                                    className={`mt-6 w-full flex items-center justify-center gap-3 py-4 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isExtracting
+                                        ? 'bg-tan-light/10 text-tan border-tan-light/30 cursor-not-allowed'
+                                        : selectedFiles.length === 0
+                                            ? 'bg-cream/50 text-charcoal/20 border-tan-light/20 cursor-not-allowed'
+                                            : 'bg-indigo-50/50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 hover:shadow-md'
+                                        }`}
+                                >
+                                    <Sparkles size={18} className={isExtracting ? 'animate-pulse' : ''} />
+                                    {isExtracting ? 'Analyzing Document Content...' : 'Auto-Fill using AI Intelligence'}
+                                </button>
+                            )}
                         </div>
 
                         <div className="space-y-6">
@@ -710,6 +715,15 @@ export function AddItem() {
                                 </label>
                                 <textarea required id="description" name="description" placeholder={itemType === 'Historic Figure' ? "Biographical details, family history, and significance..." : itemType === 'Historic Organization' ? "Historical details, mission, key figures, and legacy..." : itemType === 'Artifact' ? "Physical details, materials, historical use, and significance..." : "Provide background, provenance, or biographical details..."} className="w-full min-h-[140px] bg-white border border-tan-light/50 px-4 py-3 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans resize-none leading-relaxed"></textarea>
                             </div>
+                            
+                            {itemType === 'Historic Figure' && (
+                                <div className="mt-6">
+                                    <label htmlFor="biography_sources" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">
+                                        Biography Sources
+                                    </label>
+                                    <textarea id="biography_sources" name="biography_sources" placeholder="List sources, books, links, or documents used for this biography..." className="w-full min-h-[100px] bg-white border border-tan-light/50 px-4 py-3 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans resize-none leading-relaxed"></textarea>
+                                </div>
+                            )}
                         </div>
                     </div >
                 </div >
