@@ -30,6 +30,7 @@ dist-ssr
 .github/workflows/sahs-archives-website.code-workspace
 .firebase/
 .firebaserc
+*.code-workspace
 
 # Migration data and secrets
 migration/service-account.json
