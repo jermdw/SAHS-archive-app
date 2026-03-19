@@ -6,6 +6,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ItemType, Collection, ArchiveItem } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
+import { ImageCropper } from '../components/ImageCropper';
 
 export function AddItem() {
     const { user } = useAuth();
@@ -64,6 +65,7 @@ export function AddItem() {
     const [currentTags, setCurrentTags] = useState<string[]>([]);
     const [showTagSuggestions, setShowTagSuggestions] = useState(false);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+    const [croppingImageIndex, setCroppingImageIndex] = useState<number | null>(null);
     const [physicalLocationValue, setPhysicalLocationValue] = useState('SAHS (Physical Archive)');
 
     // Document linking for Figures
@@ -356,6 +358,18 @@ export function AddItem() {
         !selectedRelatedOrgs.find(so => so.id === o.id)
     );
 
+    const handleCropComplete = (croppedBlob: Blob) => {
+        if (croppingImageIndex === null) return;
+        
+        const originalFile = selectedFiles[croppingImageIndex];
+        const croppedFile = new File([croppedBlob], originalFile.name, { type: 'image/jpeg' });
+        
+        const newFiles = [...selectedFiles];
+        newFiles[croppingImageIndex] = croppedFile;
+        setSelectedFiles(newFiles);
+        setCroppingImageIndex(null);
+    };
+
     if (success) {
         return (
             <div className="max-w-2xl mx-auto h-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
@@ -405,6 +419,16 @@ export function AddItem() {
                         Use mouse/scroll to move around
                     </div>
                 </div>
+            )}
+
+            {/* Cropper Modal */}
+            {croppingImageIndex !== null && (
+                <ImageCropper
+                    image={fileObjectURLs.get(selectedFiles[croppingImageIndex]) || ''}
+                    onCropComplete={handleCropComplete}
+                    onCancel={() => setCroppingImageIndex(null)}
+                    aspectRatio={itemType === 'Historic Figure' ? 0.8 : undefined}
+                />
             )}
 
             <div className="mb-8 border-b border-tan-light/50 pb-6">
@@ -502,6 +526,19 @@ export function AddItem() {
                                                         >
                                                             <CheckCircle size={12} />
                                                         </button>
+                                                        {isImage && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setCroppingImageIndex(idx);
+                                                                }}
+                                                                className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
+                                                                title="Crop Image"
+                                                            >
+                                                                <Sparkles size={12} />
+                                                            </button>
+                                                        )}
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
@@ -564,7 +601,7 @@ export function AddItem() {
                                 <input required type="text" name="title" id="title" placeholder={itemType === 'Historic Figure' ? "e.g. John Doe" : itemType === 'Historic Organization' ? "e.g. Senoia General Store" : itemType === 'Artifact' ? "e.g. Civil War Bayonet" : "Descriptive title for the archive"} className="w-full bg-white border border-tan-light/50 px-4 py-4 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans text-lg font-medium" />
                             </div>
 
-                            {itemType === 'Historic Organization' ? (
+                            {itemType === 'Historic Organization' && (
                                 <>
                                     <div className="grid grid-cols-1 gap-4">
                                         <div>
@@ -580,7 +617,7 @@ export function AddItem() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="founding_date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Founding Date</label>
+                                            <label htmlFor="founding_date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Established Date</label>
                                             <input type="text" name="founding_date" id="founding_date" placeholder="MM/DD/YYYY" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
                                         </div>
                                         <div>
@@ -589,86 +626,37 @@ export function AddItem() {
                                         </div>
                                     </div>
                                 </>
-                            ) : itemType === 'Historic Figure' ? (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="full_name" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Full Given Name</label>
-                                            <input type="text" name="full_name" id="full_name" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="also_known_as" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Also Known As / Alias</label>
-                                            <input type="text" name="also_known_as" id="also_known_as" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="birth_date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Birth Date</label>
-                                            <input type="text" name="birth_date" id="birth_date" placeholder="MM/DD/YYYY" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="death_date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Death Date</label>
-                                            <input type="text" name="death_date" id="death_date" placeholder="MM/DD/YYYY" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="birthplace" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Birthplace</label>
-                                            <input type="text" name="birthplace" id="birthplace" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="occupation" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Occupation / Title</label>
-                                            <input type="text" name="occupation" id="occupation" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {itemType === 'Artifact' ? (
-                                            <div>
-                                                <label htmlFor="artifact_type" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Type</label>
-                                                <div className="relative">
-                                                    <select name="artifact_type" id="artifact_type" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                        {["textile", "photo", "print", "award/trophy", "memorabilia", "furniture", "ceramics", "miscellaneous", "technology", "signs", "jewelry", "metal", "glass", "agriculture"].map(t => (
-                                                            <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                                                        ))}
-                                                    </select>
-                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <label htmlFor="collection_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
-                                                <div className="relative">
-                                                    <select name="collection_id" id="collection_id" value={selectedCollectionId} onChange={handleCollectionChange} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                        <option value="">No Collection</option>
-                                                        {collections.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                                                        <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
-                                                    </select>
-                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
-                                                </div>
-                                            </div>
-                                        )}
-                                        {itemType === 'Artifact' ? (
-                                            <div>
-                                                <label htmlFor="artifact_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">ID #</label>
-                                                <input type="text" name="artifact_id" id="artifact_id" placeholder="e.g. 2024.01.05" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
-                                                <div className="relative">
-                                                    <select name="category" id="category" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                        {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Magazine", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
-                                                    </select>
-                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                            )}
 
-                                    <div className="grid grid-cols-2 gap-4">
+                            {/* General Archive Metadata (Universal Fields) */}
+                            <div className="mt-8 pt-8 border-t border-tan-light/30">
+                                <h4 className="text-sm font-bold text-tan uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <BookOpen size={16} /> General Archive Metadata
+                                </h4>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label htmlFor="historical_address" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Historical Physical Address (For Map View)</label>
+                                        <input type="text" name="historical_address" id="historical_address" placeholder="e.g. 123 Main St, Senoia, GA" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                    </div>
+                                    {itemType !== 'Historic Organization' && (
+                                        <div>
+                                            <label htmlFor="date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Date (e.g. 1920, c. 1905)</label>
+                                            <input type="text" name="date" id="date" placeholder="Approximate or Exact Date" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                        </div>
+                                    )}
+                                    {itemType !== 'Historic Organization' && (
+                                        <div>
+                                            <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
+                                            <div className="relative">
+                                                <select name="category" id="category" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                    {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Magazine", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {itemType !== 'Historic Organization' && (
                                         <div>
                                             <label htmlFor="condition" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Condition</label>
                                             <div className="relative">
@@ -678,19 +666,75 @@ export function AddItem() {
                                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
                                             </div>
                                         </div>
+                                    )}
+                                    {itemType !== 'Historic Organization' && (
                                         <div>
-                                            <label htmlFor="date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Date (e.g. 1920, c. 1905)</label>
-                                            <input type="text" name="date" id="date" placeholder="Approximate or Exact Date" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                            <label htmlFor="collection_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
+                                            <div className="relative">
+                                                <select name="collection_id" id="collection_id" value={selectedCollectionId} onChange={handleCollectionChange} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                    <option value="">No Collection</option>
+                                                    {collections.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                                                    <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
+                                                </select>
+                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {itemType === 'Historic Figure' && (
+                                <div className="mt-8 pt-8 border-t border-tan-light/30">
+                                    <h4 className="text-sm font-bold text-tan uppercase tracking-widest mb-6 flex items-center gap-2">
+                                        <Users size={16} /> Biographic Details
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                        <div>
+                                            <label htmlFor="full_name" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Full Given Name</label>
+                                            <input type="text" name="full_name" id="full_name" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="also_known_as" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Also Known As / Alias</label>
+                                            <input type="text" name="also_known_as" id="also_known_as" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="birth_date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Birth Date</label>
+                                            <input type="text" name="birth_date" id="birth_date" placeholder="MM/DD/YYYY" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="death_date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Death Date</label>
+                                            <input type="text" name="death_date" id="death_date" placeholder="MM/DD/YYYY" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="birthplace" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Birthplace</label>
+                                            <input type="text" name="birthplace" id="birthplace" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="occupation" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Occupation / Title</label>
+                                            <input type="text" name="occupation" id="occupation" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
                                         </div>
                                     </div>
+                                </div>
+                            )}
 
-                                    <div className="grid grid-cols-1 gap-4 mt-4">
+                            {!['Historic Figure', 'Historic Organization'].includes(itemType) && (
+                                <div className="mt-6 pt-6 border-t border-tan-light/30">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {itemType === 'Artifact' && (
+                                            <div>
+                                                <label htmlFor="artifact_type" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Artifact Type</label>
+                                                <div className="relative">
+                                                    <select name="artifact_type" id="artifact_type" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                        {["textile", "photo", "print", "award/trophy", "memorabilia", "furniture", "ceramics", "miscellaneous", "technology", "signs", "jewelry", "metal", "glass", "agriculture"].map(t => (
+                                                            <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                                </div>
+                                            </div>
+                                        )}
                                         <div>
-                                            <label htmlFor="historical_address" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Historical Physical Address (For Map View)</label>
-                                            <input type="text" name="historical_address" id="historical_address" placeholder="e.g. 123 Main St, Senoia, GA" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="physical_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">File Location</label>
+                                            <label htmlFor="physical_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Filing Location</label>
                                             <div className="relative">
                                                 <select name="physical_location" id="physical_location" value={physicalLocationValue} onChange={(e) => setPhysicalLocationValue(e.target.value)} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
                                                     <option value="SAHS (Physical Archive)">SAHS (Physical Archive)</option>
@@ -706,7 +750,7 @@ export function AddItem() {
                                             )}
                                         </div>
                                     </div>
-                                </>
+                                </div>
                             )}
 
                             <div>
@@ -742,6 +786,10 @@ export function AddItem() {
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="artifact_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Artifact ID #</label>
+                                <input type="text" name="artifact_id" id="artifact_id" placeholder="e.g. 2024.01.05" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
+                            </div>
                             {itemType !== 'Artifact' && (
                                 <>
                                     <div>

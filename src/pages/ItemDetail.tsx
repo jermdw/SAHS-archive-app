@@ -223,7 +223,7 @@ export function ItemDetail() {
                                         <p className="text-lg font-serif text-charcoal">{item.date}</p>
                                     </div>
                                 )}
-                                {item.archive_reference && item.item_type !== 'Artifact' && (
+                                {item.archive_reference && (
                                     <div className="sm:col-span-2">
                                         <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
                                             <FileText size={14} /> Filing Code
@@ -231,12 +231,18 @@ export function ItemDetail() {
                                         <p className="text-lg font-serif text-charcoal">{item.archive_reference}</p>
                                     </div>
                                 )}
-                                {item.identifier && item.item_type !== 'Artifact' && (
+                                {item.identifier && (
                                     <div className="sm:col-span-2">
                                         <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
                                             <BookOpen size={14} /> Archive Reference
                                         </p>
                                         <p className="text-lg font-serif text-charcoal">{item.identifier}</p>
+                                    </div>
+                                )}
+                                {item.artifact_id && (
+                                    <div>
+                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">ID #</p>
+                                        <p className="text-lg font-serif text-charcoal">{item.artifact_id}</p>
                                     </div>
                                 )}
                                 {item.creator && (
@@ -341,12 +347,6 @@ export function ItemDetail() {
                                             <span className="inline-block bg-tan/10 text-tan px-3 py-1 rounded-full text-xs font-bold border border-tan/20 mt-1 capitalize">
                                                 {item.artifact_type}
                                             </span>
-                                        </div>
-                                    )}
-                                    {item.artifact_id && (
-                                        <div>
-                                            <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">ID #</p>
-                                            <p className="text-lg font-serif text-charcoal">{item.artifact_id}</p>
                                         </div>
                                     )}
                                     {item.donor && (

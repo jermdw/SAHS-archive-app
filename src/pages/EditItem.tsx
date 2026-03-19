@@ -7,29 +7,31 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
+import { ImageCropper } from '../components/ImageCropper';
 
 export function EditItem() {
     const { user } = useAuth();
-    // Simplified PendingFilePreview
     const PendingFilePreview = ({
         file,
         url,
         isFeatured,
         onSetFeatured,
-        onRemove
+        onRemove,
+        onCrop
     }: {
         file: File,
         url: string,
         isFeatured: boolean,
         onSetFeatured: (url: string) => void,
-        onRemove: () => void
+        onRemove: () => void,
+        onCrop?: () => void
     }) => {
         const isImage = file.type.startsWith('image/');
 
         return (
             <div className={`relative aspect-square rounded-lg overflow-hidden border-2 border-dashed transition-all group/thumb ${isFeatured ? 'border-tan ring-2 ring-tan/20 shadow-md' : 'border-indigo-200'}`}>
                 {isImage ? (
-                    <img src={url} className="w-full h-full object-cover" alt="new" />
+                    <img src={url} className="w-full h-full object-cover cursor-zoom-in" alt="new" onClick={() => onCrop ? null : setZoomedImage(url)} />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300">
                         <ImageIcon size={20} />
@@ -44,6 +46,19 @@ export function EditItem() {
                     >
                         <CheckCircle size={14} />
                     </button>
+                    {onCrop && isImage && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onCrop();
+                            }}
+                            className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
+                            title="Crop Image"
+                        >
+                            <Sparkles size={14} />
+                        </button>
+                    )}
                 </div>
                 <button
                     type="button"
@@ -78,6 +93,8 @@ export function EditItem() {
     const [existingFileUrls, setExistingFileUrls] = useState<string[]>([]);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [fileObjectURLs, setFileObjectURLs] = useState<Map<File, string>>(new Map());
+    const [croppingImageIndex, setCroppingImageIndex] = useState<number | null>(null);
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
     // Clean up blob URLs on unmount
     useEffect(() => {
@@ -121,6 +138,18 @@ export function EditItem() {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
+    const handleCropComplete = (croppedBlob: Blob) => {
+        if (croppingImageIndex === null) return;
+        
+        const originalFile = selectedFiles[croppingImageIndex];
+        const croppedFile = new File([croppedBlob], originalFile.name, { type: 'image/jpeg' });
+        
+        const newFiles = [...selectedFiles];
+        newFiles[croppingImageIndex] = croppedFile;
+        setSelectedFiles(newFiles);
+        setCroppingImageIndex(null);
+    };
+
 
     // Networking / Linking
     const [allFigures, setAllFigures] = useState<{ id: string, title: string }[]>([]);
@@ -137,6 +166,27 @@ export function EditItem() {
     const [selectedRelatedOrgs, setSelectedRelatedOrgs] = useState<{ id: string, title: string }[]>([]);
     const [orgSearch, setOrgSearch] = useState('');
     const [showOrgResults, setShowOrgResults] = useState(false);
+
+    const cropExistingImage = async (url: string) => {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const fileName = url.split('/').pop()?.split('?')[0] || 'existing_image.jpg';
+            const file = new File([blob], fileName, { type: blob.type });
+            
+            // Add to selected files
+            const newIndex = selectedFiles.length;
+            setSelectedFiles(prev => [...prev, file]);
+            
+            // Wait for fileObjectURLs to update via useEffect or just use the blob URL directly
+            // But croppingImageIndex uses fileObjectURLs.
+            // Let's just set the index and the useEffect will handle the rest.
+            setCroppingImageIndex(newIndex);
+        } catch (err) {
+            console.error("Error cropping existing image:", err);
+            setError("Failed to load existing image for cropping. You may need to re-upload it to crop.");
+        }
+    };
 
     // Collections
     const [collections, setCollections] = useState<Collection[]>([]);
@@ -481,7 +531,38 @@ export function EditItem() {
     if (!item) return null;
 
     return (
-        <div className="max-w-5xl mx-auto h-full flex flex-col pb-12">
+        <div className="max-w-5xl mx-auto h-full flex flex-col pb-12 relative">
+            {/* Zoom Overlay */}
+            {zoomedImage && (
+                <div
+                    className="fixed inset-0 z-[100] bg-charcoal/90 flex items-center justify-center p-4 md:p-12 cursor-zoom-out"
+                    onClick={() => setZoomedImage(null)}
+                >
+                    <div className="relative max-w-full max-h-full overflow-auto text-charcoal">
+                        <img
+                            src={zoomedImage}
+                            alt="Zoomed Preview"
+                            className="max-w-none w-auto h-auto min-w-full rounded shadow-2xl"
+                        />
+                    </div>
+                    <button className="absolute top-8 right-8 text-white hover:text-tan transition-colors">
+                        <X size={32} />
+                    </button>
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70 text-sm bg-charcoal/50 px-4 py-2 rounded-full backdrop-blur-sm">
+                        Use mouse/scroll to move around
+                    </div>
+                </div>
+            )}
+
+            {/* Cropper Modal */}
+            {croppingImageIndex !== null && (
+                <ImageCropper
+                    image={fileObjectURLs.get(selectedFiles[croppingImageIndex]) || ''}
+                    onCropComplete={handleCropComplete}
+                    onCancel={() => setCroppingImageIndex(null)}
+                    aspectRatio={itemType === 'Historic Figure' ? 0.8 : undefined}
+                />
+            )}
             <div className="mb-8 border-b border-tan-light/50 pb-6 flex items-center justify-between">
                 <div>
                     <h1 className="text-4xl font-serif font-bold mb-3 text-charcoal tracking-tight flex items-center gap-3">
@@ -572,14 +653,22 @@ export function EditItem() {
                                             <div key={`existing-${idx}`} className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all group/thumb ${featuredImageUrl === url ? 'border-tan ring-2 ring-tan/20 shadow-md' : 'border-tan-light/30'}`}>
                                                 <img src={url} className="w-full h-full object-cover" alt="existing" />
                                                 <div className="absolute inset-0 bg-charcoal/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setFeaturedImageUrl(url)}
-                                                        className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
-                                                        title="Set as Featured"
-                                                    >
-                                                        <CheckCircle size={14} />
-                                                    </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setFeaturedImageUrl(url)}
+                                                            className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
+                                                            title="Set as Featured"
+                                                        >
+                                                            <CheckCircle size={14} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => cropExistingImage(url)}
+                                                            className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
+                                                            title="Crop Image"
+                                                        >
+                                                            <Sparkles size={14} />
+                                                        </button>
                                                 </div>
                                                 <button
                                                     type="button"
@@ -608,6 +697,7 @@ export function EditItem() {
                                                     isFeatured={featuredImageUrl === url}
                                                     onSetFeatured={(url) => setFeaturedImageUrl(url)}
                                                     onRemove={() => removeNewFile(idx)}
+                                                    onCrop={() => setCroppingImageIndex(idx)}
                                                 />
                                             );
                                         })}
@@ -658,7 +748,7 @@ export function EditItem() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="founding_date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Founding Date</label>
+                                            <label htmlFor="founding_date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Established Date</label>
                                             <input type="text" name="founding_date" id="founding_date" defaultValue={item.founding_date ?? undefined} placeholder="MM/DD/YYYY" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
                                         </div>
                                         <div>
@@ -700,65 +790,69 @@ export function EditItem() {
                                         </div>
                                     </div>
                                 </>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {itemType === 'Artifact' ? (
-                                            <div>
-                                                <label htmlFor="artifact_type" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Type</label>
-                                                <div className="relative">
-                                                    <select name="artifact_type" id="artifact_type" defaultValue={item.artifact_type ?? undefined} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                        {["textile", "photo", "print", "award/trophy", "memorabilia", "furniture", "ceramics", "miscellaneous", "technology", "signs", "jewelry", "metal", "glass", "agriculture"].map(t => (
-                                                            <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                                                        ))}
-                                                    </select>
-                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
-                                                <div className="relative">
-                                                    <select name="category" id="category" defaultValue={item.category ?? undefined} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                        {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Magazine", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
-                                                    </select>
-                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
-                                                </div>
-                                            </div>
-                                        )}
-                                        {itemType === 'Artifact' ? (
-                                            <div>
-                                                <label htmlFor="artifact_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">ID #</label>
-                                                <input type="text" name="artifact_id" id="artifact_id" defaultValue={item.artifact_id ?? undefined} placeholder="e.g. 2024.01.05" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <label htmlFor="collection_id" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
-                                                <select name="collection_id" id="collection_id" value={selectedCollectionId} onChange={handleCollectionChange} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none text-sm">
-                                                    <option value="">-- No Collection --</option>
-                                                    {collections.map(c => (
-                                                        <option key={c.id} value={c.id}>{c.title}</option>
-                                                    ))}
-                                                    <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
-                                                </select>
-                                            </div>
-                                        )}
-                                    </div>
+                            ) : null}
 
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="condition" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Condition</label>
-                                            <div className="relative">
-                                                <select name="condition" id="condition" defaultValue={item.condition ?? undefined} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                    {["Excellent", "Good", "Fair", "Poor", "Fragile", "Needs To Be Rescanned"].map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
-                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                        {itemType !== 'Historic Organization' && (
+                                            <>
+                                                {itemType === 'Artifact' ? (
+                                                    <div>
+                                                        <label htmlFor="artifact_type" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Type</label>
+                                                        <div className="relative">
+                                                            <select name="artifact_type" id="artifact_type" defaultValue={item.artifact_type ?? undefined} className="w-full bg-white border border-moderate-tan/30 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                                {["textile", "photo", "print", "award/trophy", "memorabilia", "furniture", "ceramics", "miscellaneous", "technology", "signs", "jewelry", "metal", "glass", "agriculture"].map(t => (
+                                                                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                                                                ))}
+                                                            </select>
+                                                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
+                                                        <div className="relative">
+                                                            <select name="category" id="category" defaultValue={item.category ?? undefined} className="w-full bg-white border border-moderate-tan/30 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                                {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Magazine", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
+                                                            </select>
+                                                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {itemType === 'Artifact' ? (
+                                                    <div>
+                                                        {/* Removed artifact_id from here, moved to Core Archival Metadata section */}
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <label htmlFor="collection_id" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
+                                                        <select name="collection_id" id="collection_id" value={selectedCollectionId} onChange={handleCollectionChange} className="w-full bg-white border border-moderate-tan/30 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none text-sm">
+                                                            <option value="">-- No Collection --</option>
+                                                            {collections.map(c => (
+                                                                <option key={c.id} value={c.id}>{c.title}</option>
+                                                            ))}
+                                                            <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                        {itemType !== 'Historic Organization' && (
+                                            <div>
+                                                <label htmlFor="condition" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Condition</label>
+                                                <div className="relative">
+                                                    <select name="condition" id="condition" defaultValue={item.condition ?? undefined} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                        {["Excellent", "Good", "Fair", "Poor", "Fragile", "Needs To Be Rescanned"].map(c => <option key={c} value={c}>{c}</option>)}
+                                                    </select>
+                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div>
-                                            <label htmlFor="date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Date (e.g. 1920, c. 1905)</label>
-                                            <input type="text" name="date" id="date" defaultValue={item.date ?? undefined} placeholder="Approximate or Exact Date" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
-                                        </div>
+                                        )}
+                                        {itemType !== 'Historic Organization' && (
+                                            <div>
+                                                <label htmlFor="date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Date (e.g. 1920, c. 1905)</label>
+                                                <input type="text" name="date" id="date" defaultValue={item.date ?? undefined} placeholder="Approximate or Exact Date" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-4 mt-4">
@@ -777,8 +871,7 @@ export function EditItem() {
                                             </div>
                                         </div>
                                     </div>
-                                </>
-                            )}
+
 
                             <div>
                                 <label htmlFor="description" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">{itemType === 'Historic Figure' ? 'Biography *' : itemType === 'Historic Organization' ? 'History & Description *' : itemType === 'Artifact' ? 'Physical Description & History *' : 'Description / History *'}</label>
@@ -808,6 +901,10 @@ export function EditItem() {
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label htmlFor="artifact_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Artifact ID #</label>
+                            <input type="text" name="artifact_id" id="artifact_id" defaultValue={item.artifact_id ?? undefined} placeholder="e.g. 2024.01.05" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
+                        </div>
                         {itemType !== 'Artifact' && (
                             <>
                                 <div>
@@ -819,6 +916,11 @@ export function EditItem() {
                                     <input type="text" name="identifier" id="identifier" defaultValue={item.identifier ?? undefined} placeholder="e.g. LTR_Jun. 14, 1945" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
                                 </div>
                             </>
+                        )}
+                        {itemType === 'Artifact' && (
+                            <div>
+                                {/* Moved to general section below */}
+                            </div>
                         )}
                         <div>
                             <label htmlFor="subject" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Subject (DC:Subject)</label>
@@ -833,12 +935,15 @@ export function EditItem() {
                             <input type="text" name="donor" id="donor" defaultValue={item.donor ?? undefined} placeholder="Donated by" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
                         </div>
                         <div>
-                            <label htmlFor="subject" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Subject (DC:Subject)</label>
-                            <input type="text" name="subject" id="subject" defaultValue={item.subject ?? undefined} placeholder="Topic keywords" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
-                        </div>
-                        <div>
                             <label htmlFor="tags" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Archive Tags (Comma Separated)</label>
                             <input type="text" name="tags" id="tags" defaultValue={item.tags?.join(', ')} placeholder="e.g. Civil War, Main Street, Architecture" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
+                        </div>
+                        <div>
+                            {/* Handled by the conditional rendering logic */}
+                        </div>
+                        <div>
+                            <label htmlFor="historical_address" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Historical Address (For Map)</label>
+                            <input type="text" name="historical_address" id="historical_address" defaultValue={item.historical_address ?? undefined} placeholder="e.g. 123 Main St, Senoia, GA" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
                         </div>
                         <div className="md:col-span-2">
                             <label htmlFor="museum_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Museum Location (Specific Shelf/Box)</label>

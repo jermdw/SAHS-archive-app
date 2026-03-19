@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, LayoutGrid, Map as MapIcon } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
+import { ArchiveMap } from '../components/ArchiveMap';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import type { ArchiveItem, ItemType } from '../types/database';
@@ -12,6 +13,7 @@ export function BrowseArchive() {
 
     const [search, setSearch] = useState('');
     const [selectedType, setSelectedType] = useState<ItemType | 'All Items'>(typeParam);
+    const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
     useEffect(() => {
         setSelectedType(typeParam);
@@ -199,15 +201,39 @@ export function BrowseArchive() {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-charcoal/60"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
                 </div>
+
+                <div className="w-px bg-tan-light/50 hidden md:block" />
+                
+                {/* View Selector */}
+                <div className="flex bg-cream/50 p-1 rounded-lg border border-tan-light/30">
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white text-tan shadow-sm' : 'text-charcoal/40 hover:text-charcoal'}`}
+                        title="Grid View"
+                    >
+                        <LayoutGrid size={20} />
+                    </button>
+                    <button
+                        onClick={() => setViewMode('map')}
+                        className={`p-2 rounded-md transition-all ${viewMode === 'map' ? 'bg-white text-tan shadow-sm' : 'text-charcoal/40 hover:text-charcoal'}`}
+                        title="Map View"
+                    >
+                        <MapIcon size={20} />
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1">
                 {sortedItems.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">
-                        {sortedItems.map(item => (
-                            <DocumentCard key={item.id} item={item} />
-                        ))}
-                    </div>
+                    viewMode === 'grid' ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">
+                            {sortedItems.map(item => (
+                                <DocumentCard key={item.id} item={item} />
+                            ))}
+                        </div>
+                    ) : (
+                        <ArchiveMap items={sortedItems} />
+                    )
                 ) : (
                     <div className="text-center py-24 bg-white rounded-xl border border-tan-light/50 shadow-sm">
                         <p className="text-charcoal-light text-xl font-serif italic mb-2">No items found.</p>
