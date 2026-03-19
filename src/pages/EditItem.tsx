@@ -388,7 +388,7 @@ export function EditItem() {
                 language: formData.get('language') as string || "",
                 type: formData.get('dc_type') as string || "",
                 identifier: formData.get('identifier') as string || "",
-                source: formData.get('source') as string || "",
+                source: (formData.get('source') as string) || (formData.get('source_institution') as string) || "",
                 coverage: formData.get('coverage') as string || "",
 
                 // SAHS Archival Tracking
@@ -720,7 +720,7 @@ export function EditItem() {
                                                 <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
                                                 <div className="relative">
                                                     <select name="category" id="category" defaultValue={item.category ?? undefined} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                        {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
+                                                        {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Magazine", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
                                                     </select>
                                                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
                                                 </div>
@@ -844,6 +844,12 @@ export function EditItem() {
                             <label htmlFor="museum_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Museum Location (Specific Shelf/Box)</label>
                             <input type="text" name="museum_location" id="museum_location" defaultValue={item.museum_location ?? undefined} placeholder="e.g. Shelf 4, Drawer B, Box 12" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
                         </div>
+                        {(itemType === 'Historic Figure' || itemType === 'Historic Organization') && (
+                            <div className="md:col-span-2">
+                                <label htmlFor="source_institution" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Source Institution / Media Acknowledgement</label>
+                                <input type="text" name="source_institution" id="source_institution" defaultValue={item.source ?? undefined} placeholder="e.g. Courtesy of the National Archives" className="w-full bg-cream/50 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-sans text-sm" />
+                            </div>
+                        )}
                     </div>
 
                     {/* Advanced Dublin Core Accordion */}

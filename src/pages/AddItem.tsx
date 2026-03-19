@@ -306,7 +306,7 @@ export function AddItem() {
                 language: formData.get('language') as string || "",
                 type: formData.get('dc_type') as string || "",
                 identifier: formData.get('identifier') as string || "",
-                source: formData.get('source') as string || "",
+                source: (formData.get('source') as string) || (formData.get('source_institution') as string) || "",
 
                 artifact_id: formData.get('artifact_id') as string || "",
                 artifact_type: formData.get('artifact_type') as string || "",
@@ -410,7 +410,7 @@ export function AddItem() {
             <div className="mb-8 border-b border-tan-light/50 pb-6">
                 <h1 className="text-4xl font-serif font-bold mb-3 text-charcoal tracking-tight flex items-center gap-3">
                     <Upload className="text-tan" size={32} />
-                    Ingest Archive Item
+                    Add Archive Item
                 </h1>
                 <p className="text-charcoal/70 text-lg">Preserve a new document, photograph, or historic figure in the digital vault.</p>
             </div>
@@ -660,7 +660,7 @@ export function AddItem() {
                                                 <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
                                                 <div className="relative">
                                                     <select name="category" id="category" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                        {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
+                                                        {["Manuscript", "Photograph", "Map", "Artifact", "Letter", "Newspaper", "Magazine", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
                                                     </select>
                                                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
                                                 </div>
@@ -770,6 +770,12 @@ export function AddItem() {
                                 <label htmlFor="museum_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Museum Location (Specific Shelf/Box)</label>
                                 <input type="text" name="museum_location" id="museum_location" placeholder="e.g. Shelf 4, Drawer B, Box 12" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
                             </div>
+                            {(itemType === 'Historic Figure' || itemType === 'Historic Organization') && (
+                                <div className="md:col-span-2">
+                                    <label htmlFor="source_institution" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Source Institution / Media Acknowledgement</label>
+                                    <input type="text" name="source_institution" id="source_institution" placeholder="e.g. Courtesy of the National Archives" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
+                                </div>
+                            )}
                         </div>
 
                         {itemType !== 'Historic Figure' ? (
