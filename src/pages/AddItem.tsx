@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Plus, Search, FileText, Tag } from 'lucide-react';
+import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Plus, Search, FileText, Tag, Users, Maximize2 } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { collection, addDoc, getDocs, query } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -146,7 +146,7 @@ export function AddItem() {
         fetchInitialData();
     }, []);
 
-    const handleAutoExtract = async () => {
+    const handleAutoExtract = async (mode: 'full' | 'transcription' = 'full') => {
         if (selectedFiles.length === 0) {
             setError("Please select a file first before extracting metadata.");
             return;
@@ -157,7 +157,7 @@ export function AddItem() {
         setError(null);
 
         try {
-            const metadata = await extractMetadataFromFile(file);
+            const metadata = await extractMetadataFromFile(file, mode);
             console.log("Extracted Metadata:", metadata);
 
             const form = document.getElementById('add-item-form') as HTMLFormElement;
@@ -166,6 +166,12 @@ export function AddItem() {
             const setVal = (name: string, val?: string | null) => {
                 const el = form.elements.namedItem(name);
                 if (el) (el as HTMLInputElement).value = val || '';
+            }
+
+            if (mode === 'transcription') {
+                setVal('transcription', metadata.transcription);
+                (form.elements.namedItem('transcription') as HTMLTextAreaElement)?.focus();
+                return;
             }
 
             if (metadata.dc_type?.toLowerCase().includes('text') || metadata.dc_type?.toLowerCase().includes('document')) {
@@ -427,7 +433,7 @@ export function AddItem() {
                     image={fileObjectURLs.get(selectedFiles[croppingImageIndex]) || ''}
                     onCropComplete={handleCropComplete}
                     onCancel={() => setCroppingImageIndex(null)}
-                    aspectRatio={itemType === 'Historic Figure' ? 0.8 : undefined}
+                    aspectRatio={itemType === 'Historic Figure' ? 0.75 : undefined}
                 />
             )}
 
@@ -493,7 +499,15 @@ export function AddItem() {
                                         const files = e.target.files;
                                         if (files) {
                                             const newFiles = Array.from(files);
-                                            setSelectedFiles(prev => [...prev, ...newFiles]);
+                                            setSelectedFiles(prev => {
+                                                const updated = [...prev, ...newFiles];
+                                                // Proactive workflow: If it's a Historic Figure and this is the first image(s) being added,
+                                                // or if it was empty before, open cropper for the first new image.
+                                                if (itemType === 'Historic Figure' && prev.length === 0 && newFiles.length > 0) {
+                                                    setTimeout(() => setCroppingImageIndex(0), 100);
+                                                }
+                                                return updated;
+                                            });
                                         }
                                         // Reset input so same file can be selected again if needed
                                         e.target.value = '';
@@ -533,10 +547,11 @@ export function AddItem() {
                                                                     e.stopPropagation();
                                                                     setCroppingImageIndex(idx);
                                                                 }}
-                                                                className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
-                                                                title="Crop Image"
+                                                                className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
+                                                                title="Crop & Center"
                                                             >
-                                                                <Sparkles size={12} />
+                                                                <Maximize2 size={12} />
+                                                                Center
                                                             </button>
                                                         )}
                                                         <button
@@ -578,20 +593,35 @@ export function AddItem() {
                             </div>
 
                             {['catnolan@senoiahistory.com', 'jeremywarren@senoiahistory.com'].includes(user?.email || '') && (
-                                <button
-                                    type="button"
-                                    onClick={handleAutoExtract}
-                                    disabled={isExtracting || selectedFiles.length === 0}
-                                    className={`mt-6 w-full flex items-center justify-center gap-3 py-4 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isExtracting
-                                        ? 'bg-tan-light/10 text-tan border-tan-light/30 cursor-not-allowed'
-                                        : selectedFiles.length === 0
-                                            ? 'bg-cream/50 text-charcoal/20 border-tan-light/20 cursor-not-allowed'
-                                            : 'bg-indigo-50/50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 hover:shadow-md'
-                                        }`}
-                                >
-                                    <Sparkles size={18} className={isExtracting ? 'animate-pulse' : ''} />
-                                    {isExtracting ? 'Analyzing Document Content...' : 'Auto-Fill using AI Intelligence'}
-                                </button>
+                                <div className="space-y-3 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAutoExtract('full')}
+                                        disabled={isExtracting || selectedFiles.length === 0}
+                                        className={`w-full flex items-center justify-center gap-3 py-4 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isExtracting
+                                            ? 'bg-tan-light/10 text-tan border-tan-light/30 cursor-not-allowed'
+                                            : selectedFiles.length === 0
+                                                ? 'bg-cream/50 text-charcoal/20 border-tan-light/20 cursor-not-allowed'
+                                                : 'bg-indigo-50/50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 hover:shadow-md'
+                                            }`}
+                                    >
+                                        <Sparkles size={18} className={isExtracting ? 'animate-pulse' : ''} />
+                                        {isExtracting ? 'Analyzing Document Content...' : 'Full AI Extraction'}
+                                    </button>
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAutoExtract('transcription')}
+                                        disabled={isExtracting || selectedFiles.length === 0}
+                                        className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-bold text-xs transition-all border-2 ${isExtracting || selectedFiles.length === 0
+                                            ? 'bg-cream/20 text-charcoal/20 border-tan-light/10 cursor-not-allowed'
+                                            : 'bg-white text-indigo-500 border-indigo-100 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm'
+                                            }`}
+                                    >
+                                        <FileText size={16} />
+                                        AI Transcription Only
+                                    </button>
+                                </div>
                             )}
                         </div>
 

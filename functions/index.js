@@ -21,10 +21,26 @@ exports.extractMetadata = onCall({
         throw new HttpsError("unauthenticated", "Unauthorized. You must be an @senoiahistory.com user.");
     }
 
-    const { base64Payload, mimeType } = request.data;
+    let { base64Payload, mimeType, url } = request.data;
+
+    if (url && !base64Payload) {
+        try {
+            logger.info(`Fetching image from URL: ${url}`);
+            const fetchResponse = await fetch(url);
+            if (!fetchResponse.ok) {
+                throw new Error(`Failed to fetch image from URL: ${fetchResponse.statusText}`);
+            }
+            const arrayBuffer = await fetchResponse.arrayBuffer();
+            base64Payload = Buffer.from(arrayBuffer).toString('base64');
+            mimeType = fetchResponse.headers.get('content-type') || 'image/jpeg';
+        } catch (error) {
+            logger.error("Error fetching image from URL:", error);
+            throw new HttpsError("internal", `Failed to download image from the provided URL: ${error.message}`);
+        }
+    }
 
     if (!base64Payload || !mimeType) {
-        throw new HttpsError("invalid-argument", "Missing base64Payload or mimeType.");
+        throw new HttpsError("invalid-argument", "Missing base64Payload, mimeType, or url.");
     }
 
     const apiKey = process.env.GEMINI_API_KEY;

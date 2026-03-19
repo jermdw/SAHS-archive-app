@@ -55,14 +55,19 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     <div className="fixed inset-0 z-[110] bg-charcoal/90 flex flex-col items-center justify-center p-4">
       <div className="relative w-full max-w-4xl h-[70vh] bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-charcoal/10 bg-white z-10">
-          <h3 className="text-lg font-serif font-bold text-charcoal">Adjust Display Image</h3>
-          <button
-            onClick={onCancel}
-            className="p-2 hover:bg-charcoal/5 rounded-full text-charcoal/50 hover:text-charcoal transition-colors"
-          >
-            <X size={20} />
-          </button>
+        <div className="flex flex-col p-4 border-b border-charcoal/10 bg-white z-10">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-serif font-bold text-charcoal">Crop & Center Portrait</h3>
+            <button
+              onClick={onCancel}
+              className="p-2 hover:bg-charcoal/5 rounded-full text-charcoal/50 hover:text-charcoal transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <p className="text-sm text-charcoal/60 mt-1">
+            Drag to center the person's face. Use the zoom slider below to focus in.
+          </p>
         </div>
 
         {/* Cropper Container */}

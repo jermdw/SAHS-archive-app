@@ -6,23 +6,31 @@ import type { ArchiveItem } from '../types/database';
  * Calls a secure Firebase Cloud Function to extract metadata from a file using Gemini.
  * This keeps the API key hidden from the client-side.
  */
-export async function extractMetadataFromFile(file: File): Promise<Partial<ArchiveItem> & { dc_type?: string }> {
+export async function extractMetadataFromFile(file: File | null, mode: 'full' | 'transcription' = 'full', imageUrl?: string): Promise<Partial<ArchiveItem> & { dc_type?: string }> {
     try {
-        // 1. Convert File to Base64 String
-        const base64Data = await fileToBase64(file);
+        let base64Payload: string | undefined = undefined;
+        let mimeType: string | undefined = file?.type;
 
-        // Remove the data URL prefix (e.g. "data:image/jpeg;base64,") to just leave the raw payload
-        const base64Payload = base64Data.split(',')[1];
-
-        // Extract the mime type
-        const mimeType = file.type;
+        if (file) {
+            // 1. Convert File to Base64 String
+            const base64Data = await fileToBase64(file);
+            // Remove the data URL prefix
+            base64Payload = base64Data.split(',')[1];
+        }
 
         // 2. Call the Cloud Function
-        const extractMetadataFn = httpsCallable<{ base64Payload: string; mimeType: string }, any>(functions, 'extractMetadata');
+        const extractMetadataFn = httpsCallable<{ 
+            base64Payload?: string; 
+            mimeType?: string; 
+            mode?: string;
+            url?: string;
+        }, any>(functions, 'extractMetadata');
         
         const result = await extractMetadataFn({
             base64Payload,
-            mimeType
+            mimeType,
+            mode,
+            url: imageUrl
         });
 
         return result.data;

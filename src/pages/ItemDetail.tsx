@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, X, MapPin, Info, Users } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
@@ -21,6 +21,17 @@ export function ItemDetail() {
     const [loading, setLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [zoomScale, setZoomScale] = useState(1);
+
+    useEffect(() => {
+        if (item && item.file_urls && item.featured_image_url) {
+            const index = item.file_urls.indexOf(item.featured_image_url);
+            if (index !== -1) {
+                setCurrentImageIndex(index);
+            }
+        }
+    }, [item]);
 
     useEffect(() => {
         const fetchItemAndRelated = async () => {
@@ -133,21 +144,76 @@ export function ItemDetail() {
         <div className="flex flex-col h-full max-w-full mx-auto animate-in fade-in duration-500 pb-12">
             {zoomedImage && (
                 <div
-                    className="fixed inset-0 z-[100] bg-charcoal/95 flex items-center justify-center p-4 md:p-12 cursor-zoom-out"
-                    onClick={() => setZoomedImage(null)}
+                    className="fixed inset-0 z-[100] bg-charcoal/95 flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden animate-in fade-in duration-300"
+                    onClick={() => {
+                        setZoomedImage(null);
+                        setZoomScale(1);
+                    }}
                 >
-                    <div className="relative max-w-full max-h-full overflow-auto">
-                        <img
-                            src={zoomedImage}
-                            alt="Zoomed Review"
-                            className="max-w-none w-auto h-auto min-w-full rounded-sm shadow-2xl"
-                        />
+                    {/* Controls Overlay */}
+                    <div className="absolute top-8 right-8 flex items-center gap-4 z-[110]" onClick={e => e.stopPropagation()}>
+                        <div className="flex bg-white/10 backdrop-blur-md rounded-full border border-white/20 p-1 shadow-2xl">
+                            <button 
+                                onClick={() => setZoomScale(prev => Math.max(0.5, prev - 0.25))}
+                                className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+                                title="Zoom Out"
+                            >
+                                <ZoomOut size={24} />
+                            </button>
+                            <div className="flex items-center px-4 text-white font-mono text-sm min-w-[70px] justify-center select-none">
+                                {Math.round(zoomScale * 100)}%
+                            </div>
+                            <button 
+                                onClick={() => setZoomScale(prev => Math.min(4, prev + 0.25))}
+                                className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+                                title="Zoom In"
+                            >
+                                <ZoomIn size={24} />
+                            </button>
+                        </div>
+                        <button 
+                            onClick={() => {
+                                setZoomedImage(null);
+                                setZoomScale(1);
+                            }}
+                            className="p-3 bg-white/10 backdrop-blur-md hover:bg-red-500/40 rounded-full text-white transition-all border border-white/20 shadow-2xl group"
+                        >
+                            <X size={28} className="group-hover:rotate-90 transition-transform duration-300" />
+                        </button>
                     </div>
-                    <button className="absolute top-8 right-8 text-white hover:text-tan transition-colors">
-                        <X size={32} />
-                    </button>
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50 text-sm bg-charcoal/50 px-6 py-2 rounded-full backdrop-blur-md border border-white/10">
-                        Click anywhere to exit • Use mouse to pan & zoom
+
+                    <div 
+                        className="relative w-full h-full overflow-auto flex items-start justify-center p-8 no-scrollbar"
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget) {
+                                setZoomedImage(null);
+                                setZoomScale(1);
+                            }
+                        }}
+                    >
+                        <div 
+                            className="relative transition-transform duration-200 ease-out py-12"
+                            style={{ 
+                                transform: `scale(${zoomScale})`,
+                                transformOrigin: 'top center',
+                                cursor: zoomScale > 1 ? 'grab' : 'zoom-in'
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setZoomScale(prev => prev === 1 ? 2.5 : 1);
+                            }}
+                        >
+                            <img
+                                src={zoomedImage}
+                                alt="High Resolution View"
+                                className="max-w-none shadow-2xl rounded-sm"
+                                style={{
+                                    width: 'auto',
+                                    height: 'auto',
+                                    maxHeight: '85vh'
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             )}
@@ -176,271 +242,274 @@ export function ItemDetail() {
                 )}
             </div>
 
-            <div className="mb-8 max-w-6xl">
-                <h1 className="text-5xl md:text-6xl font-serif font-bold text-charcoal leading-tight mb-4 tracking-tight">
+            <div className="mb-12 max-w-6xl">
+                <h1 className="text-5xl md:text-7xl font-serif font-bold text-charcoal leading-tight mb-4 tracking-tighter">
                     {item.title}
                 </h1>
-                {item.item_type !== 'Historic Figure' && (
-                    <div className="prose prose-lg md:prose-xl text-charcoal/80 font-sans leading-relaxed whitespace-pre-wrap max-w-none">
-                        <p>{item.description}</p>
-                    </div>
+                {item.item_type === 'Historic Figure' && item.also_known_as && (
+                    <p className="text-2xl font-serif italic text-tan mb-4">"{item.also_known_as}"</p>
                 )}
             </div>
 
             <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
                 {/* Left Side: Portrait & Facts */}
-                <div className="w-full md:w-96 lg:w-[450px] shrink-0 flex flex-col gap-6">
-                    <div className="aspect-[3/4] bg-tan-light/20 rounded-2xl overflow-hidden border border-tan-light/50 relative shadow-md group cursor-zoom-in" onClick={() => coverImage && setZoomedImage(coverImage)}>
-                        {coverImage ? (
-                            <>
-                                <img
-                                    src={coverImage}
-                                    alt={item.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                />
-                                <div className="absolute inset-0 bg-charcoal/20 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
-                                    <ZoomIn size={32} />
+                {/* Left Side: Portrait */}
+                <div className="w-full md:w-80 lg:w-[400px] shrink-0">
+                    <div className="sticky top-8 space-y-4">
+                        <div className="aspect-[3/4] bg-tan-light/20 rounded-2xl overflow-hidden border border-tan-light/50 relative shadow-md group">
+                            {file_urls && file_urls.length > 0 ? (
+                                <>
+                                    <img
+                                        src={file_urls[currentImageIndex]}
+                                        alt={item.title}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 cursor-zoom-in"
+                                        onClick={() => setZoomedImage(file_urls[currentImageIndex])}
+                                    />
+                                    
+                                    {/* Navigation Arrows */}
+                                    {file_urls.length > 1 && (
+                                        <>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCurrentImageIndex(prev => (prev === 0 ? file_urls.length - 1 : prev - 1));
+                                                }}
+                                                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-charcoal opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-10"
+                                            >
+                                                <ChevronLeft size={24} />
+                                            </button>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCurrentImageIndex(prev => (prev === file_urls.length - 1 ? 0 : prev + 1));
+                                                }}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-charcoal opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-10"
+                                            >
+                                                <ChevronRight size={24} />
+                                            </button>
+
+                                            {/* Page Indicator */}
+                                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-charcoal/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase z-10">
+                                                Page {currentImageIndex + 1} of {file_urls.length}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="absolute inset-x-0 bottom-0 top-3/4 bg-gradient-to-t from-charcoal/40 to-transparent pointer-events-none" />
+                                    <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                        <ZoomIn size={16} className="text-white" />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="absolute inset-0 flex items-center justify-center text-tan-light bg-charcoal/5">
+                                    <span className="font-serif text-6xl opacity-20">{item.title.charAt(0)}</span>
                                 </div>
-                            </>
-                        ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-tan-light bg-charcoal/5">
-                                <span className="font-serif text-6xl opacity-20">{item.title.charAt(0)}</span>
+                            )}
+                        </div>
+
+                        {/* Pagination Dots */}
+                        {file_urls && file_urls.length > 1 && (
+                            <div className="flex justify-center gap-1.5 px-4 overflow-x-auto max-w-full no-scrollbar pb-2">
+                                {file_urls.map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setCurrentImageIndex(idx)}
+                                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                                            idx === currentImageIndex ? 'w-8 bg-tan' : 'w-2 bg-tan-light/30 hover:bg-tan/50'
+                                        }`}
+                                    />
+                                ))}
                             </div>
                         )}
                     </div>
+                </div>
 
-                    <div className="bg-white rounded-xl border border-tan-light/50 p-8 shadow-sm">
-                        <h3 className="text-sm font-black text-charcoal/60 uppercase tracking-widest border-b border-tan-light/50 pb-2 mb-4">Information</h3>
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Right Side: Biography & Related Docs */}
+                <div className="flex-1 flex flex-col">
+                    {/* Main Narrative Block */}
+                    <div className="mb-10 bg-white border border-tan-light/50 rounded-xl p-8 md:p-12 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-tan/40"></div>
+                        <h3 className="text-2xl font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-4 mb-8">
+                            <FileText className="text-tan" size={24} />
+                            {item.item_type === 'Historic Figure' ? 'Biography' : 'Description & Context'}
+                        </h3>
+                        <div className="prose prose-lg md:prose-xl max-w-none text-charcoal/90 font-sans leading-relaxed whitespace-pre-wrap">
+                            {item.description}
+                        </div>
+                    </div>
+
+                    {/* Biography Sources Block */}
+                    {item.item_type === 'Historic Figure' && item.biography_sources && (
+                        <div className="mb-10 bg-tan-light/10 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">
+                            <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-3 mb-4">
+                                <BookOpen className="text-tan" size={20} />
+                                Biography Sources
+                            </h3>
+                            <div className="font-sans text-[15px] text-charcoal/80 leading-relaxed whitespace-pre-wrap">
+                                {item.biography_sources}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SEAMLESS INFORMATION SECTION */}
+                    <div className="mb-12">
+                        <h3 className="text-2xl font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-4 mb-8">
+                            <Info className="text-tan" size={24} />
+                            Information & Archival Details
+                        </h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-10 gap-x-12">
+                            {/* Personal / Type Facts */}
+                            <div className="space-y-6">
                                 <div>
-                                    <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Item Type</p>
+                                    <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Category</p>
                                     <p className="text-lg font-serif text-charcoal">{item.item_type}</p>
+                                    {item.category && item.item_type !== 'Artifact' && (
+                                        <span className="inline-block bg-tan/10 text-tan px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-tan/20 mt-2 capitalize font-sans">
+                                            {item.category}
+                                        </span>
+                                    )}
                                 </div>
                                 {item.date && (
                                     <div>
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Date</p>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Origin Date</p>
                                         <p className="text-lg font-serif text-charcoal">{item.date}</p>
                                     </div>
                                 )}
-                                {item.archive_reference && (
-                                    <div className="sm:col-span-2">
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                                            <FileText size={14} /> Filing Code
-                                        </p>
-                                        <p className="text-lg font-serif text-charcoal">{item.archive_reference}</p>
-                                    </div>
-                                )}
-                                {item.identifier && (
-                                    <div className="sm:col-span-2">
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                                            <BookOpen size={14} /> Archive Reference
-                                        </p>
-                                        <p className="text-lg font-serif text-charcoal">{item.identifier}</p>
-                                    </div>
-                                )}
-                                {item.artifact_id && (
-                                    <div>
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">ID #</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.artifact_id}</p>
-                                    </div>
-                                )}
                                 {item.creator && (
-                                    <div className="sm:col-span-2">
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Creator</p>
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Creator / Author</p>
                                         <p className="text-lg font-serif text-charcoal">{item.creator}</p>
-                                    </div>
-                                )}
-                                {item.subject && (
-                                    <div className="sm:col-span-2">
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Subject</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.subject}</p>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Figure Specific Facts */}
-                            {item.item_type === 'Historic Figure' && (
-                                <div className="pt-4 border-t border-tan-light/50 mt-4 space-y-4">
-                                    <h3 className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-4">Timeline & Origins</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Figure / Org Specific Timeline */}
+                            <div className="space-y-6">
+                                {item.item_type === 'Historic Figure' && (
+                                    <>
                                         {item.full_name && (
                                             <div>
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Full Name</p>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Full Name</p>
                                                 <p className="text-lg font-serif text-charcoal">{item.full_name}</p>
-                                            </div>
-                                        )}
-                                        {item.also_known_as && (
-                                            <div>
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Also Known As</p>
-                                                <p className="text-lg font-serif text-charcoal italic">"{item.also_known_as}"</p>
                                             </div>
                                         )}
                                         {item.birth_date && (
                                             <div>
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Birth Date</p>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Date of Birth</p>
                                                 <p className="text-lg font-serif text-charcoal">{item.birth_date}</p>
                                             </div>
                                         )}
                                         {item.death_date && (
                                             <div>
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Death Date</p>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Date of Death</p>
                                                 <p className="text-lg font-serif text-charcoal">{item.death_date}</p>
                                             </div>
                                         )}
-                                        {item.birthplace && (
-                                            <div className="sm:col-span-2">
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Birthplace</p>
-                                                <p className="text-lg font-serif text-charcoal">{item.birthplace}</p>
-                                            </div>
-                                        )}
                                         {item.occupation && (
-                                            <div className="sm:col-span-2">
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Occupation</p>
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Primary Occupation</p>
                                                 <p className="text-lg font-serif text-charcoal">{item.occupation}</p>
                                             </div>
                                         )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Organization Specific Facts */}
-                            {item.item_type === 'Historic Organization' && (
-                                <div className="pt-4 border-t border-tan-light/50 mt-4 space-y-4">
-                                    <h3 className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-4">Organization History</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    </>
+                                )}
+                                {item.item_type === 'Historic Organization' && (
+                                    <>
                                         {item.org_name && (
-                                            <div className="sm:col-span-2">
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Full Name</p>
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Official Name</p>
                                                 <p className="text-lg font-serif text-charcoal">{item.org_name}</p>
                                             </div>
                                         )}
-                                        {item.alternative_names && (
-                                            <div className="sm:col-span-2">
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Alternative Names</p>
-                                                <p className="text-lg font-serif text-charcoal italic">{item.alternative_names}</p>
-                                            </div>
-                                        )}
-                                        {item.founding_date && (
+                                        {(item.founding_date || item.dissolved_date) && (
                                             <div>
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Founding Date</p>
-                                                <p className="text-lg font-serif text-charcoal">{item.founding_date}</p>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Organization Lifespan</p>
+                                                <p className="text-lg font-serif text-charcoal">
+                                                    {item.founding_date || '?'} — {item.dissolved_date || 'Present'}
+                                                </p>
                                             </div>
                                         )}
-                                        {item.dissolved_date && (
+                                    </>
+                                )}
+                                {item.item_type === 'Artifact' && (
+                                    <>
+                                        {item.artifact_type && (
                                             <div>
-                                                <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Closed / Dissolved</p>
-                                                <p className="text-lg font-serif text-charcoal">{item.dissolved_date}</p>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Artifact Class</p>
+                                                <span className="inline-block bg-tan/10 text-tan px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-tan/20 mt-1 capitalize font-sans">
+                                                    {item.artifact_type}
+                                                </span>
                                             </div>
                                         )}
+                                        {item.donor && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Original Donor</p>
+                                                <p className="text-lg font-serif text-charcoal">{item.donor}</p>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Archival Tracking */}
+                            <div className="space-y-6">
+                                {item.artifact_id && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans text-tan">Catalog ID #</p>
+                                        <p className="text-lg font-serif font-bold text-tan">{item.artifact_id}</p>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                                {(item.archive_reference || item.identifier) && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Archival References</p>
+                                        <p className="text-sm font-sans text-charcoal/80 leading-relaxed font-medium">
+                                            {item.archive_reference}
+                                            {item.identifier && <span className="block italic opacity-60 mt-0.5">{item.identifier}</span>}
+                                        </p>
+                                    </div>
+                                )}
+                                {item.physical_location && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans flex items-center gap-1.5 align-top">
+                                            <MapPin size={12} className="text-tan" /> Origin / Location
+                                        </p>
+                                        <p className="text-[15px] font-sans text-charcoal leading-snug">{item.physical_location}</p>
+                                    </div>
+                                )}
+                                {item.museum_location && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Physical Museum Shelf/Box</p>
+                                        <p className="text-[15px] font-sans text-charcoal leading-snug">{item.museum_location}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
-                            {/* Artifact Specific Facts */}
-                            {item.item_type === 'Artifact' && (
-                                <div className="pt-4 border-t border-tan-light/50 mt-4 space-y-4">
-                                    <h3 className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-4">Provenance & Sourcing</h3>
-                                    {item.artifact_type && (
-                                        <div>
-                                            <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 whitespace-nowrap">Artifact Type</p>
-                                            <span className="inline-block bg-tan/10 text-tan px-3 py-1 rounded-full text-xs font-bold border border-tan/20 mt-1 capitalize">
-                                                {item.artifact_type}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {item.donor && (
-                                        <div>
-                                            <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Original Donor / Contributor</p>
-                                            <p className="text-lg font-serif text-charcoal">{item.donor}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {item.category && item.item_type !== 'Artifact' && (
-                                <div className="mb-4">
-                                    <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-1">Archive Category</p>
-                                    <span className="inline-block bg-tan/10 text-tan px-3 py-1 rounded-full text-xs font-bold border border-tan/20">
-                                        {item.category}
-                                    </span>
-                                </div>
-                            )}
-
+                        {/* Tags and Source footer */}
+                        <div className="mt-12 pt-8 border-t border-tan-light/30 grid grid-cols-1 md:grid-cols-2 gap-8">
                             {item.tags && item.tags.length > 0 && (
                                 <div>
-                                    <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-2">Subject Tags</p>
+                                    <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-3 font-sans">System Keywords</p>
                                     <div className="flex flex-wrap gap-2">
                                         {item.tags.map(tag => (
-                                            <span key={tag} className="text-[10px] bg-beige text-charcoal px-2.5 py-1.5 rounded-md font-bold uppercase tracking-widest border border-tan-light/30">
+                                            <span key={tag} className="text-[9px] bg-charcoal/5 text-charcoal/60 px-2.5 py-1 rounded-md font-bold uppercase tracking-[0.1em] border border-charcoal/10 hover:bg-tan/10 hover:text-tan transition-colors cursor-default">
                                                 {tag}
                                             </span>
                                         ))}
                                     </div>
                                 </div>
                             )}
-
-                            <h3 className="text-sm font-black text-charcoal/60 uppercase tracking-widest border-b border-tan-light/50 pb-2 mb-4 pt-4">Archival Tracking</h3>
-                            <div className="space-y-4">
-                                {item.condition && (
-                                    <div>
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1"><Info size={14} /> Condition</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.condition}</p>
-                                    </div>
-                                )}
-                                {item.physical_location && (
-                                    <div>
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1"><MapPin size={14} /> Origin / Place</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.physical_location}</p>
-                                    </div>
-                                )}
-                                {item.historical_address && (
-                                    <div>
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1"><MapPin size={14} /> Historical Location</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.historical_address}</p>
-                                        {item.coordinates && (
-                                            <p className="text-xs text-charcoal/50 mt-1">({item.coordinates.lat.toFixed(4)}, {item.coordinates.lng.toFixed(4)})</p>
-                                        )}
-                                    </div>
-                                )}
-                                {item.museum_location && (
-                                    <div>
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1"><Info size={14} /> Museum Location</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.museum_location}</p>
-                                    </div>
-                                )}
-                                {item.coverage && (
-                                    <div>
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5">Coverage / Place</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.coverage}</p>
-                                    </div>
-                                )}
-                                {item.source && (
-                                    <div>
-                                        <p className="text-sm text-charcoal/60 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1"><Info size={14} /> Source Institution / Acknowledgement</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.source}</p>
-                                    </div>
-                                )}
-                            </div>
+                            {item.source && (
+                                <div className="md:text-right">
+                                    <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Collection Source</p>
+                                    <p className="text-[13px] italic text-charcoal/60 font-serif leading-relaxed">
+                                        {item.source}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>
-
-                {/* Right Side: Biography & Related Docs */}
-                <div className="flex-1 flex flex-col">
-                    {/* Biography Block */}
-                    {item.item_type === 'Historic Figure' && (
-                        <div className="mb-10 bg-white border border-tan-light/50 rounded-xl p-6 md:p-10 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1.5 h-full bg-tan/40"></div>
-                            <h3 className="text-2xl font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-4 mb-6">
-                                <FileText className="text-tan" size={24} />
-                                Biography
-                            </h3>
-                            <div className="prose prose-lg md:prose-xl max-w-none text-charcoal/90 font-sans leading-relaxed whitespace-pre-wrap">
-                                {item.description}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Biography Sources Block */}
                     {item.item_type === 'Historic Figure' && item.biography_sources && (
@@ -558,20 +627,31 @@ export function ItemDetail() {
                     </div>
                 )}
 
-                {/* Secondary Media */}
+                {/* Secondary Media Gallery */}
                 {file_urls && file_urls.length > 1 && (
                     <div className="pt-4">
-                        <h2 className="text-xl font-serif font-bold text-charcoal mb-4">Additional Media / Scans</h2>
+                        <h2 className="text-xl font-serif font-bold text-charcoal mb-4">Complete Media Gallery</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                            {file_urls.filter(url => url !== coverImage).map((url, idx) => (
+                            {file_urls.map((url, idx) => (
                                 <button
                                     key={idx}
-                                    onClick={() => setZoomedImage(url)}
-                                    className="group relative aspect-square bg-tan-light/20 rounded-xl overflow-hidden border border-tan-light/50 hover:shadow-md transition-all"
+                                    onClick={() => setCurrentImageIndex(idx)}
+                                    className={`group relative aspect-square bg-tan-light/20 rounded-xl overflow-hidden border transition-all ${
+                                        idx === currentImageIndex 
+                                            ? 'border-tan ring-4 ring-tan/20 shadow-lg scale-105 z-10' 
+                                            : 'border-tan-light/50 hover:border-tan/50 shadow-sm'
+                                    }`}
                                 >
-                                    <img src={url} alt={`${item.title} media ${idx + 2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                    <div className="absolute inset-0 bg-charcoal/20 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
-                                        <ZoomIn size={20} />
+                                    <img 
+                                        src={url} 
+                                        alt={`${item.title} media ${idx + 1}`} 
+                                        className={`w-full h-full object-cover transition-transform duration-500 ${idx === currentImageIndex ? 'scale-100' : 'group-hover:scale-110 opacity-70 group-hover:opacity-100'}`} 
+                                    />
+                                    {idx === currentImageIndex && (
+                                        <div className="absolute inset-0 bg-tan/10 pointer-events-none" />
+                                    )}
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-charcoal/20">
+                                        <ZoomIn size={24} className="text-white" />
                                     </div>
                                 </button>
                             ))}

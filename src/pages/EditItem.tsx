@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X } from 'lucide-react';
+import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Maximize2, FileText } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
-import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
+import { ref, getDownloadURL, uploadBytesResumable, getBlob } from 'firebase/storage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
@@ -53,10 +53,11 @@ export function EditItem() {
                                 e.stopPropagation();
                                 onCrop();
                             }}
-                            className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
-                            title="Crop Image"
+                            className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
+                            title="Crop & Center"
                         >
-                            <Sparkles size={14} />
+                            <Maximize2 size={12} />
+                            Center
                         </button>
                     )}
                 </div>
@@ -135,17 +136,51 @@ export function EditItem() {
     };
 
     const removeNewFile = (index: number) => {
-        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+        const fileToRemove = selectedFiles[index];
+        const urlToRemove = fileObjectURLs.get(fileToRemove);
+        
+        setSelectedFiles(prev => {
+            const next = prev.filter((_, i) => i !== index);
+            if (featuredImageUrl === urlToRemove) {
+                // If we removed the featured image, pick another one
+                if (existingFileUrls.length > 0) {
+                    setFeaturedImageUrl(existingFileUrls[0]);
+                } else if (next.length > 0) {
+                    // Note: We don't have the NEW Object URLs yet for the NEW files,
+                    // but they should be in the current fileObjectURLs map.
+                    setFeaturedImageUrl(fileObjectURLs.get(next[0]) || null);
+                } else {
+                    setFeaturedImageUrl(null);
+                }
+            }
+            return next;
+        });
     };
 
     const handleCropComplete = (croppedBlob: Blob) => {
         if (croppingImageIndex === null) return;
         
         const originalFile = selectedFiles[croppingImageIndex];
+        const originalObjectURL = fileObjectURLs.get(originalFile);
         const croppedFile = new File([croppedBlob], originalFile.name, { type: 'image/jpeg' });
+        const croppedObjectURL = URL.createObjectURL(croppedFile);
         
         const newFiles = [...selectedFiles];
         newFiles[croppingImageIndex] = croppedFile;
+
+        // NEW: Manually update the map immediately so other logic (like featured check) can use it
+        setFileObjectURLs(prev => {
+            const next = new Map(prev);
+            next.set(croppedFile, croppedObjectURL);
+            // We don't delete the old one here, the useEffect will handle it
+            return next;
+        });
+
+        // Update featured image URL if the original was featured
+        if (featuredImageUrl === originalObjectURL) {
+            setFeaturedImageUrl(croppedObjectURL);
+        }
+        
         setSelectedFiles(newFiles);
         setCroppingImageIndex(null);
     };
@@ -274,6 +309,28 @@ export function EditItem() {
                     .map(i => ({ id: i.id, title: i.title || i.org_name || "Unnamed Organization" }));
                 setAllOrgs(orgsList.sort((a, b) => a.title.localeCompare(b.title)));
 
+                // NEW: Populate the selected states from the initial item data now that we have all titles
+                if (item) {
+                    if (item.related_figures && item.related_figures.length > 0) {
+                        const matched = allItemsData
+                            .filter(i => item.related_figures!.includes(i.id))
+                            .map(i => ({ id: i.id, title: i.title || i.full_name || "Unnamed Figure" }));
+                        setSelectedRelatedFigures(matched);
+                    }
+                    if (item.related_documents && item.related_documents.length > 0) {
+                        const matched = allItemsData
+                            .filter(i => item.related_documents!.includes(i.id))
+                            .map(i => ({ id: i.id, title: i.title || "Untitled Document" }));
+                        setSelectedRelatedDocs(matched);
+                    }
+                    if (item.related_organizations && item.related_organizations.length > 0) {
+                        const matched = allItemsData
+                            .filter(i => item.related_organizations!.includes(i.id))
+                            .map(i => ({ id: i.id, title: i.title || i.org_name || "Unnamed Organization" }));
+                        setSelectedRelatedOrgs(matched);
+                    }
+                }
+
             } catch (error) {
                 console.error("Error fetching collections/linked data:", error);
             }
@@ -292,24 +349,26 @@ export function EditItem() {
             setSelectedRelatedDocs(linkedDocs);
         }
         if (item && allOrgs.length > 0) {
-            const linkedOrgs = allOrgs.filter(o => item.related_organizations?.includes(o.id));
-            setSelectedRelatedOrgs(linkedOrgs);
         }
     }, [item, allFigures, allDocs]);
 
-    const handleAutoExtract = async () => {
-        const input = fileInputRef.current;
-        if (!input || !input.files || input.files.length === 0) {
-            setError("Please select a new file first to extract metadata from it.");
+    const handleAutoExtract = async (mode: 'full' | 'transcription' = 'full') => {
+        let file: File | null = null;
+        
+        if (selectedFiles.length > 0) {
+            file = selectedFiles[0];
+        }
+
+        if (!file && !featuredImageUrl) {
+            setError("Please select a file first or ensure an image is available for analysis.");
             return;
         }
 
-        const file = input.files[0];
         setIsExtracting(true);
         setError(null);
 
         try {
-            const metadata = await extractMetadataFromFile(file);
+            const metadata = await extractMetadataFromFile(file, mode, featuredImageUrl || undefined);
             console.log("Extracted Metadata:", metadata);
 
             const form = document.querySelector('form') as HTMLFormElement;
@@ -318,6 +377,12 @@ export function EditItem() {
             const setVal = (name: string, val?: string | null) => {
                 const el = form.elements.namedItem(name);
                 if (el) (el as HTMLInputElement).value = val || '';
+            }
+
+            if (mode === 'transcription') {
+                setVal('transcription', metadata.transcription);
+                (form.elements.namedItem('transcription') as HTMLTextAreaElement)?.focus();
+                return;
             }
 
             if (metadata.dc_type?.toLowerCase().includes('text') || metadata.dc_type?.toLowerCase().includes('document')) {
@@ -560,7 +625,7 @@ export function EditItem() {
                     image={fileObjectURLs.get(selectedFiles[croppingImageIndex]) || ''}
                     onCropComplete={handleCropComplete}
                     onCancel={() => setCroppingImageIndex(null)}
-                    aspectRatio={itemType === 'Historic Figure' ? 0.8 : undefined}
+                    aspectRatio={itemType === 'Historic Figure' ? 0.75 : undefined}
                 />
             )}
             <div className="mb-8 border-b border-tan-light/50 pb-6 flex items-center justify-between">
@@ -632,7 +697,16 @@ export function EditItem() {
                                     onChange={(e) => {
                                         const files = e.target.files;
                                         if (files) {
-                                            setSelectedFiles(prev => [...prev, ...Array.from(files)]);
+                                            const newFilesArray = Array.from(files);
+                                            setSelectedFiles(prev => {
+                                                const updated = [...prev, ...newFilesArray];
+                                                // Proactive workflow: If it's a Historic Figure and this is the first NEW image being added,
+                                                // open cropper for the first new image.
+                                                if (itemType === 'Historic Figure' && prev.length === 0 && newFilesArray.length > 0) {
+                                                    setTimeout(() => setCroppingImageIndex(0), 100);
+                                                }
+                                                return updated;
+                                            });
                                         }
                                         e.target.value = '';
                                     }}
@@ -664,10 +738,11 @@ export function EditItem() {
                                                         <button
                                                             type="button"
                                                             onClick={() => cropExistingImage(url)}
-                                                            className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
-                                                            title="Crop Image"
+                                                            className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
+                                                            title="Crop & Center"
                                                         >
-                                                            <Sparkles size={14} />
+                                                            <Maximize2 size={12} />
+                                                            Center
                                                         </button>
                                                 </div>
                                                 <button
@@ -709,20 +784,35 @@ export function EditItem() {
                             )}
 
                             {['catnolan@senoiahistory.com', 'jeremywarren@senoiahistory.com'].includes(user?.email || '') && (
-                                <button
-                                    type="button"
-                                    onClick={handleAutoExtract}
-                                    disabled={isExtracting || selectedFiles.length === 0}
-                                    className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-bold text-sm transition-all border ${isExtracting
-                                        ? 'bg-tan-light/20 text-tan border-tan-light/50 cursor-not-allowed'
-                                        : selectedFiles.length === 0
-                                            ? 'bg-cream/50 text-charcoal/30 border-tan-light/30 cursor-not-allowed'
-                                            : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm'
-                                        }`}
-                                >
-                                    <Sparkles size={16} className={isExtracting ? 'animate-pulse' : ''} />
-                                    {isExtracting ? 'Analyzing Document with AI...' : 'Auto-Extract from Newest Scan'}
-                                </button>
+                                <div className="space-y-3 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAutoExtract('full')}
+                                        disabled={isExtracting || (selectedFiles.length === 0 && !featuredImageUrl)}
+                                        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-bold text-sm transition-all border ${isExtracting
+                                            ? 'bg-tan-light/20 text-tan border-tan-light/50 cursor-not-allowed'
+                                            : (selectedFiles.length === 0 && !featuredImageUrl)
+                                                ? 'bg-cream/50 text-charcoal/30 border-tan-light/30 cursor-not-allowed'
+                                                : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm'
+                                            }`}
+                                    >
+                                        <Sparkles size={16} className={isExtracting ? 'animate-pulse' : ''} />
+                                        {isExtracting ? 'Analyzing Document Content...' : 'Full AI Extraction'}
+                                    </button>
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAutoExtract('transcription')}
+                                        disabled={isExtracting || (selectedFiles.length === 0 && !featuredImageUrl)}
+                                        className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-xs transition-all border ${isExtracting || (selectedFiles.length === 0 && !featuredImageUrl)
+                                            ? 'bg-cream/20 text-charcoal/20 border-tan-light/10 cursor-not-allowed'
+                                            : 'bg-white text-indigo-500 border-indigo-100 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm'
+                                            }`}
+                                    >
+                                        <FileText size={14} />
+                                        AI Transcription Only
+                                    </button>
+                                </div>
                             )}
                         </div>
 
