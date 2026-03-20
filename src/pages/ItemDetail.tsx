@@ -252,9 +252,8 @@ export function ItemDetail() {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
-                {/* Left Side: Portrait & Facts */}
-                {/* Left Side: Portrait */}
-                <div className="w-full md:w-80 lg:w-[400px] shrink-0">
+                {/* Left Side: Image Viewer (all item types) */}
+                <div className="w-full md:w-80 lg:w-[420px] shrink-0">
                     <div className="sticky top-8 space-y-4">
                         <div className="aspect-[3/4] bg-tan-light/20 rounded-2xl overflow-hidden border border-tan-light/50 relative shadow-md group">
                             {file_urls && file_urls.length > 0 ? (
@@ -262,11 +261,15 @@ export function ItemDetail() {
                                     <img
                                         src={file_urls[currentImageIndex]}
                                         alt={item.title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 cursor-zoom-in"
+                                        className={`w-full h-full transition-all duration-500 cursor-zoom-in ${
+                                            item.item_type === 'Historic Figure'
+                                                ? 'object-cover group-hover:scale-105'
+                                                : 'object-contain bg-white'
+                                        }`}
                                         onClick={() => setZoomedImage(file_urls[currentImageIndex])}
                                     />
                                     
-                                    {/* Navigation Arrows */}
+                                    {/* Navigation Arrows — always visible when multiple images */}
                                     {file_urls.length > 1 && (
                                         <>
                                             <button 
@@ -274,22 +277,22 @@ export function ItemDetail() {
                                                     e.stopPropagation();
                                                     setCurrentImageIndex(prev => (prev === 0 ? file_urls.length - 1 : prev - 1));
                                                 }}
-                                                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-charcoal opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-10"
+                                                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 shadow-lg flex items-center justify-center text-charcoal transition-all hover:bg-white hover:scale-110 z-10 border border-tan-light/50"
                                             >
-                                                <ChevronLeft size={24} />
+                                                <ChevronLeft size={22} />
                                             </button>
                                             <button 
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setCurrentImageIndex(prev => (prev === file_urls.length - 1 ? 0 : prev + 1));
                                                 }}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-charcoal opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-10"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 shadow-lg flex items-center justify-center text-charcoal transition-all hover:bg-white hover:scale-110 z-10 border border-tan-light/50"
                                             >
-                                                <ChevronRight size={24} />
+                                                <ChevronRight size={22} />
                                             </button>
 
-                                            {/* Page Indicator */}
-                                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-charcoal/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase z-10">
+                                            {/* Page Indicator — always visible */}
+                                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-charcoal/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase z-10">
                                                 Page {currentImageIndex + 1} of {file_urls.length}
                                             </div>
                                         </>
@@ -627,31 +630,29 @@ export function ItemDetail() {
                     </div>
                 )}
 
-                {/* Secondary Media Gallery */}
+                {/* Thumbnail Strip — click to jump to image in left viewer */}
                 {file_urls && file_urls.length > 1 && (
                     <div className="pt-4">
-                        <h2 className="text-xl font-serif font-bold text-charcoal mb-4">Complete Media Gallery</h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                        <h2 className="text-xl font-serif font-bold text-charcoal mb-4">All Pages / Media</h2>
+                        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-3">
                             {file_urls.map((url, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => setCurrentImageIndex(idx)}
-                                    className={`group relative aspect-square bg-tan-light/20 rounded-xl overflow-hidden border transition-all ${
+                                    title={`Page ${idx + 1}`}
+                                    className={`group relative aspect-[3/4] bg-tan-light/20 rounded-lg overflow-hidden border transition-all ${
                                         idx === currentImageIndex 
-                                            ? 'border-tan ring-4 ring-tan/20 shadow-lg scale-105 z-10' 
-                                            : 'border-tan-light/50 hover:border-tan/50 shadow-sm'
+                                            ? 'border-tan ring-2 ring-tan/30 shadow-md' 
+                                            : 'border-tan-light/50 hover:border-tan/50 shadow-sm opacity-60 hover:opacity-100'
                                     }`}
                                 >
                                     <img 
                                         src={url} 
-                                        alt={`${item.title} media ${idx + 1}`} 
-                                        className={`w-full h-full object-cover transition-transform duration-500 ${idx === currentImageIndex ? 'scale-100' : 'group-hover:scale-110 opacity-70 group-hover:opacity-100'}`} 
+                                        alt={`Page ${idx + 1}`} 
+                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                                     />
-                                    {idx === currentImageIndex && (
-                                        <div className="absolute inset-0 bg-tan/10 pointer-events-none" />
-                                    )}
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-charcoal/20">
-                                        <ZoomIn size={24} className="text-white" />
+                                    <div className="absolute bottom-0 inset-x-0 bg-charcoal/60 text-white text-[9px] font-bold text-center py-0.5">
+                                        {idx + 1}
                                     </div>
                                 </button>
                             ))}
