@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Maximize2, FileText } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
-import { ref, getDownloadURL, uploadBytesResumable, getBlob } from 'firebase/storage';
+import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 import { useParams, useNavigate } from 'react-router-dom';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';

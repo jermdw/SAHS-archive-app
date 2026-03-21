@@ -8,9 +8,6 @@ interface ArchiveMapProps {
 }
 
 export function ArchiveMap({ items }: ArchiveMapProps) {
-    const [selectedItem, setSelectedItem] = useState<ArchiveItem | null>(null);
-    const [markerRef, marker] = useAdvancedMarkerRef();
-
     // Filter items that have valid coordinates
     const mapItems = items.filter(item => 
         item.coordinates && 

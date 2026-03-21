@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 import { BrowseArchive } from './pages/BrowseArchive';
 import { ItemDetail } from './pages/ItemDetail';
@@ -7,7 +7,7 @@ import { EditItem } from './pages/EditItem';
 import { Collections } from './pages/Collections';
 import { AddCollection } from './pages/AddCollection';
 import { Login } from './pages/Login';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { Home } from './pages/Home';
 import { SearchArchive } from './pages/SearchArchive';
 
