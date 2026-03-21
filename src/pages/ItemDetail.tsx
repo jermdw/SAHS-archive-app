@@ -608,8 +608,8 @@ export function ItemDetail() {
                             {relatedFigureItems.map(fig => (
                                 <Link key={fig.id} to={`/items/${fig.id}`} state={{ galleryIds: relatedFigureItems.map(f => f.id || '') }} className="group block text-center">
                                     <div className="aspect-square bg-cream rounded-full overflow-hidden border-2 border-tan-light/50 mb-3 group-hover:border-tan transition-colors shadow-sm max-w-[150px] mx-auto">
-                                        {fig.file_urls?.[0] ? (
-                                            <img src={fig.file_urls[0]} alt={fig.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                        {fig.featured_image_url || fig.file_urls?.[0] ? (
+                                            <img src={(fig.featured_image_url || fig.file_urls?.[0])!} alt={fig.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-tan/20 font-serif text-3xl">{fig.title.charAt(0)}</div>
                                         )}
@@ -632,8 +632,8 @@ export function ItemDetail() {
                             {relatedOrganizationItems.map(org => (
                                 <Link key={org.id} to={`/items/${org.id}`} state={{ galleryIds: relatedOrganizationItems.map(o => o.id || '') }} className="group block text-center">
                                     <div className="aspect-[4/3] bg-cream rounded-xl overflow-hidden border border-tan-light/50 mb-3 group-hover:border-tan transition-colors shadow-sm">
-                                        {org.file_urls?.[0] ? (
-                                            <img src={org.file_urls[0]} alt={org.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        {org.featured_image_url || org.file_urls?.[0] ? (
+                                            <img src={(org.featured_image_url || org.file_urls?.[0])!} alt={org.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-tan/20 font-serif text-3xl">{org.title ? org.title.charAt(0) : "O"}</div>
                                         )}
