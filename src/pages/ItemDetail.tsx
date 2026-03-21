@@ -329,7 +329,7 @@ export function ItemDetail() {
                         <div className="absolute top-0 left-0 w-1.5 h-full bg-tan/40"></div>
                         <h3 className="text-2xl font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-4 mb-8">
                             <FileText className="text-tan" size={24} />
-                            Biography
+                            {item.item_type === 'Document' ? 'Description' : 'Biography'}
                         </h3>
                         <div className="prose prose-lg md:prose-xl max-w-none text-charcoal/90 font-sans leading-relaxed whitespace-pre-wrap">
                             {item.description}
