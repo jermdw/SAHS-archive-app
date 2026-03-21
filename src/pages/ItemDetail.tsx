@@ -361,7 +361,7 @@ export function ItemDetail() {
                         <div className="absolute top-0 left-0 w-1.5 h-full bg-tan/40"></div>
                         <h3 className="text-2xl font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-4 mb-8">
                             <FileText className="text-tan" size={24} />
-                            {item.item_type === 'Document' ? 'Description' : 'Biography'}
+                            {item.item_type === 'Historic Figure' ? 'Biography' : 'Description'}
                         </h3>
                         <div className="prose prose-lg md:prose-xl max-w-none text-charcoal/90 font-sans leading-relaxed whitespace-pre-wrap">
                             {item.description}
@@ -373,7 +373,7 @@ export function ItemDetail() {
                         <div className="mb-10 bg-tan-light/10 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">
                             <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-3 mb-4">
                                 <BookOpen className="text-tan" size={20} />
-                                Biography Sources
+                                {item.item_type === 'Historic Figure' ? 'Biography Sources' : 'Description Sources'}
                             </h3>
                             <div className="font-sans text-[15px] text-charcoal/80 leading-relaxed whitespace-pre-wrap">
                                 {item.biography_sources}
