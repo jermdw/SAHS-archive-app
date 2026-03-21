@@ -138,7 +138,6 @@ export function ItemDetail() {
     }
 
     const { file_urls } = item;
-    const coverImage = item.featured_image_url || (file_urls && file_urls.length > 0 ? file_urls[0] : null);
 
     return (
         <div className="flex flex-col h-full max-w-full mx-auto animate-in fade-in duration-500 pb-12">
@@ -261,11 +260,7 @@ export function ItemDetail() {
                                     <img
                                         src={file_urls[currentImageIndex]}
                                         alt={item.title}
-                                        className={`w-full h-full transition-all duration-500 cursor-zoom-in ${
-                                            item.item_type === 'Historic Figure'
-                                                ? 'object-cover group-hover:scale-105'
-                                                : 'object-contain bg-white'
-                                        }`}
+                                        className="w-full h-full transition-all duration-500 cursor-zoom-in object-cover group-hover:scale-105"
                                         onClick={() => setZoomedImage(file_urls[currentImageIndex])}
                                     />
                                     
@@ -334,7 +329,7 @@ export function ItemDetail() {
                         <div className="absolute top-0 left-0 w-1.5 h-full bg-tan/40"></div>
                         <h3 className="text-2xl font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-4 mb-8">
                             <FileText className="text-tan" size={24} />
-                            {item.item_type === 'Historic Figure' ? 'Biography' : 'Description & Context'}
+                            Biography
                         </h3>
                         <div className="prose prose-lg md:prose-xl max-w-none text-charcoal/90 font-sans leading-relaxed whitespace-pre-wrap">
                             {item.description}
@@ -342,7 +337,7 @@ export function ItemDetail() {
                     </div>
 
                     {/* Biography Sources Block */}
-                    {item.item_type === 'Historic Figure' && item.biography_sources && (
+                    {item.biography_sources && (
                         <div className="mb-10 bg-tan-light/10 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">
                             <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-3 mb-4">
                                 <BookOpen className="text-tan" size={20} />
@@ -514,18 +509,6 @@ export function ItemDetail() {
                         </div>
                     </div>
 
-                    {/* Biography Sources Block */}
-                    {item.item_type === 'Historic Figure' && item.biography_sources && (
-                        <div className="mb-10 bg-tan-light/10 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">
-                            <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-3 mb-4">
-                                <BookOpen className="text-tan" size={20} />
-                                Biography Sources
-                            </h3>
-                            <div className="font-sans text-[15px] text-charcoal/80 leading-relaxed whitespace-pre-wrap">
-                                {item.biography_sources}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Transcription Block */}
                     {item.transcription && (
