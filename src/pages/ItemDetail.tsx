@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
@@ -12,7 +12,13 @@ import { APIProvider, Map as GoogleMap, AdvancedMarker } from '@vis.gl/react-goo
 export function ItemDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const { isSAHSUser } = useAuth();
+
+    const galleryIds = (location.state?.galleryIds as string[]) || [];
+    const currentIndex = galleryIds.indexOf(id || '');
+    const prevId = currentIndex > 0 ? galleryIds[currentIndex - 1] : undefined;
+    const nextId = currentIndex >= 0 && currentIndex < galleryIds.length - 1 ? galleryIds[currentIndex + 1] : undefined;
 
     const [item, setItem] = useState<ArchiveItem | null>(null);
     const [relatedFigureItems, setRelatedFigureItems] = useState<ArchiveItem[]>([]);
@@ -217,11 +223,37 @@ export function ItemDetail() {
                 </div>
             )}
 
-            <div className="mb-8 flex justify-between items-center">
-                <Link to="/archive" className="flex items-center gap-2 text-charcoal/60 hover:text-charcoal transition-colors font-medium">
-                    <ArrowLeft size={18} />
-                    Back to Archive
-                </Link>
+            <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <Link to="/archive" className="flex items-center gap-2 text-charcoal/60 hover:text-charcoal transition-colors font-medium whitespace-nowrap">
+                        <ArrowLeft size={18} />
+                        Back to Archive
+                    </Link>
+
+                    {(prevId || nextId) && (
+                        <div className="flex items-center gap-1 bg-tan-light/10 border border-tan-light/30 rounded-lg p-1 ml-2 md:ml-6 shadow-sm">
+                            <button 
+                                onClick={() => prevId && navigate(`/items/${prevId}`, { state: { galleryIds } })} 
+                                disabled={!prevId}
+                                title="Previous Item"
+                                className={`p-1.5 md:p-2 rounded transition-colors flex items-center gap-1 text-xs md:text-sm font-bold uppercase tracking-wider ${prevId ? 'text-charcoal hover:bg-white hover:text-tan hover:shadow-sm' : 'text-charcoal/20 cursor-not-allowed'}`}
+                            >
+                                <ChevronLeft size={16} strokeWidth={3} /> <span className="hidden sm:inline">Prev</span>
+                            </button>
+                            <div className="text-[10px] font-black text-charcoal/40 tracking-widest px-2 whitespace-nowrap">
+                                {currentIndex + 1} / {galleryIds.length}
+                            </div>
+                            <button 
+                                onClick={() => nextId && navigate(`/items/${nextId}`, { state: { galleryIds } })} 
+                                disabled={!nextId}
+                                title="Next Item"
+                                className={`p-1.5 md:p-2 rounded transition-colors flex items-center gap-1 text-xs md:text-sm font-bold uppercase tracking-wider ${nextId ? 'text-charcoal hover:bg-white hover:text-tan hover:shadow-sm' : 'text-charcoal/20 cursor-not-allowed'}`}
+                            >
+                                <span className="hidden sm:inline">Next</span> <ChevronRight size={16} strokeWidth={3} />
+                            </button>
+                        </div>
+                    )}
+                </div>
 
                 {isSAHSUser && (
                     <div className="flex gap-3">
@@ -559,7 +591,7 @@ export function ItemDetail() {
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {relatedDocumentItems.map(doc => (
-                                <DocumentCard key={doc.id} item={doc} />
+                                <DocumentCard key={doc.id} item={doc} galleryIds={relatedDocumentItems.map(d => d.id || '')} />
                             ))}
                         </div>
                     </div>
@@ -574,7 +606,7 @@ export function ItemDetail() {
                         </h3>
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-6">
                             {relatedFigureItems.map(fig => (
-                                <Link key={fig.id} to={`/items/${fig.id}`} className="group block text-center">
+                                <Link key={fig.id} to={`/items/${fig.id}`} state={{ galleryIds: relatedFigureItems.map(f => f.id || '') }} className="group block text-center">
                                     <div className="aspect-square bg-cream rounded-full overflow-hidden border-2 border-tan-light/50 mb-3 group-hover:border-tan transition-colors shadow-sm max-w-[150px] mx-auto">
                                         {fig.file_urls?.[0] ? (
                                             <img src={fig.file_urls[0]} alt={fig.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
@@ -598,7 +630,7 @@ export function ItemDetail() {
                         </h3>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
                             {relatedOrganizationItems.map(org => (
-                                <Link key={org.id} to={`/items/${org.id}`} className="group block text-center">
+                                <Link key={org.id} to={`/items/${org.id}`} state={{ galleryIds: relatedOrganizationItems.map(o => o.id || '') }} className="group block text-center">
                                     <div className="aspect-[4/3] bg-cream rounded-xl overflow-hidden border border-tan-light/50 mb-3 group-hover:border-tan transition-colors shadow-sm">
                                         {org.file_urls?.[0] ? (
                                             <img src={org.file_urls[0]} alt={org.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />

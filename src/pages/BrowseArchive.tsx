@@ -228,7 +228,7 @@ export function BrowseArchive() {
                     viewMode === 'grid' ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">
                             {sortedItems.map(item => (
-                                <DocumentCard key={item.id} item={item} />
+                                <DocumentCard key={item.id} item={item} galleryIds={sortedItems.map(i => i.id || '')} />
                             ))}
                         </div>
                     ) : (

@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom';
 import type { ArchiveItem } from '../types/database';
 
-export function DocumentCard({ item }: { item: ArchiveItem }) {
+export function DocumentCard({ item, galleryIds }: { item: ArchiveItem, galleryIds?: string[] }) {
     const imageUrl = item.featured_image_url || (item.file_urls && item.file_urls.length > 0 ? item.file_urls[0] : null);
     const totalImages = item.file_urls ? item.file_urls.length : 0;
 
     return (
         <Link
             to={`/items/${item.id}`}
+            state={{ galleryIds }}
             className="bg-white border border-tan-light rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all flex flex-col group cursor-pointer"
         >
             <div className="aspect-[4/3] bg-tan-light/20 flex flex-col p-4 relative overflow-hidden">
