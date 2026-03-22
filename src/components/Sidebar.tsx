@@ -1,7 +1,7 @@
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import logo from '../assets/logo.svg';
+import logo from '../assets/logo2.png';
 
 interface SidebarProps {
     isOpen?: boolean;
