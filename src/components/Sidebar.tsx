@@ -124,7 +124,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                             <MessageSquare size={18} /> Archive Feedback
                         </a>
                         <a
-                            href="https://docs.google.com/forms/d/e/1FAIpQLSfxS94_L22fNGxOxHOememW717MDBXl_e-fqSyWr6R3AbcEcQ/viewform?usp=dialog"
+                            href="https://docs.google.com/forms/d/e/1FAIpQLSdoQbNvRVS8QZKeilZJKoTC9iTwFRxDalJJv9dcfq81NytRBw/viewform?usp=header"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
