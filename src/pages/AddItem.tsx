@@ -8,6 +8,23 @@ import type { ItemType, Collection, ArchiveItem } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
 
+function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
+    useEffect(() => {
+        const listener = (event: MouseEvent | TouchEvent) => {
+            if (!ref.current || ref.current.contains(event.target as Node)) {
+                return;
+            }
+            handler();
+        };
+        document.addEventListener('mousedown', listener);
+        document.addEventListener('touchstart', listener);
+        return () => {
+            document.removeEventListener('mousedown', listener);
+            document.removeEventListener('touchstart', listener);
+        };
+    }, [ref, handler]);
+}
+
 export function AddItem() {
     const { isAdmin } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -17,6 +34,13 @@ export function AddItem() {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [featuredImageIndex, setFeaturedImageIndex] = useState(0);
     const [fileObjectURLs, setFileObjectURLs] = useState<Map<File, string>>(new Map());
+
+    const figureRef = useRef<HTMLDivElement>(null);
+    const docRef = useRef<HTMLDivElement>(null);
+    const orgRef = useRef<HTMLDivElement>(null);
+    useClickOutside(figureRef, () => setShowFigureResults(false));
+    useClickOutside(docRef, () => setShowDocResults(false));
+    useClickOutside(orgRef, () => setShowOrgResults(false));
 
     // Clean up blob URLs on unmount
     useEffect(() => {
@@ -123,8 +147,8 @@ export function AddItem() {
                 setAllFigures(figures.sort((a, b) => a.title.localeCompare(b.title)));
 
                 const docs = allItemsData
-                    .filter(i => i.item_type === 'Document')
-                    .map(i => ({ id: i.id, title: i.title || "Untitled Document" }));
+                    .filter(i => i.item_type === 'Document' || i.item_type === 'Artifact')
+                    .map(i => ({ id: i.id, title: i.title || "Untitled File" }));
                 setAllDocs(docs.sort((a, b) => a.title.localeCompare(b.title)));
 
                 const orgs = allItemsData
@@ -790,12 +814,12 @@ export function AddItem() {
                                 <textarea required id="description" name="description" placeholder={itemType === 'Historic Figure' ? "Biographical details, family history, and significance..." : itemType === 'Historic Organization' ? "Historical details, mission, key figures, and legacy..." : itemType === 'Artifact' ? "Physical details, materials, historical use, and significance..." : "Provide background, provenance, or biographical details..."} className="w-full min-h-[140px] bg-white border border-tan-light/50 px-4 py-3 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans resize-none leading-relaxed"></textarea>
                             </div>
                             
-                            {itemType === 'Historic Figure' && (
+                            {(itemType === 'Historic Figure' || itemType === 'Historic Organization') && (
                                 <div className="mt-6">
                                     <label htmlFor="biography_sources" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">
-                                        Biography Sources
+                                        {itemType === 'Historic Figure' ? 'Biography Sources' : 'Description Sources'}
                                     </label>
-                                    <textarea id="biography_sources" name="biography_sources" placeholder="List sources, books, links, or documents used for this biography..." className="w-full min-h-[100px] bg-white border border-tan-light/50 px-4 py-3 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans resize-none leading-relaxed"></textarea>
+                                    <textarea id="biography_sources" name="biography_sources" placeholder={itemType === 'Historic Figure' ? "List sources, books, links, or documents used for this biography..." : "List sources, books, links, or documents used for this organization's history..."} className="w-full min-h-[100px] bg-white border border-tan-light/50 px-4 py-3 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans resize-none leading-relaxed"></textarea>
                                 </div>
                             )}
                         </div>
@@ -856,8 +880,8 @@ export function AddItem() {
                             )}
                         </div>
 
-                        {itemType !== 'Historic Figure' ? (
-                            <div>
+                        {itemType !== 'Historic Figure' && (
+                            <div ref={figureRef}>
                                 <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3 underline underline-offset-4 decoration-tan/30">Connect Historic Figures</label>
                                 <div className="relative">
                                     <Search className="absolute left-3 top-3 text-charcoal/30" size={18} />
@@ -913,9 +937,10 @@ export function AddItem() {
 
 
                             </div>
-                        ) : (
-                            <div>
-                                <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3 underline underline-offset-4 decoration-tan/30">Link To Documents</label>
+                        )}
+                        {(itemType === 'Historic Figure' || itemType === 'Historic Organization') && (
+                            <div ref={docRef}>
+                                <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3 underline underline-offset-4 decoration-tan/30">Link To Documents & Artifacts</label>
                                 <div className="relative">
                                     <Search className="absolute left-3 top-3 text-charcoal/30" size={18} />
                                     <input
@@ -969,7 +994,7 @@ export function AddItem() {
                                 )}
                             </div>
                         )}
-                        <div className="pt-8 border-t border-tan-light/30">
+                        <div className="pt-8 border-t border-tan-light/30" ref={orgRef}>
                             <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3 underline underline-offset-4 decoration-tan/30">Connect Historic Organizations</label>
                             <div className="relative">
                                 <Search className="absolute left-3 top-3 text-charcoal/30" size={18} />

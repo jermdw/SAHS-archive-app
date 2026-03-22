@@ -9,6 +9,23 @@ import type { ArchiveItem, ItemType, Collection } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
 
+function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
+    useEffect(() => {
+        const listener = (event: MouseEvent | TouchEvent) => {
+            if (!ref.current || ref.current.contains(event.target as Node)) {
+                return;
+            }
+            handler();
+        };
+        document.addEventListener('mousedown', listener);
+        document.addEventListener('touchstart', listener);
+        return () => {
+            document.removeEventListener('mousedown', listener);
+            document.removeEventListener('touchstart', listener);
+        };
+    }, [ref, handler]);
+}
+
 export function EditItem() {
     const { isAdmin } = useAuth();
     const PendingFilePreview = ({
@@ -198,6 +215,13 @@ export function EditItem() {
     const [showDocResults, setShowDocResults] = useState(false);
 
     const [allOrgs, setAllOrgs] = useState<{ id: string, title: string }[]>([]);
+    
+    const figureRef = useRef<HTMLDivElement>(null);
+    const docRef = useRef<HTMLDivElement>(null);
+    const orgRef = useRef<HTMLDivElement>(null);
+    useClickOutside(figureRef, () => setShowFigureResults(false));
+    useClickOutside(docRef, () => setShowDocResults(false));
+    useClickOutside(orgRef, () => setShowOrgResults(false));
     const [selectedRelatedOrgs, setSelectedRelatedOrgs] = useState<{ id: string, title: string }[]>([]);
     const [orgSearch, setOrgSearch] = useState('');
     const [showOrgResults, setShowOrgResults] = useState(false);
@@ -300,8 +324,8 @@ export function EditItem() {
                 setAllFigures(figsList.sort((a, b) => a.title.localeCompare(b.title)));
 
                 const docsList = allItemsData
-                    .filter(i => i.item_type === 'Document')
-                    .map(i => ({ id: i.id, title: i.title || "Untitled Document" }));
+                    .filter(i => i.item_type === 'Document' || i.item_type === 'Artifact')
+                    .map(i => ({ id: i.id, title: i.title || "Untitled File" }));
                 setAllDocs(docsList.sort((a, b) => a.title.localeCompare(b.title)));
 
                 const orgsList = allItemsData
@@ -968,10 +992,12 @@ export function EditItem() {
                                 <textarea required id="description" name="description" defaultValue={item.description ?? undefined} placeholder={itemType === 'Document' ? "Historical context, transcriptions..." : itemType === 'Historic Organization' ? "Historical details, mission, key figures, and legacy..." : itemType === 'Artifact' ? "Physical details, materials, historical use, and significance..." : "Life history, achievements..."} className="w-full min-h-[160px] bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
                             </div>
 
-                            {itemType === 'Historic Figure' && (
+                            {(itemType === 'Historic Figure' || itemType === 'Historic Organization') && (
                                 <div>
-                                    <label htmlFor="biography_sources" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Biography Sources</label>
-                                    <textarea id="biography_sources" name="biography_sources" defaultValue={item.biography_sources ?? undefined} placeholder="List sources, books, links, or documents used for this biography..." className="w-full min-h-[100px] bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
+                                    <label htmlFor="biography_sources" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">
+                                        {itemType === 'Historic Figure' ? 'Biography Sources' : 'Description Sources'}
+                                    </label>
+                                    <textarea id="biography_sources" name="biography_sources" defaultValue={item.biography_sources ?? undefined} placeholder={itemType === 'Historic Figure' ? "List sources, books, links, or documents used for this biography..." : "List sources, books, links, or documents used for this organization's history..."} className="w-full min-h-[100px] bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans resize-none"></textarea>
                                 </div>
                             )}
 
@@ -1101,8 +1127,8 @@ export function EditItem() {
                     </div>
                 </div>
                 <div className="mb-8 p-6 bg-cream/10 border border-tan-light/50 rounded-xl space-y-6">
-                    {itemType !== 'Historic Figure' ? (
-                        <div>
+                    {itemType !== 'Historic Figure' && (
+                        <div ref={figureRef}>
                             <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-3">Connect Historic Figures</label>
                             <div className="relative">
                                 <input
@@ -1157,9 +1183,10 @@ export function EditItem() {
 
 
                         </div>
-                    ) : (
-                        <div>
-                            <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-3">Link To Documents</label>
+                    )}
+                    {(itemType === 'Historic Figure' || itemType === 'Historic Organization') && (
+                        <div ref={docRef}>
+                            <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-3">Link To Documents & Artifacts</label>
                             <div className="relative">
                                 <input
                                     type="text"
@@ -1212,7 +1239,7 @@ export function EditItem() {
                             )}
                         </div>
                     )}
-                    <div className="pt-6 border-t border-tan-light/30">
+                    <div className="pt-6 border-t border-tan-light/30" ref={orgRef}>
                         <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-3">Connect Historic Organizations</label>
                         <div className="relative">
                             <input
