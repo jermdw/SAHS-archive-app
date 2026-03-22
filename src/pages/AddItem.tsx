@@ -239,6 +239,27 @@ export function AddItem() {
         }
     };
 
+    const getCoordinatesFromAddress = async (address: string) => {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, {
+                headers: {
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'User-Agent': 'SAHS-Archive-App'
+                }
+            });
+            const data = await response.json();
+            if (data && data.length > 0) {
+                return {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon)
+                };
+            }
+        } catch (err) {
+            console.error("Geocoding failed:", err);
+        }
+        return null;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -246,6 +267,13 @@ export function AddItem() {
 
         try {
             const formData = new FormData(e.target as HTMLFormElement);
+            
+            const historical_address = formData.get('historical_address') as string || "";
+            let coordinates = null;
+            if (historical_address) {
+                coordinates = await getCoordinatesFromAddress(historical_address);
+            }
+            
             let fileUrls: string[] = [];
 
             if (selectedFiles.length > 0) {
@@ -308,7 +336,8 @@ export function AddItem() {
                 // SAHS Specific
                 condition: (formData.get('condition') as any) || null,
                 physical_location: (formData.get('physical_location') as any) || null,
-                historical_address: formData.get('historical_address') as string || "",
+                historical_address: historical_address,
+                coordinates: coordinates,
                 related_figures: selectedRelatedFigures.map(f => f.id),
                 related_documents: selectedRelatedDocs.map(d => d.id),
                 related_organizations: selectedRelatedOrgs.map(o => o.id),

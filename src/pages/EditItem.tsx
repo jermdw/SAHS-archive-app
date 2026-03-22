@@ -447,6 +447,27 @@ export function EditItem() {
         }
     };
 
+    const getCoordinatesFromAddress = async (address: string) => {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, {
+                headers: {
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'User-Agent': 'SAHS-Archive-App'
+                }
+            });
+            const data = await response.json();
+            if (data && data.length > 0) {
+                return {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon)
+                };
+            }
+        } catch (err) {
+            console.error("Geocoding failed:", err);
+        }
+        return null;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!id || !item) return;
@@ -456,6 +477,17 @@ export function EditItem() {
 
         try {
             const formData = new FormData(e.target as HTMLFormElement);
+            
+            const historical_address = formData.get('historical_address') as string || "";
+            let coordinates = item.coordinates || null;
+            
+            if (historical_address !== (item.historical_address || "")) {
+                if (historical_address) {
+                    coordinates = await getCoordinatesFromAddress(historical_address);
+                } else {
+                    coordinates = null;
+                }
+            }
 
             const newFiles = selectedFiles;
             let fileUrls: string[] = [...existingFileUrls];
@@ -533,7 +565,8 @@ export function EditItem() {
                 // SAHS Archival Tracking
                 condition: (formData.get('condition') as any) || null,
                 physical_location: (formData.get('physical_location') as any) || null,
-                historical_address: formData.get('historical_address') as string || "",
+                historical_address: historical_address,
+                coordinates: coordinates,
                 category: formData.get('category') as string || "",
 
                 // Linking
