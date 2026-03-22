@@ -16,6 +16,8 @@ export function DocumentCard({ item, galleryIds }: { item: ArchiveItem, galleryI
                     <img
                         src={imageUrl}
                         alt={item.title}
+                        loading="lazy"
+                        decoding="async"
                         className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500"
                     />
                 ) : (

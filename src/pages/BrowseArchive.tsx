@@ -9,31 +9,25 @@ import type { ArchiveItem, ItemType } from '../types/database';
 
 export function BrowseArchive() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const typeParam = (searchParams.get('type') as ItemType) || 'All Items';
 
-    const [search, setSearch] = useState('');
-    const [selectedType, setSelectedType] = useState<ItemType | 'All Items'>(typeParam);
-    const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
-
-    useEffect(() => {
-        setSelectedType(typeParam);
-    }, [typeParam]);
-
-    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newType = e.target.value as ItemType | 'All Items';
-        setSelectedType(newType);
-        if (newType === 'All Items') {
-            searchParams.delete('type');
-        } else {
-            searchParams.set('type', newType);
-        }
-        setSearchParams(searchParams);
-    };
+    const search = searchParams.get('q') || '';
+    const selectedType = (searchParams.get('type') as ItemType | null) || 'All Items';
+    const viewMode = (searchParams.get('view') as 'grid'|'map' | null) || 'grid';
+    const selectedCollection = searchParams.get('collection') || 'All Collections';
+    const sortBy = searchParams.get('sort') || 'created_desc';
 
     const [items, setItems] = useState<ArchiveItem[]>([]);
-    const [selectedCollection] = useState<string>('All Collections');
-    const [sortBy, setSortBy] = useState<string>('created_desc');
     const [loading, setLoading] = useState(true);
+
+    const updateParam = (key: string, value: string, defaultValue: string = '') => {
+        const params = new URLSearchParams(searchParams);
+        if (!value || value === defaultValue) {
+            params.delete(key);
+        } else {
+            params.set(key, value);
+        }
+        setSearchParams(params, { replace: true });
+    };
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -159,7 +153,7 @@ export function BrowseArchive() {
                         placeholder={headerText.placeholder}
                         className="w-full bg-cream pl-12 pr-4 py-3.5 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => updateParam('q', e.target.value)}
                     />
                 </div>
                 <div className="w-px bg-tan-light hidden md:block" />
@@ -168,7 +162,7 @@ export function BrowseArchive() {
                     <select
                         className="w-full bg-cream pl-10 pr-10 py-3.5 rounded-lg border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal"
                         value={selectedType}
-                        onChange={handleTypeChange}
+                        onChange={(e) => updateParam('type', e.target.value, 'All Items')}
                     >
                         <option value="All Items">All Categories</option>
                         <option value="Document">Documents</option>
@@ -186,7 +180,7 @@ export function BrowseArchive() {
                     <select
                         className="w-full bg-cream/50 pl-10 pr-10 py-3 rounded-lg outline-none appearance-none cursor-pointer focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all font-medium text-charcoal font-sans"
                         value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
+                        onChange={(e) => updateParam('sort', e.target.value, 'created_desc')}
                     >
                         <option value="created_desc">Date Added (Newest)</option>
                         <option value="created_asc">Date Added (Oldest)</option>
@@ -207,14 +201,14 @@ export function BrowseArchive() {
                 {/* View Selector */}
                 <div className="flex bg-cream/50 p-1 rounded-lg border border-tan-light/30">
                     <button
-                        onClick={() => setViewMode('grid')}
+                        onClick={() => updateParam('view', 'grid', 'grid')}
                         className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white text-tan shadow-sm' : 'text-charcoal/40 hover:text-charcoal'}`}
                         title="Grid View"
                     >
                         <LayoutGrid size={20} />
                     </button>
                     <button
-                        onClick={() => setViewMode('map')}
+                        onClick={() => updateParam('view', 'map', 'grid')}
                         className={`p-2 rounded-md transition-all ${viewMode === 'map' ? 'bg-white text-tan shadow-sm' : 'text-charcoal/40 hover:text-charcoal'}`}
                         title="Map View"
                     >

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, Calendar, MapPin, Tag, SlidersHorizontal } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
@@ -6,17 +7,28 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import type { ArchiveItem, ItemType } from '../types/database';
 
 export function SearchArchive() {
+    const [searchParams, setSearchParams] = useSearchParams();
+
     const [items, setItems] = useState<ArchiveItem[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Filter states
-    const [keyword, setKeyword] = useState('');
-    const [selectedType, setSelectedType] = useState<ItemType | 'All Items'>('All Items');
-    const [searchYear, setSearchYear] = useState('');
-    const [searchPlace, setSearchPlace] = useState('');
-    const [searchTag, setSearchTag] = useState('');
-    const [searchArtifactId, setSearchArtifactId] = useState('');
-    const [sortBy, setSortBy] = useState<'newest' | 'az' | 'za' | 'id_asc' | 'id_desc'>('newest');
+    const keyword = searchParams.get('q') || '';
+    const selectedType = (searchParams.get('type') as ItemType | null) || 'All Items';
+    const searchYear = searchParams.get('year') || '';
+    const searchPlace = searchParams.get('place') || '';
+    const searchTag = searchParams.get('tag') || '';
+    const searchArtifactId = searchParams.get('id') || '';
+    const sortBy = (searchParams.get('sort') as any) || 'newest';
+
+    const updateParam = (key: string, value: string, defaultValue: string = '') => {
+        const params = new URLSearchParams(searchParams);
+        if (!value || value === defaultValue) {
+            params.delete(key);
+        } else {
+            params.set(key, value);
+        }
+        setSearchParams(params, { replace: true });
+    };
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -103,13 +115,7 @@ export function SearchArchive() {
     });
 
     const resetFilters = () => {
-        setKeyword('');
-        setSelectedType('All Items');
-        setSearchYear('');
-        setSearchPlace('');
-        setSearchTag('');
-        setSearchArtifactId('');
-        setSortBy('newest');
+        setSearchParams(new URLSearchParams(), { replace: true });
     };
 
     if (loading) {
@@ -147,7 +153,7 @@ export function SearchArchive() {
                                     placeholder="Search by title, description, transcriptions, or creator..."
                                     className="w-full bg-cream pl-12 pr-4 py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
                                     value={keyword}
-                                    onChange={(e) => setKeyword(e.target.value)}
+                                    onChange={(e) => updateParam('q', e.target.value)}
                                 />
                             </div>
                             <button
@@ -167,7 +173,7 @@ export function SearchArchive() {
                             <select
                                 className="w-full bg-cream pl-11 pr-10 py-3 rounded-lg border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal"
                                 value={selectedType}
-                                onChange={(e) => setSelectedType(e.target.value as ItemType | 'All Items')}
+                                onChange={(e) => updateParam('type', e.target.value, 'All Items')}
                             >
                                 <option value="All Items">All Types</option>
                                 <option value="Document">Documents</option>
@@ -191,7 +197,7 @@ export function SearchArchive() {
                                 placeholder="e.g. 1920, 1850-1900..."
                                 className="w-full bg-cream pl-11 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
                                 value={searchYear}
-                                onChange={(e) => setSearchYear(e.target.value)}
+                                onChange={(e) => updateParam('year', e.target.value)}
                             />
                         </div>
                     </div>
@@ -206,7 +212,7 @@ export function SearchArchive() {
                                 placeholder="e.g. Main Street, Newnan..."
                                 className="w-full bg-cream pl-11 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
                                 value={searchPlace}
-                                onChange={(e) => setSearchPlace(e.target.value)}
+                                onChange={(e) => updateParam('place', e.target.value)}
                             />
                         </div>
                     </div>
@@ -220,7 +226,7 @@ export function SearchArchive() {
                                 placeholder="Search by tag..."
                                 className="w-full bg-cream pl-11 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
                                 value={searchTag}
-                                onChange={(e) => setSearchTag(e.target.value)}
+                                onChange={(e) => updateParam('tag', e.target.value)}
                             />
                         </div>
                     </div>
@@ -233,7 +239,7 @@ export function SearchArchive() {
                             <select
                                 className="w-full bg-cream pl-11 pr-10 py-3 rounded-lg border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal"
                                 value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value as any)}
+                                onChange={(e) => updateParam('sort', e.target.value, 'newest')}
                             >
                                 <option value="newest">Newest First</option>
                                 <option value="az">A-Z (Title)</option>
@@ -258,7 +264,7 @@ export function SearchArchive() {
                                     placeholder="Enter artifact ID number..."
                                     className="w-full bg-cream pl-11 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
                                     value={searchArtifactId}
-                                    onChange={(e) => setSearchArtifactId(e.target.value)}
+                                    onChange={(e) => updateParam('id', e.target.value)}
                                 />
                             </div>
                         </div>

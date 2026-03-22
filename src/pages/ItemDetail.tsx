@@ -225,10 +225,19 @@ export function ItemDetail() {
 
             <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-2">
-                    <Link to="/archive" className="flex items-center gap-2 text-charcoal/60 hover:text-charcoal transition-colors font-medium whitespace-nowrap">
+                    <button 
+                        onClick={() => {
+                            if (window.history.state && window.history.state.idx > 0) {
+                                navigate(-1);
+                            } else {
+                                navigate('/archive');
+                            }
+                        }} 
+                        className="flex items-center gap-2 text-charcoal/60 hover:text-charcoal transition-colors font-medium whitespace-nowrap"
+                    >
                         <ArrowLeft size={18} />
-                        Back to Archive
-                    </Link>
+                        Go Back
+                    </button>
 
                     {(prevId || nextId) && (
                         <div className="flex items-center gap-1 bg-tan-light/10 border border-tan-light/30 rounded-lg p-1 ml-2 md:ml-6 shadow-sm">
@@ -609,7 +618,7 @@ export function ItemDetail() {
                                 <Link key={fig.id} to={`/items/${fig.id}`} state={{ galleryIds: relatedFigureItems.map(f => f.id || '') }} className="group block text-center">
                                     <div className="aspect-square bg-cream rounded-full overflow-hidden border-2 border-tan-light/50 mb-3 group-hover:border-tan transition-colors shadow-sm max-w-[150px] mx-auto">
                                         {fig.featured_image_url || fig.file_urls?.[0] ? (
-                                            <img src={(fig.featured_image_url || fig.file_urls?.[0])!} alt={fig.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                            <img src={(fig.featured_image_url || fig.file_urls?.[0])!} alt={fig.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-tan/20 font-serif text-3xl">{fig.title.charAt(0)}</div>
                                         )}
@@ -633,7 +642,7 @@ export function ItemDetail() {
                                 <Link key={org.id} to={`/items/${org.id}`} state={{ galleryIds: relatedOrganizationItems.map(o => o.id || '') }} className="group block text-center">
                                     <div className="aspect-[4/3] bg-cream rounded-xl overflow-hidden border border-tan-light/50 mb-3 group-hover:border-tan transition-colors shadow-sm">
                                         {org.featured_image_url || org.file_urls?.[0] ? (
-                                            <img src={(org.featured_image_url || org.file_urls?.[0])!} alt={org.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            <img src={(org.featured_image_url || org.file_urls?.[0])!} alt={org.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-tan/20 font-serif text-3xl">{org.title ? org.title.charAt(0) : "O"}</div>
                                         )}
@@ -664,6 +673,8 @@ export function ItemDetail() {
                                     <img 
                                         src={url} 
                                         alt={`Page ${idx + 1}`} 
+                                        loading="lazy" 
+                                        decoding="async"
                                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                                     />
                                     <div className="absolute bottom-0 inset-x-0 bg-charcoal/60 text-white text-[9px] font-bold text-center py-0.5">
