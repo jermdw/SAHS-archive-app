@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X } from 'lucide-react';
+import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo.svg';
 
@@ -9,7 +9,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
-    const { isSAHSUser, logout, user } = useAuth();
+    const { isSAHSUser, isAdmin, logout, user } = useAuth();
     const navigate = useNavigate();
 
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -128,6 +128,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                             <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
                                 <FolderOpen size={18} /> Collections
                             </NavLink>
+                            {isAdmin && (
+                                <NavLink to="/settings" className={navLinkClass} onClick={handleLinkClick}>
+                                    <Settings size={18} /> Admin Settings
+                                </NavLink>
+                            )}
                         </nav>
                     </div>
                 )}

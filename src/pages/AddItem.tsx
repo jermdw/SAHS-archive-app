@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
 
 export function AddItem() {
-    const { user } = useAuth();
+    const { isAdmin } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -592,7 +592,7 @@ export function AddItem() {
                                 )}
                             </div>
 
-                            {['catnolan@senoiahistory.com', 'jeremywarren@senoiahistory.com'].includes(user?.email || '') && (
+                            {isAdmin && (
                                 <div className="space-y-3 mt-6">
                                     <button
                                         type="button"

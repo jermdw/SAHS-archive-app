@@ -10,6 +10,7 @@ import { Login } from './pages/Login';
 import { AuthProvider } from './contexts/AuthContext';
 import { Home } from './pages/Home';
 import { SearchArchive } from './pages/SearchArchive';
+import { AdminSettings } from './pages/AdminSettings';
 
 function PageWrapper() {
   return (
@@ -44,6 +45,7 @@ function App() {
               <Route path="add-item" element={<ProtectedRoute><AddItem /></ProtectedRoute>} />
               <Route path="add-collection" element={<ProtectedRoute><AddCollection /></ProtectedRoute>} />
               <Route path="edit-item/:id" element={<ProtectedRoute><EditItem /></ProtectedRoute>} />
+              <Route path="settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
             </Route>
           </Route>
         </Routes>

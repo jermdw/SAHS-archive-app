@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
 
 export function EditItem() {
-    const { user } = useAuth();
+    const { isAdmin } = useAuth();
     const PendingFilePreview = ({
         file,
         url,
@@ -783,7 +783,7 @@ export function EditItem() {
                                 </div>
                             )}
 
-                            {['catnolan@senoiahistory.com', 'jeremywarren@senoiahistory.com'].includes(user?.email || '') && (
+                            {isAdmin && (
                                 <div className="space-y-3 mt-6">
                                     <button
                                         type="button"
