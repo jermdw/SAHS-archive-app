@@ -9,7 +9,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
-    const { isSAHSUser, isAdmin, logout, user } = useAuth();
+    const { isSAHSUser, isAdmin, logout, user, isEditingMode, setIsEditingMode } = useAuth();
     const navigate = useNavigate();
 
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -135,21 +135,40 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 </div>
 
                 {isSAHSUser && (
-                    <div>
-                        <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Manage</h2>
-                        <nav className="flex flex-col gap-1">
-                            <NavLink to="/add-item" className={navLinkClass} onClick={handleLinkClick}>
-                                <Upload size={18} /> Add Archive Item
-                            </NavLink>
-                            <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
-                                <FolderOpen size={18} /> Collections
-                            </NavLink>
-                            {isAdmin && (
-                                <NavLink to="/settings" className={navLinkClass} onClick={handleLinkClick}>
-                                    <Settings size={18} /> Admin Settings
+                    <div className="flex flex-col gap-6">
+                        <div>
+                            <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Manage</h2>
+                            <nav className="flex flex-col gap-1">
+                                <NavLink to="/add-item" className={navLinkClass} onClick={handleLinkClick}>
+                                    <Upload size={18} /> Add Archive Item
                                 </NavLink>
-                            )}
-                        </nav>
+                                <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
+                                    <FolderOpen size={18} /> Collections
+                                </NavLink>
+                                {isAdmin && (
+                                    <NavLink to="/settings" className={navLinkClass} onClick={handleLinkClick}>
+                                        <Settings size={18} /> Admin Settings
+                                    </NavLink>
+                                )}
+                            </nav>
+                        </div>
+
+                        <div className="px-4 py-4 bg-tan/5 rounded-xl border border-tan/10">
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                                <span className="text-xs font-bold text-charcoal tracking-wide uppercase">Editing Mode</span>
+                                <button
+                                    onClick={() => setIsEditingMode(!isEditingMode)}
+                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isEditingMode ? 'bg-tan' : 'bg-charcoal/20'}`}
+                                >
+                                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isEditingMode ? 'translate-x-4' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-charcoal-light leading-relaxed">
+                                {isEditingMode 
+                                    ? 'Clicking items will take you directly to the editor.' 
+                                    : 'Enable for high-volume editing'}
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>

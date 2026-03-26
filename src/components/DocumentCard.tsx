@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom';
 import type { ArchiveItem } from '../types/database';
+import { useAuth } from '../contexts/AuthContext';
 
 export function DocumentCard({ item, galleryIds }: { item: ArchiveItem, galleryIds?: string[] }) {
+    const { isEditingMode } = useAuth();
     const imageUrl = item.featured_image_url || (item.file_urls && item.file_urls.length > 0 ? item.file_urls[0] : null);
     const totalImages = item.file_urls ? item.file_urls.length : 0;
 
     return (
         <Link
-            to={`/items/${item.id}`}
+            to={isEditingMode ? `/edit-item/${item.id}` : `/items/${item.id}`}
             state={{ galleryIds }}
             className="bg-white border border-tan-light rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all flex flex-col group cursor-pointer"
         >

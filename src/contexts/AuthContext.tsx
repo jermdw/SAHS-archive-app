@@ -3,6 +3,7 @@ import type { User } from 'firebase/auth';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth, googleProvider, db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { useLocation } from 'react-router-dom';
 
 interface AuthContextType {
     user: User | null;
@@ -12,6 +13,9 @@ interface AuthContextType {
     isSAHSUser: boolean; // Alias for isAdmin || isCurator
     isAdmin: boolean;
     isCurator: boolean;
+    isEditingMode: boolean;
+    setIsEditingMode: (value: boolean) => void;
+    lastSearchPath: string;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -24,6 +28,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isCurator, setIsCurator] = useState(false);
+    const [isEditingMode, setIsEditingMode] = useState(false);
+    const [lastSearchPath, setLastSearchPath] = useState('/archive');
+
+    const location = useLocation();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -67,6 +75,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return unsubscribe;
     }, []);
 
+    // Track last search/browse path
+    useEffect(() => {
+        if (location.pathname === '/archive' || location.pathname === '/search') {
+            setLastSearchPath(location.pathname + location.search);
+        }
+    }, [location]);
+
     const loginWithGoogle = async () => {
         try {
             // Optional: You can force prompt select_account to make it easier for users with multiple googles
@@ -94,7 +109,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isSAHSUser = isAdmin || isCurator;
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout, isSAHSUser, isAdmin, isCurator }}>
+        <AuthContext.Provider value={{ 
+            user, 
+            loading, 
+            loginWithGoogle, 
+            logout, 
+            isSAHSUser, 
+            isAdmin, 
+            isCurator,
+            isEditingMode,
+            setIsEditingMode,
+            lastSearchPath
+        }}>
             {loading ? (
                 <div className="min-h-screen bg-cream flex flex-col items-center justify-center gap-4">
                     <div className="w-12 h-12 border-4 border-tan/30 border-t-tan rounded-full animate-spin"></div>
