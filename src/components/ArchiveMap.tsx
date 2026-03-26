@@ -70,7 +70,7 @@ function MarkerWithInfoWindow({ item }: { item: ArchiveItem }) {
                         <h4 className="font-serif font-bold text-charcoal mb-1 line-clamp-1">{item.title || item.org_name}</h4>
                         <p className="text-xs text-charcoal/60 mb-3 line-clamp-2">{item.description}</p>
                         <Link 
-                            to={`/item/${item.id}`}
+                            to={`/items/${item.id}`}
                             className="inline-block w-full py-1.5 bg-tan text-white text-center text-xs font-bold rounded hover:bg-charcoal transition-colors"
                         >
                             View Details
