@@ -21,7 +21,11 @@ export interface ArchiveItem {
     category?: string | null;
     file_urls: string[]; // For documents, scans, or portraits
     created_at: string;
+    uploaded_by_email?: string | null;
+    uploaded_by_name?: string | null;
     updated_at?: string | null;
+    updated_by_email?: string | null;
+    updated_by_name?: string | null;
 
     // Figure specific
     full_name?: string | null;

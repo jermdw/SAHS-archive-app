@@ -2,6 +2,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 import L from 'leaflet';
 import type { ArchiveItem } from '../types/database';
+import { useAuth } from '../contexts/AuthContext';
 
 // Fix for default Leaflet icon inclusion in build environments
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -22,6 +23,8 @@ interface ArchiveMapProps {
 }
 
 export function ArchiveMap({ items }: ArchiveMapProps) {
+    const { isEditingMode } = useAuth();
+    
     // Filter items that have valid coordinates
     const mapItems = items.filter(item => 
         item.coordinates && 
@@ -60,10 +63,10 @@ export function ArchiveMap({ items }: ArchiveMapProps) {
                                 <h4 className="font-serif font-bold text-charcoal mb-1 text-sm leading-tight">{item.title || item.org_name}</h4>
                                 <p className="text-[10px] text-charcoal/60 mb-2 line-clamp-2 leading-snug">{item.description}</p>
                                 <Link 
-                                    to={`/items/${item.id}`}
+                                    to={isEditingMode ? `/edit-item/${item.id}` : `/items/${item.id}`}
                                     className="inline-block w-full py-1 bg-tan text-white text-center text-[10px] font-bold rounded hover:bg-charcoal transition-colors no-underline"
                                 >
-                                    View Details
+                                    {isEditingMode ? 'Edit Item' : 'View Details'}
                                 </Link>
                             </div>
                         </Popup>

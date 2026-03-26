@@ -26,7 +26,7 @@ function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
 }
 
 export function AddItem() {
-    const { isAdmin } = useAuth();
+    const { isAdmin, user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -321,6 +321,8 @@ export function AddItem() {
                 tags: currentTags,
                 collection_id: (formData.get('collection_id') as string) || "",
                 created_at: new Date().toISOString(),
+                uploaded_by_email: user?.email || null,
+                uploaded_by_name: user?.displayName || null,
 
                 title: formData.get('title') as string || "",
                 description: formData.get('description') as string || "",

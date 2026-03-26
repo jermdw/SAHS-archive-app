@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Maximize2, FileText } from 'lucide-react';
+import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Maximize2, FileText, ArrowLeft, Lock } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
@@ -27,7 +27,7 @@ function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
 }
 
 export function EditItem() {
-    const { isAdmin } = useAuth();
+    const { isAdmin, lastSearchPath, user } = useAuth();
     const PendingFilePreview = ({
         file,
         url,
@@ -558,7 +558,6 @@ export function EditItem() {
                 featured_image_url: finalFeaturedUrl || (fileUrls.length > 0 ? fileUrls[0] : null),
                 tags: tags,
                 collection_id: (formData.get('collection_id') as string) || "",
-                updated_at: new Date().toISOString(),
 
                 // Core DC Elements
                 title: formData.get('title') as string || "",
@@ -612,6 +611,9 @@ export function EditItem() {
                 alternative_names: formData.get('alternative_names') as string || "",
                 founding_date: formData.get('founding_date') as string || "",
                 dissolved_date: formData.get('dissolved_date') as string || "",
+                updated_at: new Date().toISOString(),
+                updated_by_email: user?.email || null,
+                updated_by_name: user?.displayName || null,
             };
 
             await updateDoc(doc(db, 'archive_items', id), updateData);
@@ -674,6 +676,14 @@ export function EditItem() {
                     >
                         View Item
                     </button>
+                    {lastSearchPath && (
+                        <button
+                            onClick={() => navigate(lastSearchPath)}
+                            className="bg-charcoal text-white px-6 py-3 rounded-lg font-bold hover:bg-charcoal/80 transition-colors flex items-center gap-2"
+                        >
+                            <ArrowLeft size={18} /> Back to Search
+                        </button>
+                    )}
                 </div>
             </div>
         )
@@ -722,7 +732,17 @@ export function EditItem() {
                     </h1>
                     <p className="text-charcoal/70 text-lg">Updating details for {item.title}</p>
                 </div>
-                <button onClick={() => navigate(-1)} className="text-sm font-medium text-charcoal/60 hover:text-charcoal">Cancel</button>
+                <div className="flex items-center gap-6">
+                    <button onClick={() => navigate(-1)} className="text-sm font-medium text-charcoal/60 hover:text-charcoal">Cancel</button>
+                    {lastSearchPath && (
+                        <button 
+                            onClick={() => navigate(lastSearchPath)}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-charcoal text-white rounded-lg text-sm font-bold hover:bg-charcoal/80 transition-all shadow-md active:scale-95"
+                        >
+                            <ArrowLeft size={16} /> Back to Search
+                        </button>
+                    )}
+                </div>
             </div>
 
             {error && (
@@ -1383,6 +1403,42 @@ export function EditItem() {
                 </div>
 
             </form>
+            
+            {/* Administrative Audit Log - Only visible in Edit Mode */}
+            <div className="mt-12 bg-charcoal/5 border border-charcoal/10 rounded-xl p-6 md:p-8">
+                <h3 className="text-xl font-serif font-bold text-charcoal mb-6 flex items-center gap-2 border-b border-charcoal/10 pb-3">
+                    <Lock size={20} className="text-tan" />
+                    Administrative Audit Log
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div>
+                        <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Uploaded By</p>
+                        <p className="text-sm font-sans font-bold text-charcoal">{item.uploaded_by_name || 'System'}</p>
+                        <p className="text-xs font-sans text-charcoal/60">{item.uploaded_by_email || 'legacy-import'}</p>
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Upload Date</p>
+                        <p className="text-sm font-sans text-charcoal font-medium">
+                            {item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A'}
+                        </p>
+                    </div>
+                    {item.updated_at && (
+                        <>
+                            <div>
+                                <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Last Updated By</p>
+                                <p className="text-sm font-sans font-bold text-charcoal">{item.updated_by_name || 'System'}</p>
+                                <p className="text-xs font-sans text-charcoal/60">{item.updated_by_email || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Last Update Date</p>
+                                <p className="text-sm font-sans text-charcoal font-medium">
+                                    {new Date(item.updated_at).toLocaleString()}
+                                </p>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
