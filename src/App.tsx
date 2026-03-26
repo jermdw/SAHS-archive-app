@@ -5,6 +5,7 @@ import { ItemDetail } from './pages/ItemDetail';
 import { AddItem } from './pages/AddItem';
 import { EditItem } from './pages/EditItem';
 import { Collections } from './pages/Collections';
+import { CollectionDetail } from './pages/CollectionDetail';
 import { AddCollection } from './pages/AddCollection';
 import { Login } from './pages/Login';
 import { AuthProvider } from './contexts/AuthContext';
@@ -36,6 +37,9 @@ function App() {
             <Route element={<PageWrapper />}>
               <Route path="archive" element={<BrowseArchive />} />
               <Route path="collections" element={<Collections />} />
+              <Route path="collections/:id" element={<CollectionDetail />} />
+
+              {/* Authentication and Admin routes */}
               <Route path="items/:id" element={<ItemDetail />} />
               <Route path="figures/:id" element={<ItemDetail />} /> {/* Legacy detail redirect handled later */}
               <Route path="search" element={<SearchArchive />} />

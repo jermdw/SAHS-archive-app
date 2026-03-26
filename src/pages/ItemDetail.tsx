@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
@@ -29,6 +29,8 @@ export function ItemDetail() {
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [zoomScale, setZoomScale] = useState(1);
+    const [collectionName, setCollectionName] = useState<string | null>(null);
+    const [showAdvancedDC, setShowAdvancedDC] = useState(false);
 
     useEffect(() => {
         if (item && item.file_urls && item.featured_image_url) {
@@ -49,6 +51,18 @@ export function ItemDetail() {
                 if (docSnap.exists()) {
                     const data = { id: docSnap.id, ...(docSnap.data() || {}) } as ArchiveItem;
                     setItem(data);
+
+                    if (data.collection_id) {
+                        try {
+                            const collRef = doc(db, 'collections', data.collection_id);
+                            const collSnap = await getDoc(collRef);
+                            if (collSnap.exists()) {
+                                setCollectionName(collSnap.data().title);
+                            }
+                        } catch (err) {
+                            console.error("Error fetching collection details:", err);
+                        }
+                    }
 
 
 
@@ -409,6 +423,23 @@ export function ItemDetail() {
                                         </span>
                                     )}
                                 </div>
+                                {collectionName && item.collection_id && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Part of Collection</p>
+                                        <Link to={`/collections/${item.collection_id}`} className="text-lg font-serif text-tan hover:underline inline-flex items-center gap-1.5 align-top">
+                                            <BookOpen size={16} />
+                                            {collectionName}
+                                        </Link>
+                                    </div>
+                                )}
+                                {item.condition && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Condition</p>
+                                        <span className="inline-block bg-tan-light/10 text-charcoal/80 px-2.5 py-0.5 rounded-full text-[12px] font-bold border border-tan-light/30 mt-1 font-sans">
+                                            {item.condition}
+                                        </span>
+                                    </div>
+                                )}
                                 {item.date && (
                                     <div>
                                         <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Origin Date</p>
@@ -431,6 +462,12 @@ export function ItemDetail() {
                                             <div>
                                                 <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Full Name</p>
                                                 <p className="text-lg font-serif text-charcoal">{item.full_name}</p>
+                                            </div>
+                                        )}
+                                        {item.birthplace && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Birthplace</p>
+                                                <p className="text-lg font-serif text-charcoal">{item.birthplace}</p>
                                             </div>
                                         )}
                                         {item.birth_date && (
@@ -459,6 +496,12 @@ export function ItemDetail() {
                                             <div>
                                                 <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Official Name</p>
                                                 <p className="text-lg font-serif text-charcoal">{item.org_name}</p>
+                                            </div>
+                                        )}
+                                        {item.alternative_names && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Alternative / Former Names</p>
+                                                <p className="text-lg font-serif text-charcoal">{item.alternative_names}</p>
                                             </div>
                                         )}
                                         {(item.founding_date || item.dissolved_date) && (
@@ -516,6 +559,14 @@ export function ItemDetail() {
                                         <p className="text-[15px] font-sans text-charcoal leading-snug">{item.physical_location}</p>
                                     </div>
                                 )}
+                                {item.historical_address && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans flex items-center gap-1.5 align-top">
+                                            <MapPin size={12} className="text-tan" /> Historical Address
+                                        </p>
+                                        <p className="text-[15px] font-sans text-charcoal leading-snug">{item.historical_address}</p>
+                                    </div>
+                                )}
                                 {item.museum_location && (
                                     <div>
                                         <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Physical Museum Shelf/Box</p>
@@ -549,6 +600,75 @@ export function ItemDetail() {
                             )}
                         </div>
                     </div>
+
+                    {/* Extended Archival Metadata */}
+                    {(item.publisher || item.contributor || item.rights || item.relation || item.format || item.language || item.type || item.coverage) && (
+                        <div className="mb-12 bg-white border border-tan-light/50 rounded-xl overflow-hidden shadow-sm">
+                            <button
+                                type="button"
+                                onClick={() => setShowAdvancedDC(!showAdvancedDC)}
+                                className="w-full px-6 py-4 bg-cream/30 flex justify-between items-center text-charcoal font-medium hover:bg-cream transition-colors border-b border-tan-light/50"
+                            >
+                                <span className="font-serif font-bold text-lg flex items-center gap-2">
+                                    <BookOpen className="text-tan" size={18} />
+                                    Extended Archival Metadata (Dublin Core)
+                                </span>
+                                {showAdvancedDC ? <ChevronUp size={20} className="text-charcoal/50" /> : <ChevronDown size={20} className="text-charcoal/50" />}
+                            </button>
+                            {showAdvancedDC && (
+                                <div className="p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-8 gap-x-6 bg-white">
+                                    {item.publisher && (
+                                        <div>
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Publisher</p>
+                                            <p className="text-[15px] font-sans text-charcoal">{item.publisher}</p>
+                                        </div>
+                                    )}
+                                    {item.contributor && (
+                                        <div>
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Contributor</p>
+                                            <p className="text-[15px] font-sans text-charcoal">{item.contributor}</p>
+                                        </div>
+                                    )}
+                                    {item.rights && (
+                                        <div>
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Rights</p>
+                                            <p className="text-[15px] font-sans text-charcoal font-medium">{item.rights}</p>
+                                        </div>
+                                    )}
+                                    {item.relation && (
+                                        <div>
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Relation</p>
+                                            <p className="text-[15px] font-sans text-charcoal">{item.relation}</p>
+                                        </div>
+                                    )}
+                                    {item.format && (
+                                        <div>
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Format</p>
+                                            <p className="text-[15px] font-sans text-charcoal">{item.format}</p>
+                                        </div>
+                                    )}
+                                    {item.language && (
+                                        <div>
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Language</p>
+                                            <p className="text-[15px] font-sans text-charcoal">{item.language}</p>
+                                        </div>
+                                    )}
+                                    {item.type && (
+                                        <div>
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Type (DC)</p>
+                                            <p className="text-[15px] font-sans text-charcoal">{item.type}</p>
+                                        </div>
+                                    )}
+                                    {item.coverage && (
+                                        <div>
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-1 font-sans">Coverage</p>
+                                            <p className="text-[15px] font-sans text-charcoal">{item.coverage}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
 
                     {/* Transcription Block */}

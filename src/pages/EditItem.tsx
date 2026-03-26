@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Maximize2, FileText } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
@@ -207,24 +207,43 @@ export function EditItem() {
     const [allFigures, setAllFigures] = useState<{ id: string, title: string }[]>([]);
     const [selectedRelatedFigures, setSelectedRelatedFigures] = useState<{ id: string, title: string }[]>([]);
     const [figureSearch, setFigureSearch] = useState('');
+    const [debouncedFigureSearch, setDebouncedFigureSearch] = useState('');
     const [showFigureResults, setShowFigureResults] = useState(false);
 
     const [allDocs, setAllDocs] = useState<{ id: string, title: string }[]>([]);
     const [selectedRelatedDocs, setSelectedRelatedDocs] = useState<{ id: string, title: string }[]>([]);
     const [docSearch, setDocSearch] = useState('');
+    const [debouncedDocSearch, setDebouncedDocSearch] = useState('');
     const [showDocResults, setShowDocResults] = useState(false);
 
     const [allOrgs, setAllOrgs] = useState<{ id: string, title: string }[]>([]);
-    
+    const [selectedRelatedOrgs, setSelectedRelatedOrgs] = useState<{ id: string, title: string }[]>([]);
+    const [orgSearch, setOrgSearch] = useState('');
+    const [debouncedOrgSearch, setDebouncedOrgSearch] = useState('');
+    const [showOrgResults, setShowOrgResults] = useState(false);
+
+    // Debounce search terms to keep typing smooth
+    useEffect(() => {
+        const h = setTimeout(() => setDebouncedFigureSearch(figureSearch), 200);
+        return () => clearTimeout(h);
+    }, [figureSearch]);
+
+    useEffect(() => {
+        const h = setTimeout(() => setDebouncedDocSearch(docSearch), 200);
+        return () => clearTimeout(h);
+    }, [docSearch]);
+
+    useEffect(() => {
+        const h = setTimeout(() => setDebouncedOrgSearch(orgSearch), 200);
+        return () => clearTimeout(h);
+    }, [orgSearch]);
+
     const figureRef = useRef<HTMLDivElement>(null);
     const docRef = useRef<HTMLDivElement>(null);
     const orgRef = useRef<HTMLDivElement>(null);
     useClickOutside(figureRef, () => setShowFigureResults(false));
     useClickOutside(docRef, () => setShowDocResults(false));
     useClickOutside(orgRef, () => setShowOrgResults(false));
-    const [selectedRelatedOrgs, setSelectedRelatedOrgs] = useState<{ id: string, title: string }[]>([]);
-    const [orgSearch, setOrgSearch] = useState('');
-    const [showOrgResults, setShowOrgResults] = useState(false);
 
     const cropExistingImage = async (url: string) => {
         try {
@@ -605,20 +624,30 @@ export function EditItem() {
         }
     };
 
-    const filteredFigures = allFigures.filter(f =>
-        f.title.toLowerCase().includes(figureSearch.toLowerCase()) &&
-        !selectedRelatedFigures.find(sf => sf.id === f.id)
-    );
+    // Memoize filtered results to prevent expensive re-calculations on every render
+    const filteredFigures = useMemo(() => {
+        const search = debouncedFigureSearch.toLowerCase();
+        return allFigures.filter(f =>
+            f.title.toLowerCase().includes(search) &&
+            !selectedRelatedFigures.some(sf => sf.id === f.id)
+        );
+    }, [allFigures, debouncedFigureSearch, selectedRelatedFigures]);
 
-    const filteredDocs = allDocs.filter(d =>
-        d.title.toLowerCase().includes(docSearch.toLowerCase()) &&
-        !selectedRelatedDocs.find(sd => sd.id === d.id)
-    );
+    const filteredDocs = useMemo(() => {
+        const search = debouncedDocSearch.toLowerCase();
+        return allDocs.filter(d =>
+            d.title.toLowerCase().includes(search) &&
+            !selectedRelatedDocs.some(sd => sd.id === d.id)
+        );
+    }, [allDocs, debouncedDocSearch, selectedRelatedDocs]);
 
-    const filteredOrgs = allOrgs.filter(o =>
-        o.title.toLowerCase().includes(orgSearch.toLowerCase()) &&
-        !selectedRelatedOrgs.find(so => so.id === o.id)
-    );
+    const filteredOrgs = useMemo(() => {
+        const search = debouncedOrgSearch.toLowerCase();
+        return allOrgs.filter(o =>
+            o.title.toLowerCase().includes(search) &&
+            !selectedRelatedOrgs.some(so => so.id === o.id)
+        );
+    }, [allOrgs, debouncedOrgSearch, selectedRelatedOrgs]);
 
     if (isLoading) {
         return <div className="flex justify-center items-center h-full text-charcoal/60 font-serif text-lg">Loading archive details...</div>;

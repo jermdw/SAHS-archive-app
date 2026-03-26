@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, ArrowUpDown, LayoutGrid, Map as MapIcon } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
@@ -18,6 +18,23 @@ export function BrowseArchive() {
 
     const [items, setItems] = useState<ArchiveItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [localSearch, setLocalSearch] = useState(search);
+
+    // Sync local search with URL search param initially
+    useEffect(() => {
+        setLocalSearch(search);
+    }, [search]);
+
+    // Debounce updating the search URL parameter
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (localSearch !== search) {
+                updateParam('q', localSearch);
+            }
+        }, 300);
+
+        return () => clearTimeout(handler);
+    }, [localSearch, search]);
 
     const updateParam = (key: string, value: string, defaultValue: string = '') => {
         const params = new URLSearchParams(searchParams);
@@ -50,52 +67,56 @@ export function BrowseArchive() {
         fetchItems();
     }, []);
 
-    // Unified client-side filtering
-    const filteredItems = items.filter(item => {
-        const searchLower = search.toLowerCase();
-        const matchesSearch =
-            item.title?.toLowerCase().includes(searchLower) ||
-            item.description?.toLowerCase().includes(searchLower) ||
-            item.subject?.toLowerCase().includes(searchLower) ||
-            item.tags?.some(tag => tag.toLowerCase().includes(searchLower));
+    // Unified client-side filtering - Memoized to prevent heavy re-calculations
+    const filteredItems = useMemo(() => {
+        return items.filter(item => {
+            const searchLower = search.toLowerCase();
+            const matchesSearch =
+                item.title?.toLowerCase().includes(searchLower) ||
+                item.description?.toLowerCase().includes(searchLower) ||
+                item.subject?.toLowerCase().includes(searchLower) ||
+                item.tags?.some(tag => tag.toLowerCase().includes(searchLower));
 
-        const matchesType = selectedType === 'All Items' || item.item_type === selectedType;
-        const matchesCollection = selectedCollection === 'All Collections' || item.collection_id === selectedCollection;
+            const matchesType = selectedType === 'All Items' || item.item_type === selectedType;
+            const matchesCollection = selectedCollection === 'All Collections' || item.collection_id === selectedCollection;
 
-        return matchesSearch && matchesType && matchesCollection;
-    });
+            return matchesSearch && matchesType && matchesCollection;
+        });
+    }, [items, search, selectedType, selectedCollection]);
 
-    // Unified client-side sorting
-    const sortedItems = [...filteredItems].sort((a, b) => {
-        switch (sortBy) {
-            case 'created_desc':
-                return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-            case 'created_asc':
-                return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
-            case 'date_desc':
-                return (b.date || '').localeCompare(a.date || '');
-            case 'date_asc':
-                return (a.date || '').localeCompare(b.date || '');
-            case 'title_asc':
-                return (a.title || '').localeCompare(b.title || '');
-            case 'title_desc':
-                return (b.title || '').localeCompare(a.title || '');
-            case 'id_asc': {
-                const idA = parseInt(a.artifact_id || '0', 10);
-                const idB = parseInt(b.artifact_id || '0', 10);
-                if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
-                return (a.artifact_id || '').localeCompare(b.artifact_id || '');
+    // Unified client-side sorting - Memoized
+    const sortedItems = useMemo(() => {
+        return [...filteredItems].sort((a, b) => {
+            switch (sortBy) {
+                case 'created_desc':
+                    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+                case 'created_asc':
+                    return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+                case 'date_desc':
+                    return (b.date || '').localeCompare(a.date || '');
+                case 'date_asc':
+                    return (a.date || '').localeCompare(b.date || '');
+                case 'title_asc':
+                    return (a.title || '').localeCompare(b.title || '');
+                case 'title_desc':
+                    return (b.title || '').localeCompare(a.title || '');
+                case 'id_asc': {
+                    const idA = parseInt(a.artifact_id || '0', 10);
+                    const idB = parseInt(b.artifact_id || '0', 10);
+                    if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
+                    return (a.artifact_id || '').localeCompare(a.artifact_id || '');
+                }
+                case 'id_desc': {
+                    const idA = parseInt(a.artifact_id || '0', 10);
+                    const idB = parseInt(b.artifact_id || '0', 10);
+                    if (!isNaN(idA) && !isNaN(idB)) return idB - idA;
+                    return (b.artifact_id || '').localeCompare(b.artifact_id || '');
+                }
+                default:
+                    return 0;
             }
-            case 'id_desc': {
-                const idA = parseInt(a.artifact_id || '0', 10);
-                const idB = parseInt(b.artifact_id || '0', 10);
-                if (!isNaN(idA) && !isNaN(idB)) return idB - idA;
-                return (b.artifact_id || '').localeCompare(a.artifact_id || '');
-            }
-            default:
-                return 0;
-        }
-    });
+        });
+    }, [filteredItems, sortBy]);
 
     const getHeaderText = () => {
         switch (selectedType) {
@@ -152,8 +173,8 @@ export function BrowseArchive() {
                         type="text"
                         placeholder={headerText.placeholder}
                         className="w-full bg-cream pl-12 pr-4 py-3.5 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
-                        value={search}
-                        onChange={(e) => updateParam('q', e.target.value)}
+                        value={localSearch}
+                        onChange={(e) => setLocalSearch(e.target.value)}
                     />
                 </div>
                 <div className="w-px bg-tan-light hidden md:block" />

@@ -5,6 +5,7 @@ import { collection, getDocs, query, orderBy, doc, deleteDoc } from 'firebase/fi
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Collection } from '../types/database';
+import { CollectionGridImage } from '../components/CollectionGridImage';
 
 export function Collections() {
     const [collections, setCollections] = useState<Collection[]>([]);
@@ -92,17 +93,11 @@ export function Collections() {
                             className="group flex flex-col bg-white rounded-xl border border-tan-light/50 overflow-hidden hover:shadow-md transition-all duration-300 hover:border-tan/40"
                         >
                             <div className="aspect-[16/9] bg-tan-light/20 relative overflow-hidden">
-                                {col.featured_image_url || col.file_urls?.[0] ? (
-                                    <img
-                                        src={col.featured_image_url || col.file_urls?.[0]}
-                                        alt={col.title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                    />
-                                ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-tan-light bg-charcoal/5">
-                                        <FolderOpen size={48} className="opacity-20" />
-                                    </div>
-                                )}
+                                <CollectionGridImage 
+                                    collectionId={col.id}
+                                    fallbackImage={col.featured_image_url || col.file_urls?.[0]}
+                                    className="group-hover:scale-105 transition-transform duration-700"
+                                />
                                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-charcoal/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
                                 {isSAHSUser && (

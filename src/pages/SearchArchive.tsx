@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, Calendar, MapPin, Tag, SlidersHorizontal } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
@@ -12,13 +12,61 @@ export function SearchArchive() {
     const [items, setItems] = useState<ArchiveItem[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const keyword = searchParams.get('q') || '';
+    // Responsive local states for inputs
+    const [localKeyword, setLocalKeyword] = useState(searchParams.get('q') || '');
+    const [localYear, setLocalYear] = useState(searchParams.get('year') || '');
+    const [localPlace, setLocalPlace] = useState(searchParams.get('place') || '');
+    const [localTag, setLocalTag] = useState(searchParams.get('tag') || '');
+    const [localArtifactId, setLocalArtifactId] = useState(searchParams.get('id') || '');
+
     const selectedType = (searchParams.get('type') as ItemType | null) || 'All Items';
-    const searchYear = searchParams.get('year') || '';
-    const searchPlace = searchParams.get('place') || '';
-    const searchTag = searchParams.get('tag') || '';
-    const searchArtifactId = searchParams.get('id') || '';
     const sortBy = (searchParams.get('sort') as any) || 'newest';
+
+    // Debounce effects to sync local state to URL
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localKeyword) params.set('q', localKeyword); else params.delete('q');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localKeyword]);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localYear) params.set('year', localYear); else params.delete('year');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localYear]);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localPlace) params.set('place', localPlace); else params.delete('place');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localPlace]);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localTag) params.set('tag', localTag); else params.delete('tag');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localTag]);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localArtifactId) params.set('id', localArtifactId); else params.delete('id');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localArtifactId]);
 
     const updateParam = (key: string, value: string, defaultValue: string = '') => {
         const params = new URLSearchParams(searchParams);
@@ -50,71 +98,78 @@ export function SearchArchive() {
         fetchItems();
     }, []);
 
-    const filteredItems = items.filter(item => {
-        // Keyword match across multiple fields
-        const kw = keyword.toLowerCase();
-        const matchesKeyword = !keyword ||
-            item.title?.toLowerCase().includes(kw) ||
-            item.description?.toLowerCase().includes(kw) ||
-            item.subject?.toLowerCase().includes(kw) ||
-            item.transcription?.toLowerCase().includes(kw) ||
-            item.creator?.toLowerCase().includes(kw) ||
-            item.full_name?.toLowerCase().includes(kw) ||
-            item.also_known_as?.toLowerCase().includes(kw) ||
-            item.birthplace?.toLowerCase().includes(kw) ||
-            item.occupation?.toLowerCase().includes(kw) ||
-            item.org_name?.toLowerCase().includes(kw) ||
-            item.alternative_names?.toLowerCase().includes(kw) ||
-            item.founding_date?.toLowerCase().includes(kw) ||
-            item.dissolved_date?.toLowerCase().includes(kw);
+    const filteredItems = useMemo(() => {
+        return items.filter(item => {
+            // Keyword match across multiple fields
+            const kw = localKeyword.toLowerCase();
+            const matchesKeyword = !localKeyword ||
+                item.title?.toLowerCase().includes(kw) ||
+                item.description?.toLowerCase().includes(kw) ||
+                item.subject?.toLowerCase().includes(kw) ||
+                item.transcription?.toLowerCase().includes(kw) ||
+                item.creator?.toLowerCase().includes(kw) ||
+                item.full_name?.toLowerCase().includes(kw) ||
+                item.also_known_as?.toLowerCase().includes(kw) ||
+                item.birthplace?.toLowerCase().includes(kw) ||
+                item.occupation?.toLowerCase().includes(kw) ||
+                item.org_name?.toLowerCase().includes(kw) ||
+                item.alternative_names?.toLowerCase().includes(kw) ||
+                item.founding_date?.toLowerCase().includes(kw) ||
+                item.dissolved_date?.toLowerCase().includes(kw);
 
-        // Type match
-        const matchesType = selectedType === 'All Items' || item.item_type === selectedType;
+            // Type match
+            const matchesType = selectedType === 'All Items' || item.item_type === selectedType;
 
-        // Year / Date match (simple substring search on the date field)
-        const matchesYear = !searchYear || (item.date && item.date.toLowerCase().includes(searchYear.toLowerCase()));
+            // Year / Date match (simple substring search on the date field)
+            const matchesYear = !localYear || (item.date && item.date.toLowerCase().includes(localYear.toLowerCase()));
 
-        // Place / Coverage match
-        const matchesPlace = !searchPlace || (item.coverage && item.coverage.toLowerCase().includes(searchPlace.toLowerCase()));
+            // Place / Coverage match
+            const matchesPlace = !localPlace || (item.coverage && item.coverage.toLowerCase().includes(localPlace.toLowerCase()));
 
-        // Tag match (partial match)
-        const matchesTag = !searchTag || (item.tags && item.tags.some(t => t.toLowerCase().includes(searchTag.toLowerCase())));
+            // Tag match (partial match)
+            const matchesTag = !localTag || (item.tags && item.tags.some(t => t.toLowerCase().includes(localTag.toLowerCase())));
 
-        // Artifact ID match (exact match)
-        const matchesArtifactId = !searchArtifactId || (item.artifact_id && item.artifact_id.toLowerCase() === searchArtifactId.toLowerCase());
+            // Artifact ID match (exact match)
+            const matchesArtifactId = !localArtifactId || (item.artifact_id && item.artifact_id.toLowerCase() === localArtifactId.toLowerCase());
 
-        return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId;
-    }).sort((a, b) => {
-        if (sortBy === 'newest') {
-            return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-        }
+            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId;
+        }).sort((a, b) => {
+            if (sortBy === 'newest') {
+                return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+            }
 
-        if (sortBy === 'id_asc') {
-            const idA = parseInt(a.artifact_id || '0', 10);
-            const idB = parseInt(b.artifact_id || '0', 10);
-            if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
-            return (a.artifact_id || '').localeCompare(b.artifact_id || '');
-        }
+            if (sortBy === 'id_asc') {
+                const idA = parseInt(a.artifact_id || '0', 10);
+                const idB = parseInt(b.artifact_id || '0', 10);
+                if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
+                return (a.artifact_id || '').localeCompare(b.artifact_id || '');
+            }
 
-        if (sortBy === 'id_desc') {
-            const idA = parseInt(a.artifact_id || '0', 10);
-            const idB = parseInt(b.artifact_id || '0', 10);
-            if (!isNaN(idA) && !isNaN(idB)) return idB - idA;
-            return (b.artifact_id || '').localeCompare(a.artifact_id || '');
-        }
+            if (sortBy === 'id_desc') {
+                const idA = parseInt(a.artifact_id || '0', 10);
+                const idB = parseInt(b.artifact_id || '0', 10);
+                if (!isNaN(idA) && !isNaN(idB)) return idB - idA;
+                return (b.artifact_id || '').localeCompare(a.artifact_id || '');
+            }
 
-        if (sortBy === 'az') {
-            return a.title.localeCompare(b.title);
-        }
+            if (sortBy === 'az') {
+                return a.title.localeCompare(b.title);
+            }
 
-        if (sortBy === 'za') {
-            return b.title.localeCompare(a.title);
-        }
+            if (sortBy === 'za') {
+                return b.title.localeCompare(a.title);
+            }
 
-        return 0;
-    });
+            return 0;
+        });
+    }, [items, localKeyword, localYear, localPlace, localTag, localArtifactId, selectedType, sortBy]);
 
     const resetFilters = () => {
+        setLocalKeyword('');
+        setLocalYear('');
+        setLocalPlace('');
+        setLocalTag('');
+        setLocalArtifactId('');
         setSearchParams(new URLSearchParams(), { replace: true });
     };
 
@@ -152,8 +207,8 @@ export function SearchArchive() {
                                     type="text"
                                     placeholder="Search by title, description, transcriptions, or creator..."
                                     className="w-full bg-cream pl-12 pr-4 py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
-                                    value={keyword}
-                                    onChange={(e) => updateParam('q', e.target.value)}
+                                    value={localKeyword}
+                                    onChange={(e) => setLocalKeyword(e.target.value)}
                                 />
                             </div>
                             <button
@@ -196,8 +251,8 @@ export function SearchArchive() {
                                 type="text"
                                 placeholder="e.g. 1920, 1850-1900..."
                                 className="w-full bg-cream pl-11 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
-                                value={searchYear}
-                                onChange={(e) => updateParam('year', e.target.value)}
+                                value={localYear}
+                                onChange={(e) => setLocalYear(e.target.value)}
                             />
                         </div>
                     </div>
@@ -211,8 +266,8 @@ export function SearchArchive() {
                                 type="text"
                                 placeholder="e.g. Main Street, Newnan..."
                                 className="w-full bg-cream pl-11 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
-                                value={searchPlace}
-                                onChange={(e) => updateParam('place', e.target.value)}
+                                value={localPlace}
+                                onChange={(e) => setLocalPlace(e.target.value)}
                             />
                         </div>
                     </div>
@@ -225,8 +280,8 @@ export function SearchArchive() {
                                 type="text"
                                 placeholder="Search by tag..."
                                 className="w-full bg-cream pl-11 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
-                                value={searchTag}
-                                onChange={(e) => updateParam('tag', e.target.value)}
+                                value={localTag}
+                                onChange={(e) => setLocalTag(e.target.value)}
                             />
                         </div>
                     </div>
@@ -263,8 +318,8 @@ export function SearchArchive() {
                                     type="text"
                                     placeholder="Enter artifact ID number..."
                                     className="w-full bg-cream pl-11 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal"
-                                    value={searchArtifactId}
-                                    onChange={(e) => updateParam('id', e.target.value)}
+                                    value={localArtifactId}
+                                    onChange={(e) => setLocalArtifactId(e.target.value)}
                                 />
                             </div>
                         </div>
