@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings, MessageSquare, Inbox, Camera, MapPin } from 'lucide-react';
+import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings, MessageSquare, Inbox, Camera, MapPin, Map } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo2.png';
 
@@ -137,6 +137,21 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 {isSAHSUser && (
                     <div className="flex flex-col gap-6">
                         <div>
+                            <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Location</h2>
+                            <nav className="flex flex-col gap-1">
+                                <NavLink to="/manage-locations" className={navLinkClass} onClick={handleLinkClick}>
+                                    <MapPin size={18} /> Museum Locations
+                                </NavLink>
+                                <NavLink to="/tagging" className={navLinkClass} onClick={handleLinkClick}>
+                                    <Camera size={18} /> Tagging Hub
+                                </NavLink>
+                                <NavLink to="/interactive-map" className={navLinkClass} onClick={handleLinkClick}>
+                                    <Map size={18} /> Interactive Map
+                                </NavLink>
+                            </nav>
+                        </div>
+
+                        <div>
                             <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Manage</h2>
                             <nav className="flex flex-col gap-1">
                                 <NavLink to="/add-item" className={navLinkClass} onClick={handleLinkClick}>
@@ -144,12 +159,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                 </NavLink>
                                 <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
                                     <FolderOpen size={18} /> Collections
-                                </NavLink>
-                                <NavLink to="/tagging" className={navLinkClass} onClick={handleLinkClick}>
-                                    <Camera size={18} /> Tagging Hub
-                                </NavLink>
-                                <NavLink to="/manage-locations" className={navLinkClass} onClick={handleLinkClick}>
-                                    <MapPin size={18} /> Museum Locations
                                 </NavLink>
                                 {isAdmin && (
                                     <NavLink to="/settings" className={navLinkClass} onClick={handleLinkClick}>

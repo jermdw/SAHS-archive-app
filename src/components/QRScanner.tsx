@@ -10,9 +10,40 @@ interface QRScannerProps {
 
 export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+    const hasScannedRef = useRef<boolean>(false);
+    const activeTracksRef = useRef<MediaStreamTrack[]>([]);
+
+    // Completely forces the hardware camera light to go off by stopping tracks we intercepted
+    const forceKillVideoTracks = () => {
+        activeTracksRef.current.forEach(track => {
+            try { track.stop(); } catch (e) { /* ignore */ }
+        });
+        activeTracksRef.current = [];
+        
+        // Failsafe for the DOM element if attached
+        const videoElements = document.querySelectorAll('video');
+        videoElements.forEach(video => {
+            if (video.srcObject) {
+                const stream = video.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+        });
+    };
 
     useEffect(() => {
         if (!active) return;
+        hasScannedRef.current = false;
+
+        // Intercept WebRTC track requests so we can guarantee their destruction later
+        const originalGetUserMedia = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
+        if (navigator.mediaDevices && originalGetUserMedia) {
+            navigator.mediaDevices.getUserMedia = async (constraints) => {
+                const stream = await originalGetUserMedia(constraints);
+                stream.getTracks().forEach(t => activeTracksRef.current.push(t));
+                return stream;
+            };
+        }
 
         // Initialize scanner
         const scanner = new Html5QrcodeScanner(
@@ -21,14 +52,30 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
                 fps: 10, 
                 qrbox: { width: 250, height: 250 },
                 aspectRatio: 1.0,
-                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
+                videoConstraints: { facingMode: "environment" }
             },
             /* verbose= */ false
         );
 
         scanner.render(
             (decodedText) => {
-                onScan(decodedText);
+                if (!hasScannedRef.current) {
+                    hasScannedRef.current = true;
+                    // Properly shut down the scanner before notifying parent
+                    // This ensures the DOM node exists so html5-qrcode can stop the video stream correctly
+                    if (scannerRef.current) {
+                        scannerRef.current.clear()
+                            .catch(console.error)
+                            .finally(() => {
+                                forceKillVideoTracks();
+                                onScan(decodedText);
+                            });
+                    } else {
+                        forceKillVideoTracks();
+                        onScan(decodedText);
+                    }
+                }
             },
             () => {
                 // Ignore frequent scan errors (usually just "no QR code detected in frame")
@@ -38,8 +85,18 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
         scannerRef.current = scanner;
 
         return () => {
-            if (scannerRef.current) {
-                scannerRef.current.clear().catch(console.error);
+            // Restore getUserMedia
+            if (navigator.mediaDevices && originalGetUserMedia) {
+                navigator.mediaDevices.getUserMedia = originalGetUserMedia;
+            }
+
+            if (scannerRef.current && !hasScannedRef.current) {
+                // Failsafe for normal unmounts
+                scannerRef.current.clear().catch(console.error).finally(() => {
+                    forceKillVideoTracks();
+                });
+            } else {
+                forceKillVideoTracks();
             }
         };
     }, [active, onScan]);
@@ -58,7 +115,22 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
                     </div>
                     {onClose && (
                         <button 
-                            onClick={onClose}
+                            onClick={() => {
+                                if (!hasScannedRef.current) {
+                                    hasScannedRef.current = true;
+                                    if (scannerRef.current) {
+                                        scannerRef.current.clear()
+                                            .catch(console.error)
+                                            .finally(() => {
+                                                forceKillVideoTracks();
+                                                onClose();
+                                            });
+                                    } else {
+                                        forceKillVideoTracks();
+                                        onClose();
+                                    }
+                                }
+                            }}
                             className="p-2 hover:bg-black/5 rounded-full transition-colors text-charcoal/60"
                         >
                             <X size={20} />

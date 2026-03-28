@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, Calendar, MapPin, Tag, SlidersHorizontal } from 'lucide-react';
+import { Search, Filter, Calendar, MapPin, Tag, SlidersHorizontal, X } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -18,6 +18,7 @@ export function SearchArchive() {
     const [localPlace, setLocalPlace] = useState(searchParams.get('place') || '');
     const [localTag, setLocalTag] = useState(searchParams.get('tag') || '');
     const [localArtifactId, setLocalArtifactId] = useState(searchParams.get('id') || '');
+    const [localLocId, setLocalLocId] = useState(searchParams.get('loc_id') || '');
 
     const selectedType = (searchParams.get('type') as ItemType | null) || 'All Items';
     const sortBy = (searchParams.get('sort') as any) || 'newest';
@@ -67,6 +68,15 @@ export function SearchArchive() {
         }, 300);
         return () => clearTimeout(h);
     }, [localArtifactId]);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localLocId) params.set('loc_id', localLocId); else params.delete('loc_id');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localLocId]);
 
     const updateParam = (key: string, value: string, defaultValue: string = '') => {
         const params = new URLSearchParams(searchParams);
@@ -131,8 +141,11 @@ export function SearchArchive() {
 
             // Artifact ID match (exact match)
             const matchesArtifactId = !localArtifactId || (item.artifact_id && item.artifact_id.toLowerCase() === localArtifactId.toLowerCase());
+            
+            // Location ID match (exact match)
+            const matchesLocId = !localLocId || item.museum_location_id === localLocId;
 
-            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId;
+            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId;
         }).sort((a, b) => {
             if (sortBy === 'newest') {
                 return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
@@ -345,8 +358,23 @@ export function SearchArchive() {
             </form>
 
             <div className="flex-1">
-                <div className="mb-6 flex justify-between items-end">
-                    <h2 className="text-2xl font-serif font-bold text-charcoal">Search Results</h2>
+                <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+                    <div>
+                        <h2 className="text-2xl font-serif font-bold text-charcoal">Search Results</h2>
+                        {localLocId && (
+                            <div className="flex items-center gap-2 mt-2 bg-tan/10 border border-tan/20 px-3 py-1.5 rounded-full w-fit">
+                                <MapPin size={14} className="text-tan" />
+                                <span className="text-xs font-bold text-tan uppercase tracking-wider">Location: {localLocId}</span>
+                                <button 
+                                    onClick={() => setLocalLocId('')}
+                                    className="ml-1 hover:text-charcoal text-tan/60 transition-colors"
+                                    title="Clear location filter"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <p className="text-charcoal-light font-medium">{filteredItems.length} {filteredItems.length === 1 ? 'result' : 'results'} found</p>
                 </div>
 

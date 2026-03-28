@@ -14,6 +14,8 @@ import { SearchArchive } from './pages/SearchArchive';
 import { AdminSettings } from './pages/AdminSettings';
 import { ManageLocations } from './pages/ManageLocations';
 import { TaggingHub } from './pages/TaggingHub';
+import { LocationDetail } from './pages/LocationDetail';
+import { InteractiveMap } from './pages/InteractiveMap';
 
 function PageWrapper() {
   return (
@@ -68,6 +70,8 @@ function App() {
               <Route path="settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
               <Route path="tagging" element={<ProtectedRoute><TaggingHub /></ProtectedRoute>} />
               <Route path="manage-locations" element={<ProtectedRoute><ManageLocations /></ProtectedRoute>} />
+              <Route path="locations/:id" element={<ProtectedRoute><LocationDetail /></ProtectedRoute>} />
+              <Route path="interactive-map" element={<ProtectedRoute><InteractiveMap /></ProtectedRoute>} />
             </Route>
           </Route>
         </Routes>

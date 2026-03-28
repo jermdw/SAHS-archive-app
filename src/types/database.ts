@@ -13,6 +13,14 @@ export interface MuseumLocation {
     name: string;    // Display name (e.g. "Gallery A, Shelf 1")
     description?: string;
     created_at: string;
+    map_coordinates?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        rotation?: number;
+        z_index?: number;
+    } | null;
 }
 
 export type ItemType = 'Document' | 'Historic Figure' | 'Historic Organization' | 'Artifact';

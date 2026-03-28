@@ -592,7 +592,7 @@ export function ItemDetail() {
                                             <Camera size={14} /> Museum Tracking (QR)
                                         </p>
                                         <QRCodeDisplay 
-                                            value={`item:${item.id}`} 
+                                            value={`${window.location.hostname === 'localhost' ? 'https://sahs-archives.web.app' : window.location.origin}/items/${item.id}`} 
                                             label={item.title} 
                                             subLabel={item.artifact_id || item.id}
                                             size={140}

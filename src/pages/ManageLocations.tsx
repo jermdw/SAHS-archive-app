@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { MapPin, Plus, Trash2, Map, Loader2, HelpCircle } from 'lucide-react';
@@ -199,7 +200,17 @@ export function ManageLocations() {
                                                 value={`loc:${loc.id}`} 
                                                 label={loc.name}
                                                 subLabel={loc.description || "Museum Location"}
+                                                size={120}
                                             />
+                                            
+                                            <div className="mt-4 flex justify-end px-2">
+                                                <Link 
+                                                    to={`/locations/${loc.id}`}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-tan text-white rounded-lg text-sm font-bold hover:bg-charcoal transition-colors shadow-sm w-full justify-center"
+                                                >
+                                                    <MapPin size={16} /> View Shelf Display
+                                                </Link>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

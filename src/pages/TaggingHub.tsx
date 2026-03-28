@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { db } from '../lib/firebase';
-import { doc, getDoc, updateDoc, collection, getDocs, query, where } from 'firebase/firestore';
-import { Camera, MapPin, Box, CheckCircle2, AlertCircle, ArrowRight, History, Loader2, X } from 'lucide-react';
+import { doc, getDoc, collection, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { Camera, MapPin, Box, CheckCircle2, AlertCircle, ArrowRight, History, Loader2, X, Search, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { ArchiveItem, MuseumLocation } from '../types/database';
 import { QRScanner } from '../components/QRScanner';
@@ -11,29 +11,52 @@ export function TaggingHub() {
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     
     // State for the tagging process
-    const [selectedItem, setSelectedItem] = useState<ArchiveItem | null>(null);
+    const [selectedItems, setSelectedItems] = useState<ArchiveItem[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<MuseumLocation | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [searchId, setSearchId] = useState('');
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    const parseIdFromData = (data: string): { type: 'item' | 'loc' | 'unknown', id: string } => {
+        // Handle full URLs (e.g. https://domain.com/items/ID)
+        if (data.includes('/items/')) {
+            const parts = data.split('/items/');
+            // Get the ID after /items/ and before any query params
+            const potentialId = parts[parts.length - 1].split('?')[0].split('/')[0];
+            return { type: 'item', id: potentialId };
+        }
+        
+        // Handle legacy/internal formats
+        if (data.startsWith('item:')) return { type: 'item', id: data.replace('item:', '') };
+        if (data.startsWith('loc:')) return { type: 'loc', id: data.replace('loc:', '') };
+        
+        return { type: 'unknown', id: '' };
+    };
 
     const handleScan = async (data: string) => {
         setIsScannerOpen(false);
         setIsLoading(true);
         setMessage(null);
 
+        const { type, id } = parseIdFromData(data);
+
         try {
-            if (data.startsWith('item:')) {
-                const itemId = data.replace('item:', '');
-                const itemDoc = await getDoc(doc(db, 'archive_items', itemId));
+            if (type === 'item') {
+                const itemDoc = await getDoc(doc(db, 'archive_items', id));
                 if (itemDoc.exists()) {
-                    setSelectedItem({ id: itemDoc.id, ...itemDoc.data() } as ArchiveItem);
+                    const newItem = { id: itemDoc.id, ...itemDoc.data() } as ArchiveItem;
+                    setSelectedItems(prev => {
+                        if (!prev.find(i => i.id === newItem.id)) {
+                            return [...prev, newItem];
+                        }
+                        setMessage({ type: 'error', text: "Item already in list." });
+                        return prev;
+                    });
                 } else {
                     setMessage({ type: 'error', text: "Item not found in database." });
                 }
-            } else if (data.startsWith('loc:')) {
-                const locId = data.replace('loc:', '');
-                // Find location by its slug string (locId) rather than Firestore Doc ID
-                const locQuery = query(collection(db, 'locations'), where('id', '==', locId));
+            } else if (type === 'loc') {
+                const locQuery = query(collection(db, 'locations'), where('id', '==', id));
                 const locSnapshot = await getDocs(locQuery);
                 
                 if (!locSnapshot.empty) {
@@ -43,7 +66,7 @@ export function TaggingHub() {
                     setMessage({ type: 'error', text: "Location code not recognized." });
                 }
             } else {
-                setMessage({ type: 'error', text: "Invalid QR code format. Please scan a SAHS tracking code." });
+                setMessage({ type: 'error', text: "Invalid QR code format. Please scan a SAHS tracking code or Item URL." });
             }
         } catch (error) {
             console.error("Scan processing error:", error);
@@ -53,52 +76,127 @@ export function TaggingHub() {
         }
     };
 
+    const handleManualSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchId.trim()) return;
+
+        setIsLoading(true);
+        setMessage(null);
+
+        try {
+            // First try searching by artifact_id (the user-facing ID)
+            const q = query(collection(db, 'archive_items'), where('artifact_id', '==', searchId.trim()));
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                const newItem = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as ArchiveItem;
+                if (!selectedItems.find(i => i.id === newItem.id)) {
+                    setSelectedItems(prev => [...prev, newItem]);
+                    setSearchId('');
+                } else {
+                    setMessage({ type: 'error', text: "Item already in list." });
+                }
+            } else {
+                // If not found, try searching by Firestore Doc ID
+                const itemDoc = await getDoc(doc(db, 'archive_items', searchId.trim()));
+                if (itemDoc.exists()) {
+                    const newItem = { id: itemDoc.id, ...itemDoc.data() } as ArchiveItem;
+                    if (!selectedItems.find(i => i.id === newItem.id)) {
+                        setSelectedItems(prev => [...prev, newItem]);
+                        setSearchId('');
+                    } else {
+                        setMessage({ type: 'error', text: "Item already in list." });
+                    }
+                } else {
+                    setMessage({ type: 'error', text: `No item found with ID "${searchId}"` });
+                }
+            }
+        } catch (error) {
+            console.error("Manual search error:", error);
+            setMessage({ type: 'error', text: "Search failed." });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const removeItem = (id: string) => {
+        setSelectedItems(prev => prev.filter(item => item.id !== id));
+    };
+
     const performTagging = async () => {
-        if (!selectedItem || !selectedLocation) return;
+        if (selectedItems.length === 0 || !selectedLocation) return;
 
         setIsLoading(true);
         try {
-            const itemRef = doc(db, 'archive_items', selectedItem.id);
-            await updateDoc(itemRef, {
-                museum_location_id: selectedLocation.id,
-                last_tagged_at: new Date().toISOString(),
-                last_tagged_by: user?.email || 'unknown'
+            const batch = writeBatch(db);
+            const now = new Date().toISOString();
+            const email = user?.email || 'unknown';
+
+            selectedItems.forEach(item => {
+                const itemRef = doc(db, 'archive_items', item.id);
+                batch.update(itemRef, {
+                    museum_location_id: selectedLocation.id,
+                    last_tagged_at: now,
+                    last_tagged_by: email
+                });
             });
+
+            await batch.commit();
 
             setMessage({ 
                 type: 'success', 
-                text: `Successfully tagged "${selectedItem.title}" to "${selectedLocation.name}"` 
+                text: `Successfully tagged ${selectedItems.length} item(s) to "${selectedLocation.name}"` 
             });
             
-            // Reset for next scan
-            setSelectedItem(null);
+            // Reset for next cleanup
+            setSelectedItems([]);
             setSelectedLocation(null);
         } catch (error) {
             console.error("Tagging error:", error);
-            setMessage({ type: 'error', text: "Failed to update item location." });
+            setMessage({ type: 'error', text: "Failed to update item locations." });
         } finally {
             setIsLoading(false);
         }
     };
 
     const resetFlow = () => {
-        setSelectedItem(null);
+        setSelectedItems([]);
         setSelectedLocation(null);
         setMessage(null);
     };
 
     return (
-        <div className="max-w-4xl mx-auto flex flex-col h-full animate-in fade-in duration-500">
-            <div className="flex justify-between items-end mb-8 border-b border-tan-light/50 pb-6">
+        <div className="max-w-5xl mx-auto flex flex-col h-full animate-in fade-in duration-500 pb-20">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 border-b border-tan-light/50 pb-6 gap-4">
                 <div>
                     <h1 className="text-4xl font-serif font-bold mb-3 text-charcoal tracking-tight flex items-center gap-3">
                         <History className="text-tan" size={32} />
                         Tagging Hub
                     </h1>
                     <p className="text-charcoal/70 text-lg max-w-2xl">
-                        Move artifacts between museum locations using QR codes.
+                        Batch process artifacts by scanning or entering their ID numbers.
                     </p>
                 </div>
+                
+                <form onSubmit={handleManualSearch} className="flex gap-2 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/30" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Enter Artifact ID..."
+                            value={searchId}
+                            onChange={(e) => setSearchId(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-tan-light/50 rounded-xl focus:ring-2 focus:ring-tan/20 transition-all outline-none"
+                        />
+                    </div>
+                    <button 
+                        type="submit"
+                        disabled={!searchId.trim() || isLoading}
+                        className="bg-tan text-white px-6 py-3 rounded-xl font-bold hover:bg-charcoal transition-all disabled:opacity-50"
+                    >
+                        Add
+                    </button>
+                </form>
             </div>
 
             {message && (
@@ -113,145 +211,155 @@ export function TaggingHub() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                {/* Item Card */}
-                <div className={`relative p-8 rounded-3xl border-2 transition-all flex flex-col items-center text-center gap-4 ${
-                    selectedItem 
-                        ? 'bg-tan/5 border-tan shadow-sm' 
-                        : 'bg-white border-tan-light/50 border-dashed hover:border-tan/30 cursor-pointer'
-                }`} onClick={() => !selectedItem && setIsScannerOpen(true)}>
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-2 ${
-                        selectedItem ? 'bg-tan text-white' : 'bg-cream text-tan'
-                    }`}>
-                        <Box size={32} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                {/* Items Selection Panel */}
+                <div className="md:col-span-2 space-y-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <h2 className="text-sm font-black text-charcoal/40 uppercase tracking-[0.2em]">Selected Artifacts ({selectedItems.length})</h2>
+                        {selectedItems.length > 0 && (
+                            <button onClick={() => setSelectedItems([])} className="text-xs font-bold text-red-500 hover:underline">Clear All</button>
+                        )}
                     </div>
                     
-                    {selectedItem ? (
-                        <>
-                            <div className="flex-1">
-                                <h3 className="font-serif font-bold text-xl text-charcoal mb-1">{selectedItem.title}</h3>
-                                <p className="text-xs font-bold text-tan/60 uppercase tracking-widest leading-loose">
-                                    {selectedItem.artifact_id || selectedItem.id}
-                                </p>
+                    <div className={`min-h-[300px] rounded-3xl border-2 border-dashed flex flex-col ${
+                        selectedItems.length > 0 ? 'bg-tan/5 border-tan/30' : 'bg-white border-tan-light/40'
+                    }`}>
+                        {selectedItems.length === 0 ? (
+                            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-charcoal/40">
+                                <Box size={48} className="mb-4 opacity-20" />
+                                <p className="font-serif italic mb-6">No artifacts staged for tagging yet.</p>
+                                <button 
+                                    onClick={() => { setIsScannerOpen(true); }}
+                                    className="bg-charcoal text-white px-8 py-3 rounded-xl font-bold hover:bg-charcoal-light transition-all flex items-center gap-2 shadow-sm"
+                                >
+                                    <Camera size={20} /> Scan Artifacts
+                                </button>
                             </div>
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); setSelectedItem(null); }}
-                                className="text-xs text-charcoal/40 hover:text-red-500 font-bold uppercase tracking-wider"
-                            >
-                                Change Item
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex-1">
-                                <h3 className="font-serif font-bold text-xl text-charcoal mb-2">Identify Artifact</h3>
-                                <p className="text-sm text-charcoal/60 px-4 leading-relaxed">
-                                    Scan the QR code attached to the physical artifact.
-                                </p>
+                        ) : (
+                            <div className="p-4 space-y-2">
+                                {selectedItems.map(item => (
+                                    <div key={item.id} className="bg-white p-4 rounded-2xl border border-tan-light/30 shadow-sm flex items-center justify-between group animate-in slide-in-from-left-2 duration-300">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-cream rounded-lg flex items-center justify-center text-tan">
+                                                <Box size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-charcoal leading-tight">{item.title}</h4>
+                                                <p className="text-[10px] font-black text-tan/60 uppercase tracking-widest">{item.artifact_id || 'ID UNKNOWN'}</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => removeItem(item.id)}
+                                            className="p-2 text-charcoal/20 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button 
+                                    onClick={() => { setIsScannerOpen(true); }}
+                                    className="w-full py-4 border-2 border-dashed border-tan-light/50 rounded-2xl flex items-center justify-center gap-2 text-tan font-bold hover:bg-tan/5 hover:border-tan/30 transition-all mt-2"
+                                >
+                                    <Plus size={20} /> Add More via Scan
+                                </button>
                             </div>
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); setIsScannerOpen(true); }}
-                                className="bg-charcoal text-white px-6 py-3 rounded-xl font-bold hover:bg-charcoal-light transition-all flex items-center gap-2 shadow-sm"
-                            >
-                                <Camera size={18} /> Scan Item
-                            </button>
-                        </>
-                    )}
+                        )}
+                    </div>
                 </div>
 
-                {/* Location Card */}
-                <div className={`relative p-8 rounded-3xl border-2 transition-all flex flex-col items-center text-center gap-4 ${
-                    selectedLocation 
-                        ? 'bg-tan/5 border-tan shadow-sm' 
-                        : !selectedItem 
-                            ? 'bg-cream/10 border-tan-light/20 opacity-40 cursor-not-allowed'
-                            : 'bg-white border-tan-light/50 border-dashed hover:border-tan/30 cursor-pointer'
-                }`} onClick={() => selectedItem && !selectedLocation && setIsScannerOpen(true)}>
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-2 ${
-                        selectedLocation ? 'bg-tan text-white' : 'bg-cream text-tan'
-                    }`}>
-                        <MapPin size={32} />
+                {/* Location Panel */}
+                <div className="space-y-4">
+                    <h2 className="text-sm font-black text-charcoal/40 uppercase tracking-[0.2em]">Target Location</h2>
+                    <div className={`p-8 rounded-3xl border-2 transition-all flex flex-col items-center text-center gap-4 h-full min-h-[300px] ${
+                        selectedLocation 
+                            ? 'bg-tan/5 border-tan shadow-sm' 
+                            : 'bg-white border-tan-light/5 border-dashed hover:border-tan/30 cursor-pointer'
+                    }`} onClick={() => !selectedLocation && (setIsScannerOpen(true))}>
+                        <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-2 ${
+                            selectedLocation ? 'bg-tan text-white' : 'bg-cream text-tan'
+                        }`}>
+                            <MapPin size={40} />
+                        </div>
+                        
+                        {selectedLocation ? (
+                            <>
+                                <div className="flex-1">
+                                    <h3 className="font-serif font-bold text-2xl text-charcoal mb-2">{selectedLocation.name}</h3>
+                                    <p className="text-xs font-black text-tan uppercase tracking-widest">Active Destination</p>
+                                </div>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setSelectedLocation(null); }}
+                                    className="text-xs text-charcoal/40 hover:text-red-500 font-bold uppercase tracking-wider bg-black/5 px-4 py-2 rounded-lg"
+                                >
+                                    Change Location
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex-1">
+                                    <h3 className="font-serif font-bold text-xl text-charcoal mb-2">Identify Place</h3>
+                                    <p className="text-sm text-charcoal/60 px-4 leading-relaxed italic">
+                                        Scan the destination code to stage the batch move.
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setIsScannerOpen(true); }}
+                                    className="bg-charcoal text-white px-8 py-4 rounded-xl font-bold hover:bg-charcoal-light transition-all flex items-center gap-2 shadow-md w-full justify-center"
+                                >
+                                    <Camera size={20} /> Scan Case/Shelf
+                                </button>
+                            </>
+                        )}
                     </div>
-                    
-                    {selectedLocation ? (
-                        <>
-                            <div className="flex-1">
-                                <h3 className="font-serif font-bold text-xl text-charcoal mb-1">{selectedLocation.name}</h3>
-                                <p className="text-xs font-bold text-tan/60 uppercase tracking-widest leading-loose">
-                                    Current Destination
-                                </p>
-                            </div>
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); setSelectedLocation(null); }}
-                                className="text-xs text-charcoal/40 hover:text-red-500 font-bold uppercase tracking-wider"
-                            >
-                                Change Location
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex-1">
-                                <h3 className="font-serif font-bold text-xl text-charcoal mb-2">Identify Location</h3>
-                                <p className="text-sm text-charcoal/60 px-4 leading-relaxed">
-                                    Scan the QR code at the destination shelf or display case.
-                                </p>
-                            </div>
-                            <button 
-                                disabled={!selectedItem}
-                                onClick={(e) => { e.stopPropagation(); setIsScannerOpen(true); }}
-                                className="bg-charcoal text-white px-6 py-3 rounded-xl font-bold hover:bg-charcoal-light transition-all disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                            >
-                                <Camera size={18} /> Scan Location
-                            </button>
-                        </>
-                    )}
                 </div>
             </div>
 
             {/* Confirmation Section */}
-            <div className={`bg-white rounded-3xl border border-tan-light/50 p-8 flex flex-col items-center transition-all duration-500 ${
-                selectedItem && selectedLocation ? 'opacity-100 translate-y-0' : 'opacity-30 pointer-events-none translate-y-4'
+            <div className={`bg-white rounded-[2.5rem] border border-tan-light/50 p-10 flex flex-col items-center transition-all duration-700 shadow-xl ${
+                selectedItems.length > 0 && selectedLocation ? 'opacity-100 translate-y-0' : 'opacity-20 pointer-events-none translate-y-8 grayscale'
             }`}>
-                <div className="flex items-center gap-6 mb-8 w-full justify-center">
-                    <div className="text-right">
-                        <p className="text-xs font-bold text-tan uppercase tracking-widest mb-1">Item</p>
-                        <p className="font-serif font-bold text-charcoal">{selectedItem?.title}</p>
+                <div className="flex flex-col md:flex-row items-center gap-10 mb-12 w-full justify-center">
+                    <div className="flex -space-x-4 overflow-hidden p-2">
+                        {selectedItems.slice(0, 5).map((item, idx) => (
+                            <div key={item.id} className="w-16 h-16 rounded-2xl bg-cream border-4 border-white flex items-center justify-center text-tan shadow-sm" style={{ zIndex: 10 - idx }}>
+                                <Box size={24} />
+                            </div>
+                        ))}
+                        {selectedItems.length > 5 && (
+                            <div className="w-16 h-16 rounded-2xl bg-tan text-white border-4 border-white flex items-center justify-center font-bold shadow-sm" style={{ zIndex: 0 }}>
+                                +{selectedItems.length - 5}
+                            </div>
+                        )}
                     </div>
-                    <ArrowRight className="text-tan/30" size={32} />
-                    <div>
-                        <p className="text-xs font-bold text-tan uppercase tracking-widest mb-1">Destination</p>
-                        <p className="font-serif font-bold text-charcoal">{selectedLocation?.name}</p>
+
+                    <div className="hidden md:block">
+                        <ArrowRight className="text-tan/20" size={48} />
+                    </div>
+
+                    <div className="bg-tan/10 px-8 py-4 rounded-3xl border border-tan/20 text-center">
+                        <p className="text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-1">Destination</p>
+                        <p className="font-serif font-bold text-2xl text-charcoal">{selectedLocation?.name}</p>
                     </div>
                 </div>
 
-                <div className="flex gap-4 w-full">
+                <div className="flex flex-col md:flex-row gap-4 w-full">
                     <button 
                         onClick={resetFlow}
-                        className="flex-1 px-8 py-4 rounded-xl font-bold text-charcoal-light border border-tan-light hover:bg-black/5 transition-all"
+                        className="px-10 py-5 rounded-2xl font-bold text-charcoal-light bg-cream hover:bg-tan/10 transition-all order-2 md:order-1"
                     >
-                        Cancel
+                        Reset Process
                     </button>
                     <button 
                         onClick={performTagging}
-                        disabled={isLoading || !selectedItem || !selectedLocation}
-                        className="flex-[2] bg-tan text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-charcoal transition-all shadow-md flex items-center justify-center gap-3 active:scale-[0.98]"
+                        disabled={isLoading || selectedItems.length === 0 || !selectedLocation}
+                        className="flex-1 bg-tan text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-charcoal transition-all shadow-xl flex items-center justify-center gap-4 active:scale-[0.98] order-1 md:order-2"
                     >
                         {isLoading ? <Loader2 className="animate-spin" size={24} /> : (
                             <>
-                                <CheckCircle2 size={24} /> Confirm Tag In
+                                <CheckCircle2 size={24} /> Tag {selectedItems.length} Artifacts In
                             </>
                         )}
                     </button>
-                </div>
-            </div>
-
-            {/* Recent Activity Placeholder */}
-            <div className="mt-16 pb-20">
-                <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-6 flex items-center gap-2">
-                    <History size={16} /> Recent Tagging Activity
-                </h2>
-                <div className="bg-white rounded-2xl border border-tan-light/30 p-8 text-center">
-                    <p className="text-sm text-charcoal/40 font-serif italic">Your recent movements will appear here.</p>
                 </div>
             </div>
 
