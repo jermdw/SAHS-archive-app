@@ -35,7 +35,7 @@ export function Login() {
             <h1 className="text-3xl font-serif font-bold text-charcoal mb-2 text-center">Curator Sign In</h1>
 
             <p className="text-charcoal/70 mb-8 text-center px-4">
-                Access to upload documents and add historical figures is restricted to authorized Senoia Area Historical Society members.
+                Access to upload documents and add historical figures is restricted to authorized curators and administrators.
             </p>
 
             {error && (
@@ -55,7 +55,7 @@ export function Login() {
             </button>
 
             <p className="text-xs text-charcoal/50 mt-6 text-center">
-                You must use your @senoiahistory.com Workspace account.
+                Only authorized SAHS Curators and Admins can sign in.
             </p>
         </div>
     );

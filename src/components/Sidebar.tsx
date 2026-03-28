@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings, MessageSquare, Inbox } from 'lucide-react';
+import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings, MessageSquare, Inbox, Camera, MapPin } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo2.png';
 
@@ -144,6 +144,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                 </NavLink>
                                 <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
                                     <FolderOpen size={18} /> Collections
+                                </NavLink>
+                                <NavLink to="/tagging" className={navLinkClass} onClick={handleLinkClick}>
+                                    <Camera size={18} /> Tagging Hub
+                                </NavLink>
+                                <NavLink to="/manage-locations" className={navLinkClass} onClick={handleLinkClick}>
+                                    <MapPin size={18} /> Museum Locations
                                 </NavLink>
                                 {isAdmin && (
                                     <NavLink to="/settings" className={navLinkClass} onClick={handleLinkClick}>

@@ -42,10 +42,6 @@ export function AdminSettings() {
     const handleAddUser = async (e: React.FormEvent) => {
         e.preventDefault();
         const email = newEmail.toLowerCase().trim();
-        if (!email.endsWith('@senoiahistory.com')) {
-            alert('Email must belong to the @senoiahistory.com domain.');
-            return;
-        }
         
         setIsSubmitting(true);
         try {
@@ -117,7 +113,7 @@ export function AdminSettings() {
                                     <input 
                                         type="email" 
                                         required 
-                                        placeholder="email@senoiahistory.com"
+                                        placeholder="email@example.com"
                                         value={newEmail}
                                         onChange={(e) => setNewEmail(e.target.value)}
                                         className="w-full bg-cream pl-10 pr-4 py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan outline-none transition-all font-sans text-charcoal"
@@ -164,7 +160,7 @@ export function AdminSettings() {
                             <div className="p-12 text-center text-charcoal/50 font-sans">
                                 <UserMinus size={32} className="mx-auto mb-3 opacity-50" />
                                 <p>No database overrides have been assigned yet.</p>
-                                <p className="text-sm mt-1">catnolan@ and jeremywarren@ are automatic permanent Admins.</p>
+                                <p className="text-sm mt-1">Hardcoded admins have automatic permanent access.</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-tan-light/30">

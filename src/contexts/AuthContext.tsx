@@ -20,9 +20,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-// We define our allowed domain here
-const ALLOWED_DOMAIN = 'senoiahistory.com';
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
@@ -90,11 +87,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const result = await signInWithPopup(auth, googleProvider);
             const userEmail = result.user.email;
 
-            // Check domain immediately upon sign in
-            if (userEmail && !userEmail.endsWith(`@${ALLOWED_DOMAIN}`)) {
+            if (!userEmail) {
+                await signOut(auth);
+                throw new Error("No email associated with this Google account.");
+            }
+
+            const email = userEmail.toLowerCase();
+            
+            // Check for hardcoded admins first
+            if (email === 'catnolan@senoiahistory.com' || email === 'jeremywarren@senoiahistory.com') {
+                return;
+            }
+
+            // Check Firestore for roles
+            const roleDoc = await getDoc(doc(db, 'user_roles', email));
+            if (!roleDoc.exists() || !['admin', 'curator'].includes(roleDoc.data().role)) {
                 // If not valid, immediately sign them out
                 await signOut(auth);
-                throw new Error(`Unauthorized. Please sign in with an @${ALLOWED_DOMAIN} email address.`);
+                throw new Error("Unauthorized. Your account does not have curator or admin privileges.");
             }
         } catch (error) {
             console.error("Auth error", error);

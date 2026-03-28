@@ -8,6 +8,13 @@ export interface Collection {
     item_count?: number;
 }
 
+export interface MuseumLocation {
+    id: string;      // Unique slug/ID (e.g. "gallery-a-shelf-1")
+    name: string;    // Display name (e.g. "Gallery A, Shelf 1")
+    description?: string;
+    created_at: string;
+}
+
 export type ItemType = 'Document' | 'Historic Figure' | 'Historic Organization' | 'Artifact';
 
 // Dublin Core Metadata Element Set (v1.1)
@@ -75,6 +82,9 @@ export interface ArchiveItem {
     donor?: string | null;         // Original donor of the item (specifically requested for Artifacts)
     artifact_id?: string | null;   // Unique ID for artifacts (e.g. ID #)
     artifact_type?: string | null; // Sub-type for artifacts (textile, photo, etc.)
-    museum_location?: string | null; // Specific location in the museum (e.g. Box 4, Shelf 2)
+    museum_location?: string | null; // Legacy specific location in the museum (e.g. Box 4, Shelf 2)
+    museum_location_id?: string | null; // New reference to locations collection
+    last_tagged_at?: string | null;
+    last_tagged_by?: string | null;
     featured_image_url?: string | null; // Primary display image selected from file_urls
 }

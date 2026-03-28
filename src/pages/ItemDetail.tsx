@@ -1,13 +1,13 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Camera } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, getDocs, deleteDoc, where, documentId } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
-import type { ArchiveItem } from '../types/database';
-
-import { APIProvider, Map as GoogleMap, AdvancedMarker } from '@vis.gl/react-google-maps';
+import type { ArchiveItem, MuseumLocation } from '../types/database';
+import { QRCodeDisplay } from '../components/QRCodeDisplay';
+import { ArchiveMap } from '../components/ArchiveMap';
 
 export function ItemDetail() {
     const { id } = useParams<{ id: string }>();
@@ -31,6 +31,7 @@ export function ItemDetail() {
     const [zoomScale, setZoomScale] = useState(1);
     const [collectionName, setCollectionName] = useState<string | null>(null);
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
+    const [currentLocation, setCurrentLocation] = useState<MuseumLocation | null>(null);
 
     useEffect(() => {
         if (item && item.file_urls && item.featured_image_url) {
@@ -61,6 +62,18 @@ export function ItemDetail() {
                             }
                         } catch (err) {
                             console.error("Error fetching collection details:", err);
+                        }
+                    }
+
+                    if (data.museum_location_id) {
+                        try {
+                            const locQuery = query(collection(db, 'locations'), where('id', '==', data.museum_location_id));
+                            const locSnap = await getDocs(locQuery);
+                            if (!locSnap.empty) {
+                                setCurrentLocation({ id: locSnap.docs[0].id, ...locSnap.docs[0].data() } as MuseumLocation);
+                            }
+                        } catch (err) {
+                            console.error("Error fetching location details:", err);
                         }
                     }
 
@@ -573,6 +586,37 @@ export function ItemDetail() {
                                         <p className="text-[15px] font-sans text-charcoal leading-snug">{item.museum_location}</p>
                                     </div>
                                 )}
+                                {isSAHSUser && (
+                                    <div className="pt-4 p-6 bg-tan/5 rounded-2xl border border-tan/20">
+                                        <p className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-4 font-sans flex items-center gap-2">
+                                            <Camera size={14} /> Museum Tracking (QR)
+                                        </p>
+                                        <QRCodeDisplay 
+                                            value={`item:${item.id}`} 
+                                            label={item.title} 
+                                            subLabel={item.artifact_id || item.id}
+                                            size={140}
+                                        />
+                                        
+                                        <div className="mt-6 space-y-4">
+                                            <div>
+                                                <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-widest mb-1">Current Tagged Location</p>
+                                                <p className="text-sm font-serif font-bold text-charcoal">
+                                                    {currentLocation ? currentLocation.name : 'Unknown / Not Tagged'}
+                                                </p>
+                                            </div>
+                                            
+                                            {item.last_tagged_at && (
+                                                <div>
+                                                    <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-widest mb-1">Last Updated</p>
+                                                    <p className="text-[11px] font-sans text-charcoal/60 italic">
+                                                        {new Date(item.last_tagged_at).toLocaleDateString()} by {item.last_tagged_by}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -691,18 +735,8 @@ export function ItemDetail() {
                                 <MapPin className="text-tan" size={20} />
                                 Geographic Location Map
                             </h3>
-                            <div className="h-[calc(100%-60px)] w-full relative">
-                                <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}>
-                                    <GoogleMap
-                                        defaultCenter={{ lat: item.coordinates.lat, lng: item.coordinates.lng }}
-                                        defaultZoom={15}
-                                        gestureHandling={'greedy'}
-                                        disableDefaultUI={false}
-                                        mapId="DEMO_MAP_ID"
-                                    >
-                                        <AdvancedMarker position={{ lat: item.coordinates.lat, lng: item.coordinates.lng }} />
-                                    </GoogleMap>
-                                </APIProvider>
+                            <div className="h-[400px] w-full rounded-2xl overflow-hidden border border-tan-light shadow-sm">
+                                <ArchiveMap items={[item]} />
                             </div>
                         </div>
                     )}
