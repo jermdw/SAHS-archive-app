@@ -3,16 +3,16 @@ import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPi
 import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
-import { doc, getDoc, collection, query, getDocs, deleteDoc, where, documentId } from 'firebase/firestore';
+import { doc, getDoc, collection, query, getDocs, deleteDoc, where, documentId, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
-import type { ArchiveItem } from '../types/database';
+import type { ArchiveItem, MuseumLocation } from '../types/database';
 import { ArchiveMap } from '../components/ArchiveMap';
 
 export function ItemDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const location = useLocation();
-    const { isSAHSUser } = useAuth();
+    const { isSAHSUser, user } = useAuth();
 
     const galleryIds = (location.state?.galleryIds as string[]) || [];
     const currentIndex = galleryIds.indexOf(id || '');
@@ -31,6 +31,51 @@ export function ItemDetail() {
     const [collectionName, setCollectionName] = useState<string | null>(null);
     const [linkedLocationName, setLinkedLocationName] = useState<string | null>(null);
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
+
+    // Inline Location Editing State
+    const [isEditingLocation, setIsEditingLocation] = useState(false);
+    const [allLocations, setAllLocations] = useState<MuseumLocation[]>([]);
+    const [newLocationId, setNewLocationId] = useState('');
+    const [isSavingLocation, setIsSavingLocation] = useState(false);
+
+    const handleEditLocationClick = async () => {
+        setIsEditingLocation(true);
+        setNewLocationId(item?.museum_location_id || '');
+        if (allLocations.length === 0) {
+            try {
+                const locSnap = await getDocs(collection(db, 'locations'));
+                setAllLocations(locSnap.docs.map(d => ({ id: d.id, ...d.data() } as MuseumLocation)));
+            } catch (err) { console.error("Could not fetch locations", err); }
+        }
+    };
+
+    const handleSaveLocation = async () => {
+        if (!item) return;
+        setIsSavingLocation(true);
+        try {
+            await updateDoc(doc(db, 'archive_items', item.id), {
+                museum_location_id: newLocationId,
+                last_tagged_at: new Date().toISOString(),
+                last_tagged_by: user?.email || 'Admin',
+                stage: newLocationId ? 'Housed' : 'Processing'
+            });
+            
+            setItem(prev => prev ? { ...prev, museum_location_id: newLocationId } : null);
+            
+            if (newLocationId) {
+                const selectedLoc = allLocations.find(l => l.id === newLocationId);
+                setLinkedLocationName(selectedLoc?.name || newLocationId);
+            } else {
+                setLinkedLocationName(null);
+            }
+            setIsEditingLocation(false);
+        } catch (error) {
+            console.error("Failed to update location inline:", error);
+            alert("Failed to update location. Insufficient permissions or network error.");
+        } finally {
+            setIsSavingLocation(false);
+        }
+    };
 
     useEffect(() => {
         if (item && item.file_urls && item.featured_image_url) {
@@ -577,25 +622,62 @@ export function ItemDetail() {
                                         <p className="text-[15px] font-sans text-charcoal leading-snug">{item.historical_address}</p>
                                     </div>
                                 )}
-                                {(item.museum_location_id || item.museum_location) && (
+                                {(item.museum_location_id || item.museum_location || isSAHSUser) && (
                                     <div>
-                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Physical Museum Shelf/Box</p>
-                                        {linkedLocationName ? (
-                                            <p className="text-[15px] font-sans text-charcoal leading-snug font-bold">
-                                                {isSAHSUser ? (
-                                                    <Link to={`/locations/${item.museum_location_id}`} className="flex items-center gap-1.5 hover:text-tan transition-colors group">
-                                                        <Box size={16} className="text-tan" /> 
-                                                        <span className="underline underline-offset-4 decoration-tan/30 group-hover:decoration-tan">{linkedLocationName}</span>
-                                                    </Link>
-                                                ) : (
-                                                    <span className="flex items-center gap-1.5">
-                                                        <Box size={16} className="text-tan" /> 
-                                                        {linkedLocationName}
-                                                    </span>
-                                                )}
-                                            </p>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] font-sans">Physical Museum Shelf/Box</p>
+                                            {isSAHSUser && !isEditingLocation && (
+                                                <button onClick={handleEditLocationClick} className="text-[10px] text-tan hover:text-tan-light bg-tan/10 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 transition-colors">
+                                                    <Edit2 size={10} /> Link
+                                                </button>
+                                            )}
+                                        </div>
+                                        
+                                        {isEditingLocation ? (
+                                            <div className="flex flex-col gap-3 mt-2 bg-cream/30 p-3 rounded-xl border border-tan-light/50">
+                                                <select 
+                                                    value={newLocationId} 
+                                                    onChange={(e) => setNewLocationId(e.target.value)}
+                                                    className="w-full bg-white border border-tan-light/50 p-2.5 rounded-lg text-sm outline-none focus:border-tan font-sans"
+                                                    disabled={isSavingLocation}
+                                                >
+                                                    <option value="">-- No Location (Unassigned) --</option>
+                                                    {[...allLocations].sort((a,b) => a.name.localeCompare(b.name)).map(loc => (
+                                                        <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="flex gap-2 justify-end">
+                                                    <button onClick={() => setIsEditingLocation(false)} disabled={isSavingLocation} className="text-xs font-bold text-charcoal/50 hover:text-charcoal px-3 py-1.5 transition-colors">Cancel</button>
+                                                    <button onClick={handleSaveLocation} disabled={isSavingLocation} className="text-xs font-bold bg-tan text-white px-4 py-1.5 rounded-lg hover:bg-charcoal transition-colors shadow-sm relative">
+                                                        {isSavingLocation ? 'Saving...' : 'Confirm'}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ) : (
-                                            <p className="text-[15px] font-sans text-charcoal leading-snug">{item.museum_location || item.museum_location_id}</p>
+                                            <>
+                                                {linkedLocationName || item.museum_location_id ? (
+                                                    <p className="text-[15px] font-sans text-charcoal leading-snug font-bold">
+                                                        {isSAHSUser ? (
+                                                            <Link to={`/locations/${item.museum_location_id}`} className="flex items-center gap-1.5 hover:text-tan transition-colors group">
+                                                                <Box size={16} className="text-tan" /> 
+                                                                <span className="underline underline-offset-4 decoration-tan/30 group-hover:decoration-tan">{linkedLocationName || item.museum_location_id}</span>
+                                                            </Link>
+                                                        ) : (
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Box size={16} className="text-tan" /> 
+                                                                {linkedLocationName || item.museum_location_id}
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-sm font-sans text-charcoal/40 italic leading-snug font-medium">Currently Unassigned</p>
+                                                )}
+                                                {item.museum_location && !item.museum_location_id && (
+                                                    <p className="text-[13px] font-sans text-charcoal leading-snug mt-2 p-2 bg-tan/5 rounded border border-tan/10 text-charcoal/70">
+                                                        Legacy Record: <span className="font-bold">{item.museum_location}</span>
+                                                    </p>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 )}

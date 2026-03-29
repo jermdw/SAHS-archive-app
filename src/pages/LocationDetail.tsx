@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, Box, MapPin } from 'lucide-react';
+import { ChevronLeft, Box, MapPin, Printer } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { DocumentCard } from '../components/DocumentCard';
@@ -78,7 +79,8 @@ export function LocationDetail() {
     }
 
     return (
-        <div className="max-w-full mx-auto h-full flex flex-col animate-in fade-in duration-500 pb-16">
+        <>
+        <div className="max-w-full mx-auto h-full flex flex-col animate-in fade-in duration-500 pb-16 print:hidden">
             <Link to="/manage-locations" className="inline-flex items-center text-sm font-bold text-tan uppercase tracking-wider mb-6 hover:text-charcoal transition-colors">
                 <ChevronLeft size={16} className="mr-1" /> Back to Museum Locations
             </Link>
@@ -105,10 +107,21 @@ export function LocationDetail() {
                 </div>
             </div>
 
-            <h2 className="text-2xl font-serif font-bold text-charcoal tracking-tight mb-6 flex items-center gap-3">
-                Items Housed Here
-                <span className="bg-tan/10 text-tan text-sm py-1 px-3 rounded-full font-sans">{items.length}</span>
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <h2 className="text-2xl font-serif font-bold text-charcoal tracking-tight flex items-center gap-3">
+                    Items Housed Here
+                    <span className="bg-tan/10 text-tan text-sm py-1 px-3 rounded-full font-sans">{items.length}</span>
+                </h2>
+                
+                {items.length > 0 && (
+                    <button 
+                        onClick={() => window.print()}
+                        className="flex items-center gap-2 bg-tan text-white px-5 py-3 rounded-lg font-bold hover:bg-charcoal transition-colors shadow-sm w-full sm:w-auto justify-center"
+                    >
+                        <Printer size={18} /> Print Batch QR Labels
+                    </button>
+                )}
+            </div>
 
             <div className="flex-1">
                 {items.length > 0 ? (
@@ -126,5 +139,30 @@ export function LocationDetail() {
                 )}
             </div>
         </div>
+        
+        {/* Dedicated Print Layout - Purely optimized for paper density */}
+        <div className="hidden print:block w-full bg-white text-black bg-none">
+            <div className="mb-6 border-b border-black pb-4 text-center">
+                <h1 className="text-2xl font-bold font-serif m-0">{locationData.name} - Asset Tags</h1>
+                <p className="text-sm m-0 text-gray-500">Inventory Label Sheet &bull; Generated {new Date().toLocaleDateString()}</p>
+            </div>
+            
+            {/* Grid layout ensuring ~1.5 inch squares fit tightly across paper width */}
+            <div className="flex flex-wrap gap-[0.2in] justify-center items-center text-center">
+                {items.map(item => (
+                    <div key={item.id} className="flex flex-col items-center justify-center p-2 border border-gray-400 w-[1.5in] h-[1.5in] bg-white break-inside-avoid">
+                        <QRCodeSVG 
+                            value={`${window.location.hostname === 'localhost' ? 'https://sahs-archives.web.app' : window.location.origin}/items/${item.id}`} 
+                            size={96} // Exactly 1 inch optical scale on 96dpi output
+                            level="L"
+                            includeMargin={false}
+                        />
+                        <span className="text-[10px] font-bold mt-[0.1in] truncate w-full px-1">{item.title}</span>
+                        <span className="text-[8px] mt-0.5 text-gray-600 font-mono tracking-tighter truncate w-full px-1">{item.artifact_id || item.id}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+        </>
     );
 }
