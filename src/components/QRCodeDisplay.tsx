@@ -95,7 +95,7 @@ export function QRCodeDisplay({ value, label, subLabel, size = 160 }: QRCodeDisp
                     <QRCodeCanvas 
                         value={value} 
                         size={size}
-                        level="H"
+                        level="L"
                         includeMargin={false}
                     />
                 </div>
@@ -138,7 +138,7 @@ export function QRCodeDisplay({ value, label, subLabel, size = 160 }: QRCodeDisp
                                 <QRCodeCanvas 
                                     value={value} 
                                     size={280}
-                                    level="H"
+                                    level="L"
                                     includeMargin={true}
                                 />
                             </div>
