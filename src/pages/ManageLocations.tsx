@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../lib/firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { MapPin, Plus, Trash2, Map, Loader2, HelpCircle } from 'lucide-react';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { MapPin, Plus, Trash2, Map, Loader2, HelpCircle, Edit2, X } from 'lucide-react';
 import type { MuseumLocation } from '../types/database';
 import { QRCodeDisplay } from '../components/QRCodeDisplay';
 
@@ -16,6 +16,9 @@ export function ManageLocations() {
     const [newDesc, setNewDesc] = useState('');
     const [newId, setNewId] = useState('');
 
+    const [mode, setMode] = useState<'add' | 'edit'>('add');
+    const [editingDocId, setEditingDocId] = useState<string | null>(null);
+
     useEffect(() => {
         fetchLocations();
     }, []);
@@ -24,7 +27,7 @@ export function ManageLocations() {
         try {
             const snapshot = await getDocs(collection(db, 'locations'));
             const data = snapshot.docs.map(doc => ({
-                id: doc.id,
+                docId: doc.id,
                 ...doc.data()
             })) as MuseumLocation[];
             setLocations(data.sort((a, b) => a.name.localeCompare(b.name)));
@@ -41,27 +44,52 @@ export function ManageLocations() {
 
         setIsSubmitting(true);
         try {
-            const slug = newId.toLowerCase().replace(/\s+/g, '-').trim();
-            await addDoc(collection(db, 'locations'), {
-                name: newName,
-                description: newDesc,
-                id: slug, // This is our custom ID for QR codes
-                created_at: new Date().toISOString()
-            });
+            if (mode === 'edit' && editingDocId) {
+                await updateDoc(doc(db, 'locations', editingDocId), {
+                    name: newName,
+                    description: newDesc
+                });
+            } else {
+                const slug = newId.toLowerCase().replace(/\s+/g, '-').trim();
+                await addDoc(collection(db, 'locations'), {
+                    name: newName,
+                    description: newDesc,
+                    id: slug, // custom ID for QR codes
+                    created_at: new Date().toISOString()
+                });
+            }
             
-            setNewName('');
-            setNewDesc('');
-            setNewId('');
+            // Reset form completely
+            handleCancelEdit();
             fetchLocations();
         } catch (error) {
-            console.error("Error adding location:", error);
-            alert("Failed to add location.");
+            console.error("Error saving location:", error);
+            alert("Failed to save location.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleDeleteLocation = async (docId: string, name: string) => {
+    const handleEditClick = (loc: MuseumLocation) => {
+        if (!loc.docId) return;
+        setMode('edit');
+        setEditingDocId(loc.docId);
+        setNewName(loc.name);
+        setNewDesc(loc.description || '');
+        setNewId(loc.id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        setMode('add');
+        setEditingDocId(null);
+        setNewName('');
+        setNewDesc('');
+        setNewId('');
+    };
+
+    const handleDeleteLocation = async (docId: string | undefined, name: string) => {
+        if (!docId) return;
         if (!window.confirm(`Are you sure you want to delete "${name}"? Items currently tagged here will lose their location reference.`)) return;
         
         try {
@@ -90,10 +118,20 @@ export function ManageLocations() {
                 {/* Form to Add Location */}
                 <div className="lg:col-span-4">
                     <div className="bg-white p-6 rounded-2xl border border-tan-light/50 shadow-sm sticky top-24">
-                        <h2 className="text-xl font-serif font-bold text-charcoal mb-6 flex items-center gap-2">
-                            <Plus size={20} className="text-tan" />
-                            Add New Location
-                        </h2>
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-serif font-bold text-charcoal flex items-center gap-2">
+                                {mode === 'edit' ? (
+                                    <><Edit2 size={20} className="text-tan" /> Edit Location</>
+                                ) : (
+                                    <><Plus size={20} className="text-tan" /> Add New Location</>
+                                )}
+                            </h2>
+                            {mode === 'edit' && (
+                                <button onClick={handleCancelEdit} className="text-charcoal/40 hover:text-red-500 transition-colors p-1" title="Cancel Edit">
+                                    <X size={20} />
+                                </button>
+                            )}
+                        </div>
                         
                         <form onSubmit={handleAddLocation} className="space-y-4">
                             <div>
@@ -126,8 +164,18 @@ export function ManageLocations() {
                                     placeholder="e.g. shelf-a1"
                                     value={newId}
                                     onChange={(e) => setNewId(e.target.value)}
-                                    className="w-full bg-cream px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan outline-none transition-all font-sans text-charcoal font-mono text-sm"
+                                    disabled={mode === 'edit'}
+                                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all font-sans text-charcoal font-mono text-sm ${
+                                        mode === 'edit' 
+                                            ? 'bg-cream/50 border-transparent text-charcoal/50 cursor-not-allowed' 
+                                            : 'bg-cream border-transparent focus:bg-white focus:border-tan'
+                                    }`}
                                 />
+                                {mode === 'edit' && (
+                                    <p className="text-[10px] bg-red-50 text-red-600 font-bold p-2 mt-2 rounded">
+                                        Location Slug cannot be modified to prevent breaking printed physical asset tags.
+                                    </p>
+                                )}
                             </div>
 
                             <div>
@@ -150,8 +198,8 @@ export function ManageLocations() {
                             >
                                 {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : (
                                     <>
-                                        <Plus size={20} />
-                                        Create Location
+                                        {mode === 'edit' ? <Edit2 size={20} /> : <Plus size={20} />}
+                                        {mode === 'edit' ? 'Save Changes' : 'Create Location'}
                                     </>
                                 )}
                             </button>
@@ -187,12 +235,22 @@ export function ManageLocations() {
                                                 </div>
                                                 <p className="text-xs font-mono font-bold text-tan/60 uppercase tracking-widest">{loc.id}</p>
                                             </div>
-                                            <button 
-                                                onClick={() => handleDeleteLocation(loc.id, loc.name)}
-                                                className="p-2 text-red-400 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={() => handleEditClick(loc)}
+                                                    className="p-2 text-charcoal hover:bg-black/5 rounded-full transition-colors"
+                                                    title="Edit Location"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteLocation(loc.docId, loc.name)}
+                                                    className="p-2 text-red-400 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                                                    title="Delete Location"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
                                         </div>
                                         
                                         <div className="px-2 pb-2">
