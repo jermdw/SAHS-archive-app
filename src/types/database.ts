@@ -10,6 +10,7 @@ export interface Collection {
 
 export interface MuseumLocation {
     id: string;      // Unique slug/ID (e.g. "gallery-a-shelf-1")
+    docId?: string;  // The actual Firebase Document ID (for updateDoc/setDoc)
     name: string;    // Display name (e.g. "Gallery A, Shelf 1")
     description?: string;
     created_at: string;

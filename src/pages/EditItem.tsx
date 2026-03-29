@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Maximize2, FileText, ArrowLeft, Lock } from 'lucide-react';
+import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Maximize2, FileText, ArrowLeft, Lock, Camera } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
@@ -8,6 +8,7 @@ import { extractMetadataFromFile } from '../lib/gemini';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
+import { QRCodeDisplay } from '../components/QRCodeDisplay';
 
 function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
     useEffect(() => {
@@ -1404,8 +1405,34 @@ export function EditItem() {
 
             </form>
             
+            {/* Museum Tracking (QR) - Only visible in Edit Mode and ONLY for Artifacts */}
+            {itemType === 'Artifact' && (
+                <div className="mt-8 pt-4 p-6 bg-tan/5 rounded-2xl border border-tan/20">
+                    <p className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-4 font-sans flex items-center gap-2">
+                        <Camera size={14} /> Museum Tracking (QR)
+                    </p>
+                    <QRCodeDisplay 
+                        value={`${window.location.hostname === 'localhost' ? 'https://sahs-archives.web.app' : window.location.origin}/items/${item.id}`} 
+                        label={item.title} 
+                        subLabel={item.artifact_id || item.id}
+                        size={140}
+                    />
+                    
+                    <div className="mt-6 space-y-4">
+                        {item.last_tagged_at && (
+                            <div>
+                                <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-widest mb-1">Last Updated</p>
+                                <p className="text-[11px] font-sans text-charcoal/60 italic">
+                                    {new Date(item.last_tagged_at).toLocaleDateString()} by {item.last_tagged_by}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Administrative Audit Log - Only visible in Edit Mode */}
-            <div className="mt-12 bg-charcoal/5 border border-charcoal/10 rounded-xl p-6 md:p-8">
+            <div className="mt-8 bg-charcoal/5 border border-charcoal/10 rounded-xl p-6 md:p-8">
                 <h3 className="text-xl font-serif font-bold text-charcoal mb-6 flex items-center gap-2 border-b border-charcoal/10 pb-3">
                     <Lock size={20} className="text-tan" />
                     Administrative Audit Log

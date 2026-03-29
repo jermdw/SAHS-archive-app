@@ -196,17 +196,21 @@ export function ManageLocations() {
                                         </div>
                                         
                                         <div className="px-2 pb-2">
-                                            <QRCodeDisplay 
-                                                value={`loc:${loc.id}`} 
-                                                label={loc.name}
-                                                subLabel={loc.description || "Museum Location"}
-                                                size={120}
-                                            />
+                                            {loc.description && (
+                                                <p className="text-sm text-charcoal/70 font-serif leading-relaxed mb-4 px-2">{loc.description}</p>
+                                            )}
                                             
-                                            <div className="mt-4 flex justify-end px-2">
+                                            <div className="bg-cream/30 p-4 rounded-2xl flex flex-col items-center justify-center gap-4 mt-2">
+                                                <QRCodeDisplay 
+                                                    value={`loc:${loc.id}`} 
+                                                    label={loc.name} 
+                                                    subLabel="Museum Location Tag"
+                                                    size={120}
+                                                />
+
                                                 <Link 
                                                     to={`/locations/${loc.id}`}
-                                                    className="flex items-center gap-2 px-4 py-2 bg-tan text-white rounded-lg text-sm font-bold hover:bg-charcoal transition-colors shadow-sm w-full justify-center"
+                                                    className="flex items-center gap-2 px-6 py-3 bg-tan text-white rounded-xl text-sm font-bold hover:bg-charcoal transition-colors shadow-sm w-full justify-center"
                                                 >
                                                     <MapPin size={16} /> View Shelf Display
                                                 </Link>

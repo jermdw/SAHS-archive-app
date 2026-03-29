@@ -1,12 +1,11 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Camera } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Box } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, getDocs, deleteDoc, where, documentId } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
-import type { ArchiveItem, MuseumLocation } from '../types/database';
-import { QRCodeDisplay } from '../components/QRCodeDisplay';
+import type { ArchiveItem } from '../types/database';
 import { ArchiveMap } from '../components/ArchiveMap';
 
 export function ItemDetail() {
@@ -30,8 +29,8 @@ export function ItemDetail() {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [zoomScale, setZoomScale] = useState(1);
     const [collectionName, setCollectionName] = useState<string | null>(null);
+    const [linkedLocationName, setLinkedLocationName] = useState<string | null>(null);
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
-    const [currentLocation, setCurrentLocation] = useState<MuseumLocation | null>(null);
 
     useEffect(() => {
         if (item && item.file_urls && item.featured_image_url) {
@@ -67,17 +66,15 @@ export function ItemDetail() {
 
                     if (data.museum_location_id) {
                         try {
-                            const locQuery = query(collection(db, 'locations'), where('id', '==', data.museum_location_id));
-                            const locSnap = await getDocs(locQuery);
-                            if (!locSnap.empty) {
-                                setCurrentLocation({ id: locSnap.docs[0].id, ...locSnap.docs[0].data() } as MuseumLocation);
+                            const q = query(collection(db, 'locations'), where('id', '==', data.museum_location_id));
+                            const snap = await getDocs(q);
+                            if (!snap.empty) {
+                                setLinkedLocationName(snap.docs[0].data().name);
                             }
                         } catch (err) {
-                            console.error("Error fetching location details:", err);
+                            console.error("Error fetching location name:", err);
                         }
                     }
-
-
 
                     // 1) Forward explicit references defined on THIS item
                     const fetchForward = async (ids: string[] | undefined) => {
@@ -580,41 +577,26 @@ export function ItemDetail() {
                                         <p className="text-[15px] font-sans text-charcoal leading-snug">{item.historical_address}</p>
                                     </div>
                                 )}
-                                {item.museum_location && (
+                                {(item.museum_location_id || item.museum_location) && (
                                     <div>
                                         <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Physical Museum Shelf/Box</p>
-                                        <p className="text-[15px] font-sans text-charcoal leading-snug">{item.museum_location}</p>
-                                    </div>
-                                )}
-                                {isSAHSUser && (
-                                    <div className="pt-4 p-6 bg-tan/5 rounded-2xl border border-tan/20">
-                                        <p className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-4 font-sans flex items-center gap-2">
-                                            <Camera size={14} /> Museum Tracking (QR)
-                                        </p>
-                                        <QRCodeDisplay 
-                                            value={`${window.location.hostname === 'localhost' ? 'https://sahs-archives.web.app' : window.location.origin}/items/${item.id}`} 
-                                            label={item.title} 
-                                            subLabel={item.artifact_id || item.id}
-                                            size={140}
-                                        />
-                                        
-                                        <div className="mt-6 space-y-4">
-                                            <div>
-                                                <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-widest mb-1">Current Tagged Location</p>
-                                                <p className="text-sm font-serif font-bold text-charcoal">
-                                                    {currentLocation ? currentLocation.name : 'Unknown / Not Tagged'}
-                                                </p>
-                                            </div>
-                                            
-                                            {item.last_tagged_at && (
-                                                <div>
-                                                    <p className="text-[10px] font-black text-charcoal/40 uppercase tracking-widest mb-1">Last Updated</p>
-                                                    <p className="text-[11px] font-sans text-charcoal/60 italic">
-                                                        {new Date(item.last_tagged_at).toLocaleDateString()} by {item.last_tagged_by}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
+                                        {linkedLocationName ? (
+                                            <p className="text-[15px] font-sans text-charcoal leading-snug font-bold">
+                                                {isSAHSUser ? (
+                                                    <Link to={`/locations/${item.museum_location_id}`} className="flex items-center gap-1.5 hover:text-tan transition-colors group">
+                                                        <Box size={16} className="text-tan" /> 
+                                                        <span className="underline underline-offset-4 decoration-tan/30 group-hover:decoration-tan">{linkedLocationName}</span>
+                                                    </Link>
+                                                ) : (
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Box size={16} className="text-tan" /> 
+                                                        {linkedLocationName}
+                                                    </span>
+                                                )}
+                                            </p>
+                                        ) : (
+                                            <p className="text-[15px] font-sans text-charcoal leading-snug">{item.museum_location || item.museum_location_id}</p>
+                                        )}
                                     </div>
                                 )}
                             </div>
