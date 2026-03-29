@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Camera, X, RefreshCw } from 'lucide-react';
+import { Camera, X, RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
+import { useState } from 'react';
 
 interface QRScannerProps {
     onScan: (data: string) => void;
@@ -12,6 +13,8 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
     const hasScannedRef = useRef<boolean>(false);
     const activeTracksRef = useRef<MediaStreamTrack[]>([]);
+    const [zoomParams, setZoomParams] = useState<{ min: number, max: number, step: number } | null>(null);
+    const [zoomLevel, setZoomLevel] = useState(1);
 
     // Completely forces the hardware camera light to go off by stopping tracks we intercepted
     const forceKillVideoTracks = () => {
@@ -35,12 +38,29 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
         if (!active) return;
         hasScannedRef.current = false;
 
-        // Intercept WebRTC track requests so we can guarantee their destruction later
+        // Intercept WebRTC track requests so we can guarantee their destruction later, and access advanced hardware capabilities like Zoom!
         const originalGetUserMedia = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
         if (navigator.mediaDevices && originalGetUserMedia) {
             navigator.mediaDevices.getUserMedia = async (constraints) => {
                 const stream = await originalGetUserMedia(constraints);
-                stream.getTracks().forEach(t => activeTracksRef.current.push(t));
+                const track = stream.getVideoTracks()[0];
+                if (track) {
+                    activeTracksRef.current.push(track);
+                    setTimeout(() => {
+                        try {
+                            const capabilities = track.getCapabilities ? track.getCapabilities() : {} as any;
+                            const settings = track.getSettings ? track.getSettings() : {} as any;
+                            if (capabilities.zoom) {
+                                setZoomParams({
+                                    min: capabilities.zoom.min || 1,
+                                    max: capabilities.zoom.max || 5,
+                                    step: capabilities.zoom.step || 0.1
+                                });
+                                setZoomLevel(settings.zoom || 1);
+                            }
+                        } catch (e) { console.error("Could not fetch camera zoom capabilities:", e); }
+                    }, 500);
+                }
                 return stream;
             };
         }
@@ -50,9 +70,8 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
         const scanner = new Html5QrcodeScanner(
             "qr-reader",
             { 
-                fps: 15, 
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0,
+                fps: 20, 
+                qrbox: { width: 280, height: 280 },
                 formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
                 experimentalFeatures: {
                     useBarCodeDetectorIfSupported: true
@@ -156,10 +175,36 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
                             Point your camera at a SAHS artifact or location QR code.
                         </p>
                         
-                        <div className="mt-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-tan/60 animate-pulse">
+                        <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-tan/60 animate-pulse">
                             <div className="w-2 h-2 rounded-full bg-tan"></div>
                             Scanner Active
                         </div>
+                        
+                        {zoomParams && (
+                            <div className="w-full mt-6 bg-cream/30 p-4 rounded-xl border border-tan/20 flex flex-col gap-2">
+                                <div className="flex items-center justify-between text-xs font-bold text-charcoal/60 uppercase">
+                                    <ZoomOut size={16} />
+                                    <span>Optical Zoom ({zoomLevel.toFixed(1)}x)</span>
+                                    <ZoomIn size={16} />
+                                </div>
+                                <input
+                                    type="range"
+                                    min={zoomParams.min}
+                                    max={Math.min(zoomParams.max, 5)} // Cap at 5x so it doesn't get ridiculously blurry
+                                    step={zoomParams.step}
+                                    value={zoomLevel}
+                                    onChange={(e) => {
+                                        const newZoom = parseFloat(e.target.value);
+                                        setZoomLevel(newZoom);
+                                        if (activeTracksRef.current[0]) {
+                                            const advancedConstraint: any = { zoom: newZoom };
+                                            activeTracksRef.current[0].applyConstraints({ advanced: [advancedConstraint] }).catch(console.error);
+                                        }
+                                    }}
+                                    className="w-full h-2 bg-tan/20 rounded-lg appearance-none cursor-pointer"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
