@@ -84,6 +84,8 @@ export function LocationDetail() {
                     const matchesQuery = 
                         item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         item.artifact_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        item.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        item.identifier?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         item.description?.toLowerCase().includes(searchQuery.toLowerCase());
                     
                     // Exclude items already here
@@ -230,7 +232,7 @@ export function LocationDetail() {
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/30" size={18} />
                                 <input 
                                     type="text"
-                                    placeholder="Search by title, ID, or description..."
+                                    placeholder="Search by title, ID #, identifier, or description..."
                                     className="w-full bg-white pl-11 pr-4 py-4 rounded-xl border border-tan-light/50 focus:border-tan outline-none transition-all shadow-sm"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
