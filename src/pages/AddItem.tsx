@@ -26,7 +26,7 @@ function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
 }
 
 export function AddItem() {
-    const { isAdmin, user } = useAuth();
+    const { isSAHSUser, user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -647,7 +647,7 @@ export function AddItem() {
                                 )}
                             </div>
 
-                            {isAdmin && (
+                            {isSAHSUser && (
                                 <div className="space-y-3 mt-6">
                                     <button
                                         type="button"

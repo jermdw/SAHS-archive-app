@@ -28,7 +28,7 @@ function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
 }
 
 export function EditItem() {
-    const { isAdmin, lastSearchPath, user } = useAuth();
+    const { isSAHSUser, lastSearchPath, user } = useAuth();
     const PendingFilePreview = ({
         file,
         url,
@@ -890,7 +890,7 @@ export function EditItem() {
                                 </div>
                             )}
 
-                            {isAdmin && (
+                            {isSAHSUser && (
                                 <div className="space-y-3 mt-6">
                                     <button
                                         type="button"

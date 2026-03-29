@@ -29,7 +29,7 @@ const CANVAS_HEIGHT = 1600;
 const PIXELS_PER_FOOT = 24; // 1 foot = 24 pixels (1 inch = 2 pixels)
 
 export function InteractiveMap() {
-    const { isAdmin } = useAuth();
+    const { isSAHSUser } = useAuth();
     const [locations, setLocations] = useState<MuseumLocation[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -559,7 +559,7 @@ export function InteractiveMap() {
                     </div>
 
                     {/* Admin Modes */}
-                    {isAdmin && (
+                    {isSAHSUser && (
                         <div className="flex items-center gap-3 ml-4 border-l border-tan-light/50 pl-4">
                             {isEditMode ? (
                                 <>
