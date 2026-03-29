@@ -46,14 +46,22 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
         }
 
         // Initialize scanner
+        // We request high resolution (1080p) so tiny QR codes occupy enough pixels to be parsed.
         const scanner = new Html5QrcodeScanner(
             "qr-reader",
             { 
-                fps: 10, 
+                fps: 15, 
                 qrbox: { width: 250, height: 250 },
                 aspectRatio: 1.0,
                 formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
-                videoConstraints: { facingMode: "environment" }
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                },
+                videoConstraints: { 
+                    facingMode: "environment",
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
             },
             /* verbose= */ false
         );
