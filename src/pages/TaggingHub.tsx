@@ -258,9 +258,9 @@ export function TaggingHub() {
                                 ))}
                                 <button 
                                     onClick={() => { setIsScannerOpen(true); }}
-                                    className="w-full py-4 border-2 border-dashed border-tan-light/50 rounded-2xl flex items-center justify-center gap-2 text-tan font-bold hover:bg-tan/5 hover:border-tan/30 transition-all mt-2"
+                                    className="w-full py-5 bg-tan/10 border-4 border-dashed border-tan/40 rounded-2xl flex items-center justify-center gap-3 text-tan font-black text-lg hover:bg-tan hover:text-white hover:border-tan transition-all duration-300 mt-4 shadow-sm"
                                 >
-                                    <Plus size={20} /> Add More via Scan
+                                    <Plus size={24} /> Add More via Scan
                                 </button>
                             </div>
                         )}
@@ -304,9 +304,9 @@ export function TaggingHub() {
                                 </div>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); setIsScannerOpen(true); }}
-                                    className="bg-charcoal text-white px-8 py-4 rounded-xl font-bold hover:bg-charcoal-light transition-all flex items-center gap-2 shadow-md w-full justify-center"
+                                    className="bg-tan text-white px-8 py-5 rounded-2xl font-black text-lg hover:bg-charcoal transition-all duration-300 flex items-center gap-3 shadow-[0_8px_30px_rgb(180,165,145,0.4)] hover:shadow-xl hover:-translate-y-1 w-full justify-center"
                                 >
-                                    <Camera size={20} /> Scan Case/Shelf
+                                    <Camera size={24} /> Scan Case/Shelf
                                 </button>
                             </>
                         )}

@@ -13,7 +13,9 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
     const hasScannedRef = useRef<boolean>(false);
     const activeTracksRef = useRef<MediaStreamTrack[]>([]);
-    const [zoomParams, setZoomParams] = useState<{ min: number, max: number, step: number } | null>(null);
+    
+    // Default to a 1x-5x slider immediately so all devices can utilize at least Digital Zoom for centering/aiming
+    const [zoomParams, setZoomParams] = useState<{ min: number, max: number, step: number } | null>({ min: 1, max: 5, step: 0.1 });
     const [zoomLevel, setZoomLevel] = useState(1);
 
     // Completely forces the hardware camera light to go off by stopping tracks we intercepted
@@ -166,8 +168,17 @@ export function QRScanner({ onScan, onClose, active = true }: QRScannerProps) {
                 </div>
 
                 <div className="p-6">
-                    <div id="qr-reader" className="overflow-hidden rounded-2xl border-4 border-tan-light/20 bg-black">
+                    <div id="qr-reader" className="overflow-hidden rounded-2xl border-4 border-tan-light/20 bg-black relative">
                         {/* html5-qrcode injects here */}
+                        
+                        {/* Force internal video to scale for Digital Zoom if Native Optical Zoom is unavailable */}
+                        <style>{`
+                            #qr-reader video {
+                                transition: transform 0.15s ease-out;
+                                transform: scale(${zoomLevel});
+                                transform-origin: center center;
+                            }
+                        `}</style>
                     </div>
                     
                     <div className="mt-6 flex flex-col items-center text-center">
