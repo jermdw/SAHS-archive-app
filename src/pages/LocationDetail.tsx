@@ -16,13 +16,13 @@ export function LocationDetail() {
     const { isSAHSUser, user } = useAuth();
 
     // Selection/Search State
-    const [isSelectMode, setIsSelectMode] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<ArchiveItem[]>([]);
     const [isSearching, setIsSearching] = useState(false);
-    const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
-    const [isLinking, setIsLinking] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<ArchiveItem[]>([]);
+    const [isSelectMode, setIsSelectMode] = useState(false);
     const [searchMode, setSearchMode] = useState<'keyword' | 'id'>('keyword');
+    const [isLinking, setIsLinking] = useState(false);
     
     // Conflict State
     const [conflictedItems, setConflictedItems] = useState<ArchiveItem[]>([]);
@@ -133,30 +133,31 @@ export function LocationDetail() {
         return () => clearTimeout(timer);
     }, [searchQuery, id]);
 
-    const toggleItemSelection = (itemId: string) => {
-        setSelectedItemIds(prev => {
-            const next = new Set(prev);
-            if (next.has(itemId)) next.delete(itemId);
-            else next.add(itemId);
-            return next;
+    const toggleItemSelection = (item: ArchiveItem) => {
+        setSelectedItems(prev => {
+            const isSelected = prev.some(i => i.id === item.id);
+            if (isSelected) {
+                return prev.filter(i => i.id !== item.id);
+            } else {
+                return [...prev, item];
+            }
         });
     };
 
     const handleLinkItems = async (forceResolution?: { itemId: string, mode: 'move' | 'both' }[]) => {
-        if (selectedItemIds.size === 0 || !id) return;
+        if (selectedItems.length === 0 || !id) return;
         
         // 1. Check for conflicts if not already resolving
         if (!forceResolution) {
             const conflicts: ArchiveItem[] = [];
-            selectedItemIds.forEach(itemId => {
-                const item = searchResults.find(r => r.id === itemId);
-                if (item) {
-                    const hasOtherLocation = (item.museum_location_id && item.museum_location_id !== id) || 
-                                           (item.museum_location_ids && item.museum_location_ids.length > 0 && !item.museum_location_ids.includes(id!));
-                    
-                    if (hasOtherLocation) {
-                        conflicts.push(item);
-                    }
+            selectedItems.forEach(item => {
+                // Check if item has ANY location data elsewhere
+                const hasExisting = (item.museum_location_id && item.museum_location_id !== id) || 
+                                   (item.museum_location_ids && item.museum_location_ids.length > 0 && !item.museum_location_ids.includes(id!)) ||
+                                   (item.museum_location && !item.museum_location_ids?.includes(id!) && item.museum_location_id !== id);
+                
+                if (hasExisting) {
+                    conflicts.push(item);
                 }
             });
 
@@ -173,17 +174,16 @@ export function LocationDetail() {
             const now = new Date().toISOString();
             const adminEmail = user?.email || 'Admin';
 
-            selectedItemIds.forEach(itemId => {
-                const itemRef = doc(db, 'archive_items', itemId);
-                const item = searchResults.find(r => r.id === itemId);
-                const resolution = forceResolution?.find(r => r.itemId === itemId);
+            selectedItems.forEach(item => {
+                const itemRef = doc(db, 'archive_items', item.id!);
+                const resolution = forceResolution?.find(r => r.itemId === item.id);
                 
                 let newLocationIds: string[] = [];
                 
                 if (resolution?.mode === 'both') {
                     // Keep existing locations and add new one
-                    const existing = item?.museum_location_ids || [];
-                    const legacy = item?.museum_location_id;
+                    const existing = item.museum_location_ids || [];
+                    const legacy = item.museum_location_id;
                     newLocationIds = Array.from(new Set([...existing, ...(legacy ? [legacy] : []), id!]));
                 } else {
                     // Move/Default: Set to ONLY this location
@@ -202,7 +202,7 @@ export function LocationDetail() {
             await batch.commit();
             
             // Cleanup and refresh
-            setSelectedItemIds(new Set());
+            setSelectedItems([]);
             setSearchQuery('');
             setIsSelectMode(false);
             setConflictedItems([]);
@@ -408,9 +408,9 @@ export function LocationDetail() {
                                     searchResults.map(result => (
                                         <div 
                                             key={result.id}
-                                            onClick={() => toggleItemSelection(result.id!)}
+                                            onClick={() => toggleItemSelection(result)}
                                             className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
-                                                selectedItemIds.has(result.id!) 
+                                                selectedItems.some(i => i.id === result.id) 
                                                     ? 'bg-tan/10 border-tan shadow-sm' 
                                                     : 'bg-white border-tan-light/30 hover:border-tan/50'
                                             }`}
@@ -438,9 +438,9 @@ export function LocationDetail() {
                                                 </div>
                                             </div>
                                             <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                                                selectedItemIds.has(result.id!) ? 'bg-tan border-tan text-white' : 'border-tan-light group-hover:border-tan'
+                                                selectedItems.some(i => i.id === result.id) ? 'bg-tan border-tan text-white' : 'border-tan-light group-hover:border-tan'
                                             }`}>
-                                                {selectedItemIds.has(result.id!) && <Check size={14} strokeWidth={3} />}
+                                                {selectedItems.some(i => i.id === result.id) && <Check size={14} strokeWidth={3} />}
                                             </div>
                                         </div>
                                     ))
@@ -461,11 +461,11 @@ export function LocationDetail() {
                                 Selection
                             </h3>
                             <div className="flex-1 text-sm text-charcoal/60 mb-6">
-                                {selectedItemIds.size === 0 ? (
+                                {selectedItems.length === 0 ? (
                                     <p className="italic">No items selected yet. Click an item to select it for this shelf.</p>
                                 ) : (
                                     <div className="space-y-4">
-                                        <p className="text-lg font-bold text-tan">{selectedItemIds.size} Items Selected</p>
+                                        <p className="text-lg font-bold text-tan">{selectedItems.length} Items Selected</p>
                                         <div className="bg-tan/5 p-3 rounded-lg border border-tan/20">
                                             <p className="text-xs leading-relaxed">
                                                 These artifacts will be reassigned to:
@@ -477,7 +477,7 @@ export function LocationDetail() {
                             </div>
                             <button 
                                 onClick={() => handleLinkItems()}
-                                disabled={selectedItemIds.size === 0 || isLinking}
+                                disabled={selectedItems.length === 0 || isLinking}
                                 className="w-full bg-tan text-white py-4 rounded-xl font-bold hover:bg-charcoal transition-all shadow-md disabled:bg-charcoal/20 disabled:shadow-none flex items-center justify-center gap-3"
                             >
                                 {isLinking ? (
@@ -492,9 +492,9 @@ export function LocationDetail() {
                                     </>
                                 )}
                             </button>
-                            {selectedItemIds.size > 0 && (
+                            {selectedItems.length > 0 && (
                                 <button 
-                                    onClick={() => setSelectedItemIds(new Set())}
+                                    onClick={() => setSelectedItems([])}
                                     className="mt-3 text-[10px] font-black uppercase tracking-widest text-charcoal/40 hover:text-red-500 transition-colors mx-auto"
                                 >
                                     Clear All

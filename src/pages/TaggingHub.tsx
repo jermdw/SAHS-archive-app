@@ -151,7 +151,8 @@ export function TaggingHub() {
         if (!forceResolution) {
             const conflicts = selectedItems.filter(item => {
                 const hasExisting = (item.museum_location_id && item.museum_location_id !== selectedLocation.id) || 
-                                   (item.museum_location_ids && item.museum_location_ids.length > 0 && !item.museum_location_ids.includes(selectedLocation.id));
+                                   (item.museum_location_ids && item.museum_location_ids.length > 0 && !item.museum_location_ids.includes(selectedLocation.id)) ||
+                                   (item.museum_location && !item.museum_location_ids?.includes(selectedLocation.id) && item.museum_location_id !== selectedLocation.id);
                 return hasExisting;
             });
 
