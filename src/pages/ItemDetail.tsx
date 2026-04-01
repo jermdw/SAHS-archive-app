@@ -29,7 +29,6 @@ export function ItemDetail() {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [zoomScale, setZoomScale] = useState(1);
     const [collectionName, setCollectionName] = useState<string | null>(null);
-    const [linkedLocationName, setLinkedLocationName] = useState<string | null>(null);
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
 
     // Inline Location Editing State
@@ -61,14 +60,6 @@ export function ItemDetail() {
                 stage: newLocationId ? 'Housed' : 'Archived'
             });
             
-            setItem(prev => prev ? { ...prev, museum_location_id: newLocationId } : null);
-            
-            if (newLocationId) {
-                const selectedLoc = allLocations.find(l => l.id === newLocationId);
-                setLinkedLocationName(selectedLoc?.name || newLocationId);
-            } else {
-                setLinkedLocationName(null);
-            }
             setIsEditingLocation(false);
         } catch (error) {
             console.error("Failed to update location inline:", error);
@@ -110,17 +101,7 @@ export function ItemDetail() {
                         }
                     }
 
-                    if (data.museum_location_id) {
-                        try {
-                            const q = query(collection(db, 'locations'), where('id', '==', data.museum_location_id));
-                            const snap = await getDocs(q);
-                            if (!snap.empty) {
-                                setLinkedLocationName(snap.docs[0].data().name);
-                            }
-                        } catch (err) {
-                            console.error("Error fetching location name:", err);
-                        }
-                    }
+
 
                     // 1) Forward explicit references defined on THIS item
                     const fetchForward = async (ids: string[] | undefined) => {
