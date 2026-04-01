@@ -81,12 +81,17 @@ export function LocationDetail() {
                 const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as ArchiveItem));
                 
                 const filtered = all.filter(item => {
+                    const kw = searchQuery.toLowerCase();
+                    const artifactIdStr = String(item.artifact_id || '').toLowerCase();
+                    const identifierStr = String(item.identifier || '').toLowerCase();
+                    const idStr = String(item.id || '').toLowerCase();
+
                     const matchesQuery = 
-                        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        item.artifact_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        item.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        item.identifier?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        item.description?.toLowerCase().includes(searchQuery.toLowerCase());
+                        item.title?.toLowerCase().includes(kw) ||
+                        artifactIdStr.includes(kw) ||
+                        idStr.includes(kw) ||
+                        identifierStr.includes(kw) ||
+                        item.description?.toLowerCase().includes(kw);
                     
                     // Exclude items already here
                     return matchesQuery && item.museum_location_id !== id;
@@ -233,7 +238,7 @@ export function LocationDetail() {
                                 <input 
                                     type="text"
                                     placeholder="Search by title, ID #, identifier, or description..."
-                                    className="w-full bg-white pl-11 pr-4 py-4 rounded-xl border border-tan-light/50 focus:border-tan outline-none transition-all shadow-sm"
+                                    className="w-full bg-white pl-12 pr-4 py-5 rounded-2xl border-2 border-tan-light/50 focus:border-tan outline-none transition-all shadow-md text-lg font-medium placeholder:text-charcoal/30"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     autoFocus
@@ -267,8 +272,8 @@ export function LocationDetail() {
                                                 </div>
                                                 <div>
                                                     <h4 className="font-bold text-charcoal group-hover:text-tan transition-colors">{result.title}</h4>
-                                                    <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-charcoal/40 uppercase">
-                                                        <span>{result.artifact_id || 'NO-ID'}</span>
+                                                    <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-charcoal/40 uppercase">
+                                                        <span className="bg-tan/10 text-tan px-1.5 py-0.5 rounded">ID: {result.artifact_id || 'NO-ID'}</span>
                                                         <span>&bull;</span>
                                                         <span>{result.item_type}</span>
                                                         {result.museum_location_id && (

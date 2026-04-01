@@ -116,6 +116,9 @@ export function SearchArchive() {
                 item.title?.toLowerCase().includes(kw) ||
                 item.description?.toLowerCase().includes(kw) ||
                 item.subject?.toLowerCase().includes(kw) ||
+                item.artifact_id?.toString().toLowerCase().includes(kw) ||
+                item.id?.toLowerCase().includes(kw) ||
+                item.identifier?.toLowerCase().includes(kw) ||
                 item.transcription?.toLowerCase().includes(kw) ||
                 item.creator?.toLowerCase().includes(kw) ||
                 item.full_name?.toLowerCase().includes(kw) ||

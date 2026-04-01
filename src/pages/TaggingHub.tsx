@@ -179,14 +179,14 @@ export function TaggingHub() {
                 </div>
                 
                 <form onSubmit={handleManualSearch} className="flex gap-2 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-64">
+                    <div className="relative flex-1 md:min-w-[400px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/30" size={18} />
                         <input
                             type="text"
                             placeholder="Enter Artifact ID..."
                             value={searchId}
                             onChange={(e) => setSearchId(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-white border border-tan-light/50 rounded-xl focus:ring-2 focus:ring-tan/20 transition-all outline-none"
+                            className="w-full pl-10 pr-4 py-4 bg-white border border-tan-light text-lg rounded-xl focus:ring-2 focus:ring-tan/20 shadow-sm transition-all outline-none"
                         />
                     </div>
                     <button 
