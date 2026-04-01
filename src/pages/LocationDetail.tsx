@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, Box, MapPin, Printer } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { DocumentCard } from '../components/DocumentCard';
-import { Search, Plus, Check, Loader2, X, AlertCircle } from 'lucide-react';
+import { Search, Loader2, Check, Box, Plus, MapPin, Printer, ChevronLeft, Tag, X, AlertCircle } from 'lucide-react';
 import type { MuseumLocation, ArchiveItem } from '../types/database';
 
 export function LocationDetail() {
@@ -23,6 +22,7 @@ export function LocationDetail() {
     const [isSearching, setIsSearching] = useState(false);
     const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
     const [isLinking, setIsLinking] = useState(false);
+    const [searchMode, setSearchMode] = useState<'keyword' | 'id'>('keyword');
 
     const fetchLocationAndItems = async () => {
         if (!id) return;
@@ -78,24 +78,28 @@ export function LocationDetail() {
             try {
                 const q = query(collection(db, 'archive_items'));
                 const snap = await getDocs(q);
-                const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as ArchiveItem));
+                const itemsData = snap.docs.map(d => ({ id: d.id, ...d.data() } as ArchiveItem));
                 
-                const filtered = all.filter(item => {
+                const filtered = itemsData.filter(item => {
                     const kw = searchQuery.toLowerCase();
                     const artifactIdStr = String(item.artifact_id || '').toLowerCase();
                     const identifierStr = String(item.identifier || '').toLowerCase();
                     const idStr = String(item.id || '').toLowerCase();
 
-                    const matchesQuery = 
-                        item.title?.toLowerCase().includes(kw) ||
-                        artifactIdStr.includes(kw) ||
-                        idStr.includes(kw) ||
-                        identifierStr.includes(kw) ||
-                        item.description?.toLowerCase().includes(kw);
+                    let matchesQuery = false;
+                    if (searchMode === 'keyword') {
+                        matchesQuery = item.title?.toLowerCase().includes(kw) ||
+                                       item.description?.toLowerCase().includes(kw);
+                    } else {
+                        // ID mode focuses ONLY on the numeric IDs and identifiers
+                        matchesQuery = artifactIdStr.includes(kw) ||
+                                       idStr.includes(kw) ||
+                                       identifierStr.includes(kw);
+                    }
                     
                     // Exclude items already here
                     return matchesQuery && item.museum_location_id !== id;
-                }).slice(0, 10); // Limit results for speed
+                }).slice(0, 15); // Slightly more for better results
                 
                 setSearchResults(filtered);
             } catch (err) {
@@ -229,16 +233,37 @@ export function LocationDetail() {
                 <div className="bg-cream/40 border-2 border-dashed border-tan/30 rounded-2xl p-6 md:p-8 mb-10 animate-in slide-in-from-top-4 duration-300">
                     <div className="flex flex-col md:flex-row gap-6">
                         <div className="flex-1">
-                            <h3 className="text-xl font-serif font-bold text-charcoal mb-4 flex items-center gap-2">
+                             <h3 className="text-xl font-serif font-bold text-charcoal mb-4 flex items-center gap-2">
                                 <Search size={20} className="text-tan" />
-                                Search Collection to Link
+                                Link Artifacts to this Shelf
                             </h3>
+
+                            {/* Search Tab Switcher */}
+                            <div className="flex bg-tan/5 p-1.5 rounded-xl border border-tan-light/30 mb-5 gap-1 shadow-inner max-w-sm">
+                                <button 
+                                    onClick={() => { setSearchMode('keyword'); setSearchQuery(''); }}
+                                    className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                                        searchMode === 'keyword' ? 'bg-white text-tan shadow-sm' : 'text-charcoal/40 hover:text-charcoal/60'
+                                    }`}
+                                >
+                                    <Search size={16} /> Keyword Search
+                                </button>
+                                <button 
+                                    onClick={() => { setSearchMode('id'); setSearchQuery(''); }}
+                                    className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                                        searchMode === 'id' ? 'bg-white text-tan shadow-sm' : 'text-charcoal/40 hover:text-charcoal/60'
+                                    }`}
+                                >
+                                    <Tag size={16} /> ID Number Search
+                                </button>
+                            </div>
+
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/30" size={18} />
+                                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-charcoal/20" size={20} />
                                 <input 
                                     type="text"
-                                    placeholder="Search by title, ID #, identifier, or description..."
-                                    className="w-full bg-white pl-12 pr-4 py-5 rounded-2xl border-2 border-tan-light/50 focus:border-tan outline-none transition-all shadow-md text-lg font-medium placeholder:text-charcoal/30"
+                                    placeholder={searchMode === 'keyword' ? "Search by title or description..." : "Enter Catalog ID # (e.g. 1905)"}
+                                    className="w-full bg-white pl-14 pr-4 py-5 rounded-2xl border-2 border-tan-light/50 focus:border-tan outline-none transition-all shadow-md text-xl font-serif placeholder:font-serif placeholder:text-charcoal/20"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     autoFocus

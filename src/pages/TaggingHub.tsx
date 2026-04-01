@@ -84,12 +84,29 @@ export function TaggingHub() {
         setMessage(null);
 
         try {
-            // First try searching by artifact_id (the user-facing ID)
-            const q = query(collection(db, 'archive_items'), where('artifact_id', '==', searchId.trim()));
-            const snapshot = await getDocs(q);
+            const trimmedId = searchId.trim();
+            const numericId = parseInt(trimmedId, 10);
 
-            if (!snapshot.empty) {
-                const newItem = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as ArchiveItem;
+            // Fetch either by exact string or exact number if applicable
+            const queries = [
+                query(collection(db, 'archive_items'), where('artifact_id', '==', trimmedId))
+            ];
+
+            if (!isNaN(numericId)) {
+                queries.push(query(collection(db, 'archive_items'), where('artifact_id', '==', numericId)));
+            }
+
+            let foundDoc = null;
+            for (const qry of queries) {
+                const snap = await getDocs(qry);
+                if (!snap.empty) {
+                    foundDoc = snap.docs[0];
+                    break;
+                }
+            }
+
+            if (foundDoc) {
+                const newItem = { id: foundDoc.id, ...foundDoc.data() } as ArchiveItem;
                 if (!selectedItems.find(i => i.id === newItem.id)) {
                     setSelectedItems(prev => [...prev, newItem]);
                     setSearchId('');
@@ -97,8 +114,8 @@ export function TaggingHub() {
                     setMessage({ type: 'error', text: "Item already in list." });
                 }
             } else {
-                // If not found, try searching by Firestore Doc ID
-                const itemDoc = await getDoc(doc(db, 'archive_items', searchId.trim()));
+                // If not found by artifact_id, try searching by Firestore Doc ID
+                const itemDoc = await getDoc(doc(db, 'archive_items', trimmedId));
                 if (itemDoc.exists()) {
                     const newItem = { id: itemDoc.id, ...itemDoc.data() } as ArchiveItem;
                     if (!selectedItems.find(i => i.id === newItem.id)) {
@@ -108,7 +125,7 @@ export function TaggingHub() {
                         setMessage({ type: 'error', text: "Item already in list." });
                     }
                 } else {
-                    setMessage({ type: 'error', text: `No item found with ID "${searchId}"` });
+                    setMessage({ type: 'error', text: "Item not found by ID or system ID." });
                 }
             }
         } catch (error) {
@@ -180,13 +197,13 @@ export function TaggingHub() {
                 
                 <form onSubmit={handleManualSearch} className="flex gap-2 w-full md:w-auto">
                     <div className="relative flex-1 md:min-w-[400px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/30" size={18} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/20" size={20} />
                         <input
                             type="text"
-                            placeholder="Enter Artifact ID..."
+                            placeholder="Enter Artifact ID # (e.g. 1429)"
                             value={searchId}
                             onChange={(e) => setSearchId(e.target.value)}
-                            className="w-full pl-10 pr-4 py-4 bg-white border border-tan-light text-lg rounded-xl focus:ring-2 focus:ring-tan/20 shadow-sm transition-all outline-none"
+                            className="w-full pl-12 pr-4 py-5 bg-white border-2 border-tan-light/50 text-xl font-serif rounded-2xl focus:ring-2 focus:ring-tan/20 shadow-md transition-all outline-none placeholder:text-charcoal/20"
                         />
                     </div>
                     <button 
