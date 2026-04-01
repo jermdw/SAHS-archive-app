@@ -146,7 +146,9 @@ export function SearchArchive() {
             const matchesArtifactId = !localArtifactId || (item.artifact_id && item.artifact_id.toLowerCase() === localArtifactId.toLowerCase());
             
             // Location ID match (exact match)
-            const matchesLocId = !localLocId || item.museum_location_id === localLocId;
+            const matchesLocId = !localLocId || 
+                item.museum_location_id === localLocId || 
+                (item.museum_location_ids && item.museum_location_ids.includes(localLocId));
 
             return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId;
         }).sort((a, b) => {

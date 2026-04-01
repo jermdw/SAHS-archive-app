@@ -53,11 +53,12 @@ export function ItemDetail() {
         if (!item) return;
         setIsSavingLocation(true);
         try {
-            await updateDoc(doc(db, 'archive_items', item.id), {
-                museum_location_id: newLocationId,
+            await updateDoc(doc(db, 'archive_items', id!), {
+                museum_location_id: newLocationId || null,
+                museum_location_ids: newLocationId ? [newLocationId] : [],
                 last_tagged_at: new Date().toISOString(),
                 last_tagged_by: user?.email || 'Admin',
-                stage: newLocationId ? 'Housed' : 'Processing'
+                stage: newLocationId ? 'Housed' : 'Archived'
             });
             
             setItem(prev => prev ? { ...prev, museum_location_id: newLocationId } : null);
@@ -655,20 +656,28 @@ export function ItemDetail() {
                                             </div>
                                         ) : (
                                             <>
-                                                {linkedLocationName || item.museum_location_id ? (
-                                                    <p className="text-[15px] font-sans text-charcoal leading-snug font-bold">
-                                                        {isSAHSUser ? (
-                                                            <Link to={`/locations/${item.museum_location_id}`} className="flex items-center gap-1.5 hover:text-tan transition-colors group">
-                                                                <Box size={16} className="text-tan" /> 
-                                                                <span className="underline underline-offset-4 decoration-tan/30 group-hover:decoration-tan">{linkedLocationName || item.museum_location_id}</span>
-                                                            </Link>
-                                                        ) : (
-                                                            <span className="flex items-center gap-1.5">
-                                                                <Box size={16} className="text-tan" /> 
-                                                                {linkedLocationName || item.museum_location_id}
-                                                            </span>
-                                                        )}
-                                                    </p>
+                                                {(item.museum_location_ids && item.museum_location_ids.length > 0) || item.museum_location_id ? (
+                                                    <div className="flex flex-col gap-2">
+                                                        {Array.from(new Set([...(item.museum_location_ids || []), ...(item.museum_location_id ? [item.museum_location_id] : [])])).map(locId => {
+                                                            const locObj = allLocations.find(l => l.id === locId);
+                                                            const displayName = locObj?.name || locId;
+                                                            return (
+                                                                <p key={locId} className="text-[15px] font-sans text-charcoal leading-snug font-bold">
+                                                                    {isSAHSUser ? (
+                                                                        <Link to={`/locations/${locId}`} className="flex items-center gap-1.5 hover:text-tan transition-colors group">
+                                                                            <Box size={16} className="text-tan" /> 
+                                                                            <span className="underline underline-offset-4 decoration-tan/30 group-hover:decoration-tan">{displayName}</span>
+                                                                        </Link>
+                                                                    ) : (
+                                                                        <span className="flex items-center gap-1.5">
+                                                                            <Box size={16} className="text-tan" /> 
+                                                                            {displayName}
+                                                                        </span>
+                                                                    )}
+                                                                </p>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 ) : (
                                                     <p className="text-sm font-sans text-charcoal/40 italic leading-snug font-medium">Currently Unassigned</p>
                                                 )}

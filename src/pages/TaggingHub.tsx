@@ -17,6 +17,10 @@ export function TaggingHub() {
     const [searchId, setSearchId] = useState('');
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+    // Conflict State
+    const [conflictedItems, setConflictedItems] = useState<ArchiveItem[]>([]);
+    const [currentConflictIndex, setCurrentConflictIndex] = useState(-1);
+
     const parseIdFromData = (data: string): { type: 'item' | 'loc' | 'unknown', id: string } => {
         // Handle full URLs (e.g. https://domain.com/items/ID)
         if (data.includes('/items/')) {
@@ -140,8 +144,23 @@ export function TaggingHub() {
         setSelectedItems(prev => prev.filter(item => item.id !== id));
     };
 
-    const performTagging = async () => {
+    const performTagging = async (forceResolution?: { itemId: string, mode: 'move' | 'both' }[]) => {
         if (selectedItems.length === 0 || !selectedLocation) return;
+
+        // 1. Check for conflicts if not already resolving
+        if (!forceResolution) {
+            const conflicts = selectedItems.filter(item => {
+                const hasExisting = (item.museum_location_id && item.museum_location_id !== selectedLocation.id) || 
+                                   (item.museum_location_ids && item.museum_location_ids.length > 0 && !item.museum_location_ids.includes(selectedLocation.id));
+                return hasExisting;
+            });
+
+            if (conflicts.length > 0) {
+                setConflictedItems(conflicts);
+                setCurrentConflictIndex(0);
+                return;
+            }
+        }
 
         setIsLoading(true);
         try {
@@ -151,10 +170,23 @@ export function TaggingHub() {
 
             selectedItems.forEach(item => {
                 const itemRef = doc(db, 'archive_items', item.id);
+                const resolution = forceResolution?.find(r => r.itemId === item.id);
+                
+                let newLocationIds: string[] = [];
+                if (resolution?.mode === 'both') {
+                    const existing = item.museum_location_ids || [];
+                    const legacy = item.museum_location_id;
+                    newLocationIds = Array.from(new Set([...existing, ...(legacy ? [legacy] : []), selectedLocation.id]));
+                } else {
+                    newLocationIds = [selectedLocation.id];
+                }
+
                 batch.update(itemRef, {
                     museum_location_id: selectedLocation.id,
+                    museum_location_ids: newLocationIds,
                     last_tagged_at: now,
-                    last_tagged_by: email
+                    last_tagged_by: email,
+                    stage: 'Housed'
                 });
             });
 
@@ -165,9 +197,11 @@ export function TaggingHub() {
                 text: `Successfully tagged ${selectedItems.length} item(s) to "${selectedLocation.name}"` 
             });
             
-            // Reset for next cleanup
+            // Reset
             setSelectedItems([]);
             setSelectedLocation(null);
+            setConflictedItems([]);
+            setCurrentConflictIndex(-1);
         } catch (error) {
             console.error("Tagging error:", error);
             setMessage({ type: 'error', text: "Failed to update item locations." });
@@ -184,6 +218,70 @@ export function TaggingHub() {
 
     return (
         <div className="max-w-5xl mx-auto flex flex-col h-full animate-in fade-in duration-500 pb-20">
+            {/* Conflict Resolution Modal */}
+            {currentConflictIndex >= 0 && conflictedItems[currentConflictIndex] && (
+                <div className="fixed inset-0 bg-charcoal/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-tan/10 p-8 border-b border-tan/20 text-center">
+                            <div className="w-16 h-16 bg-tan/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <MapPin size={32} className="text-tan" />
+                            </div>
+                            <h2 className="text-2xl font-serif font-bold text-charcoal mb-2">Location Conflict</h2>
+                            <p className="text-charcoal/60 text-sm italic">"{conflictedItems[currentConflictIndex].title}"</p>
+                        </div>
+                        
+                        <div className="p-8">
+                            <p className="text-charcoal/80 mb-6 leading-relaxed">
+                                This artifact is currently listed in <span className="font-bold text-tan">{conflictedItems[currentConflictIndex].museum_location_id || conflictedItems[currentConflictIndex].museum_location_ids?.[0]}</span>. 
+                                How would you like to update its records?
+                            </p>
+                            
+                            <div className="grid gap-3">
+                                <button 
+                                    onClick={() => {
+                                        if (currentConflictIndex + 1 < conflictedItems.length) {
+                                            setCurrentConflictIndex(currentConflictIndex + 1);
+                                        } else {
+                                            performTagging([]); // Proceed as default move
+                                        }
+                                    }}
+                                    className="w-full py-4 px-6 bg-tan text-white rounded-xl font-bold hover:bg-charcoal transition-all shadow-md flex items-center justify-between group"
+                                >
+                                    <span>Relocate to {selectedLocation?.name}</span>
+                                    <ArrowRight size={18} className="opacity-40 group-hover:opacity-100" />
+                                </button>
+                                
+                                <button 
+                                    onClick={() => {
+                                        const resolutions = conflictedItems.map((item, idx) => ({
+                                            itemId: item.id!,
+                                            mode: idx === currentConflictIndex ? 'both' : 'move'
+                                        } as { itemId: string, mode: 'move' | 'both' }));
+                                        
+                                        performTagging(resolutions);
+                                    }}
+                                    className="w-full py-4 px-6 bg-white border-2 border-tan-light text-tan rounded-xl font-bold hover:bg-tan/5 transition-all flex items-center justify-between group"
+                                >
+                                    <span>List in Both Locations</span>
+                                    <Plus size={18} className="opacity-40 group-hover:opacity-100" />
+                                </button>
+                                
+                                <button 
+                                    onClick={() => {
+                                        setConflictedItems([]);
+                                        setCurrentConflictIndex(-1);
+                                        setIsLoading(false);
+                                    }}
+                                    className="w-full py-3 px-6 text-charcoal/40 font-bold hover:text-red-500 transition-colors text-sm"
+                                >
+                                    Cancel Operation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 border-b border-tan-light/50 pb-6 gap-4">
                 <div>
                     <h1 className="text-4xl font-serif font-bold mb-3 text-charcoal tracking-tight flex items-center gap-3">
@@ -367,7 +465,7 @@ export function TaggingHub() {
                         Reset Process
                     </button>
                     <button 
-                        onClick={performTagging}
+                        onClick={() => performTagging()}
                         disabled={isLoading || selectedItems.length === 0 || !selectedLocation}
                         className="flex-1 bg-tan text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-charcoal transition-all shadow-xl flex items-center justify-center gap-4 active:scale-[0.98] order-1 md:order-2"
                     >

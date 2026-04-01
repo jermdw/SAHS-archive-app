@@ -23,6 +23,10 @@ export function LocationDetail() {
     const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
     const [isLinking, setIsLinking] = useState(false);
     const [searchMode, setSearchMode] = useState<'keyword' | 'id'>('keyword');
+    
+    // Conflict State
+    const [conflictedItems, setConflictedItems] = useState<ArchiveItem[]>([]);
+    const [currentConflictIndex, setCurrentConflictIndex] = useState(-1);
 
     const fetchLocationAndItems = async () => {
         if (!id) return;
@@ -42,17 +46,33 @@ export function LocationDetail() {
                 }
             }
 
-            // Fetch items at this location
+            // Fetch items at this location - support both legacy string and new array
             const q = query(
                 collection(db, 'archive_items'), 
+                where('museum_location_ids', 'array-contains', id)
+            );
+
+            // Also check legacy single-string location for backward compatibility
+            const qLegacy = query(
+                collection(db, 'archive_items'),
                 where('museum_location_id', '==', id)
             );
             
-            const querySnapshot = await getDocs(q);
-            let itemsData = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as ArchiveItem[];
+            const [querySnapshot, legacySnapshot] = await Promise.all([
+                getDocs(q),
+                getDocs(qLegacy)
+            ]);
+
+            const itemsMap = new Map<string, ArchiveItem>();
+            
+            querySnapshot.docs.forEach(doc => {
+                itemsMap.set(doc.id, { id: doc.id, ...doc.data() } as ArchiveItem);
+            });
+            legacySnapshot.docs.forEach(doc => {
+                itemsMap.set(doc.id, { id: doc.id, ...doc.data() } as ArchiveItem);
+            });
+
+            const itemsData = Array.from(itemsMap.values());
             
             itemsData.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
             setItems(itemsData);
@@ -122,8 +142,31 @@ export function LocationDetail() {
         });
     };
 
-    const handleLinkItems = async () => {
+    const handleLinkItems = async (forceResolution?: { itemId: string, mode: 'move' | 'both' }[]) => {
         if (selectedItemIds.size === 0 || !id) return;
+        
+        // 1. Check for conflicts if not already resolving
+        if (!forceResolution) {
+            const conflicts: ArchiveItem[] = [];
+            selectedItemIds.forEach(itemId => {
+                const item = searchResults.find(r => r.id === itemId);
+                if (item) {
+                    const hasOtherLocation = (item.museum_location_id && item.museum_location_id !== id) || 
+                                           (item.museum_location_ids && item.museum_location_ids.length > 0 && !item.museum_location_ids.includes(id!));
+                    
+                    if (hasOtherLocation) {
+                        conflicts.push(item);
+                    }
+                }
+            });
+
+            if (conflicts.length > 0) {
+                setConflictedItems(conflicts);
+                setCurrentConflictIndex(0);
+                return;
+            }
+        }
+
         setIsLinking(true);
         try {
             const batch = writeBatch(db);
@@ -132,8 +175,24 @@ export function LocationDetail() {
 
             selectedItemIds.forEach(itemId => {
                 const itemRef = doc(db, 'archive_items', itemId);
+                const item = searchResults.find(r => r.id === itemId);
+                const resolution = forceResolution?.find(r => r.itemId === itemId);
+                
+                let newLocationIds: string[] = [];
+                
+                if (resolution?.mode === 'both') {
+                    // Keep existing locations and add new one
+                    const existing = item?.museum_location_ids || [];
+                    const legacy = item?.museum_location_id;
+                    newLocationIds = Array.from(new Set([...existing, ...(legacy ? [legacy] : []), id!]));
+                } else {
+                    // Move/Default: Set to ONLY this location
+                    newLocationIds = [id!];
+                }
+
                 batch.update(itemRef, {
-                    museum_location_id: id,
+                    museum_location_ids: newLocationIds,
+                    museum_location_id: id, // Still update legacy for safety
                     last_tagged_at: now,
                     last_tagged_by: adminEmail,
                     stage: 'Housed'
@@ -146,6 +205,8 @@ export function LocationDetail() {
             setSelectedItemIds(new Set());
             setSearchQuery('');
             setIsSelectMode(false);
+            setConflictedItems([]);
+            setCurrentConflictIndex(-1);
             await fetchLocationAndItems();
         } catch (error) {
             console.error("Error linking items:", error);
@@ -172,6 +233,73 @@ export function LocationDetail() {
 
     return (
         <>
+        {/* Conflict Resolution Modal */}
+        {currentConflictIndex >= 0 && conflictedItems[currentConflictIndex] && (
+            <div className="fixed inset-0 bg-charcoal/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-tan/10 p-8 border-b border-tan/20 text-center">
+                        <div className="w-16 h-16 bg-tan/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <MapPin size={32} className="text-tan" />
+                        </div>
+                        <h2 className="text-2xl font-serif font-bold text-charcoal mb-2">Location Conflict</h2>
+                        <p className="text-charcoal/60 text-sm italic">"{conflictedItems[currentConflictIndex].title}"</p>
+                    </div>
+                    
+                    <div className="p-8">
+                        <p className="text-charcoal/80 mb-6 leading-relaxed">
+                            This artifact is currently listed in <span className="font-bold text-tan">{conflictedItems[currentConflictIndex].museum_location_id || conflictedItems[currentConflictIndex].museum_location_ids?.[0]}</span>. 
+                            How would you like to update its records?
+                        </p>
+                        
+                        <div className="grid gap-3">
+                            <button 
+                                onClick={() => {
+                                    // Default Move behavior by allowing the loop to proceed without 'both' flag
+                                    if (currentConflictIndex + 1 < conflictedItems.length) {
+                                        setCurrentConflictIndex(currentConflictIndex + 1);
+                                    } else {
+                                        handleLinkItems([]); // Proceed as default move
+                                    }
+                                }}
+                                className="w-full py-4 px-6 bg-tan text-white rounded-xl font-bold hover:bg-charcoal transition-all shadow-md flex items-center justify-between group"
+                            >
+                                <span>Relocate to {locationData.name}</span>
+                                <ChevronLeft size={18} className="rotate-180 opacity-40 group-hover:opacity-100" />
+                            </button>
+                            
+                            <button 
+                                onClick={() => {
+                                    // Treat this item as 'both'
+                                    // We need to track individual resolutions if multiple
+                                    const resolutions = conflictedItems.map((item, idx) => ({
+                                        itemId: item.id!,
+                                        mode: idx === currentConflictIndex ? 'both' : 'move'
+                                    } as { itemId: string, mode: 'move' | 'both' }));
+                                    
+                                    handleLinkItems(resolutions);
+                                }}
+                                className="w-full py-4 px-6 bg-white border-2 border-tan-light text-tan rounded-xl font-bold hover:bg-tan/5 transition-all flex items-center justify-between group"
+                            >
+                                <span>List in Both Locations</span>
+                                <Plus size={18} className="opacity-40 group-hover:opacity-100" />
+                            </button>
+                            
+                            <button 
+                                onClick={() => {
+                                    setConflictedItems([]);
+                                    setCurrentConflictIndex(-1);
+                                    setIsLinking(false);
+                                }}
+                                className="w-full py-3 px-6 text-charcoal/40 font-bold hover:text-red-500 transition-colors text-sm"
+                            >
+                                Cancel Operation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         <div className="max-w-full mx-auto h-full flex flex-col animate-in fade-in duration-500 pb-16 print:hidden">
             <Link to="/manage-locations" className="inline-flex items-center text-sm font-bold text-tan uppercase tracking-wider mb-6 hover:text-charcoal transition-colors">
                 <ChevronLeft size={16} className="mr-1" /> Back to Museum Locations
@@ -348,7 +476,7 @@ export function LocationDetail() {
                                 )}
                             </div>
                             <button 
-                                onClick={handleLinkItems}
+                                onClick={() => handleLinkItems()}
                                 disabled={selectedItemIds.size === 0 || isLinking}
                                 className="w-full bg-tan text-white py-4 rounded-xl font-bold hover:bg-charcoal transition-all shadow-md disabled:bg-charcoal/20 disabled:shadow-none flex items-center justify-center gap-3"
                             >

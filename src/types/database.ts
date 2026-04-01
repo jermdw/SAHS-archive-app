@@ -92,7 +92,8 @@ export interface ArchiveItem {
     artifact_id?: string | null;   // Unique ID for artifacts (e.g. ID #)
     artifact_type?: string | null; // Sub-type for artifacts (textile, photo, etc.)
     museum_location?: string | null; // Legacy specific location in the museum (e.g. Box 4, Shelf 2)
-    museum_location_id?: string | null; // New reference to locations collection
+    museum_location_id?: string | null; // Legacy specific location in the museum (e.g. Box 4, Shelf 2)
+    museum_location_ids?: string[];     // Support for multiple active locations
     last_tagged_at?: string | null;
     last_tagged_by?: string | null;
     featured_image_url?: string | null; // Primary display image selected from file_urls
