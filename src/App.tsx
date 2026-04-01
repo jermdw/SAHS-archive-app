@@ -3,7 +3,7 @@ import Layout from './components/Layout';
 import { BrowseArchive } from './pages/BrowseArchive';
 import { ItemDetail } from './pages/ItemDetail';
 import { AddItem } from './pages/AddItem';
-import { EditItem } from './pages/EditItem';
+import EditItem from './pages/EditItem';
 import { Collections } from './pages/Collections';
 import { CollectionDetail } from './pages/CollectionDetail';
 import { AddCollection } from './pages/AddCollection';

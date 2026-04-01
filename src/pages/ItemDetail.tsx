@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Box } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit2, Trash2, FileText, ZoomIn, ZoomOut, X, MapPin, Info, Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Box, Lock, Maximize2, Camera } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
@@ -899,6 +899,91 @@ export function ItemDetail() {
                                         {idx + 1}
                                     </div>
                                 </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Additional Media (Video/Audio) - Visible to everyone */}
+                {item.additional_media_urls && item.additional_media_urls.length > 0 && (
+                    <div className="pt-8 border-t border-tan-light/30">
+                        <h3 className="text-xl font-serif font-bold text-charcoal mb-6 flex items-center gap-2">
+                            <Camera className="text-tan" size={24} />
+                            Additional Media & Recordings
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {item.additional_media_urls.map((url, idx) => {
+                                const isAudio = url.toLowerCase().includes('.mp3') || url.toLowerCase().includes('.wav') || url.toLowerCase().includes('.m4a');
+                                return (
+                                    <div key={idx} className="bg-white border border-tan-light/50 rounded-xl overflow-hidden shadow-sm">
+                                        <div className="p-4 bg-tan-light/10 border-b border-tan-light/30 flex items-center justify-between">
+                                            <span className="text-xs font-black text-tan uppercase tracking-widest">Media Track {idx + 1}</span>
+                                            <a href={url} target="_blank" rel="noopener noreferrer" className="text-tan hover:text-charcoal transition-colors">
+                                                <Maximize2 size={14} />
+                                            </a>
+                                        </div>
+                                        <div className="p-6 flex flex-col items-center justify-center min-h-[150px] bg-indigo-50/20">
+                                            {isAudio ? (
+                                                <div className="w-full space-y-4 flex flex-col items-center">
+                                                    <div className="w-16 h-16 bg-tan/20 rounded-full flex items-center justify-center text-tan animate-pulse">
+                                                        <Camera size={32} />
+                                                    </div>
+                                                    <audio controls className="w-full">
+                                                        <source src={url} />
+                                                        Your browser does not support the audio element.
+                                                    </audio>
+                                                </div>
+                                            ) : (
+                                                <video controls className="w-full rounded-lg shadow-md max-h-[300px]">
+                                                    <source src={url} />
+                                                    Your browser does not support the video element.
+                                                </video>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Accessioning Paperwork - Admin/Curator ONLY */}
+                {isSAHSUser && item.accession_paperwork_urls && item.accession_paperwork_urls.length > 0 && (
+                    <div className="mt-16 pt-12 border-t-2 border-dashed border-tan-light/50 bg-tan/5 rounded-3xl p-8 md:p-12">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h3 className="text-2xl font-serif font-bold text-charcoal flex items-center gap-2">
+                                    <Lock className="text-tan" size={24} />
+                                    Accessioning Paperwork
+                                </h3>
+                                <p className="text-xs font-bold text-charcoal/40 uppercase tracking-widest mt-1">Internal Archival Documentation</p>
+                            </div>
+                            <span className="bg-charcoal text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">Restricted Access</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                            {item.accession_paperwork_urls.map((url, idx) => (
+                                <div key={idx} className="group relative">
+                                    <div 
+                                        className="aspect-[3/4] bg-white rounded-xl overflow-hidden border-2 border-tan-light/30 shadow-sm group-hover:border-tan transition-all cursor-zoom-in"
+                                        onClick={() => setZoomedImage(url)}
+                                    >
+                                        <img 
+                                            src={url} 
+                                            alt={`Paperwork ${idx + 1}`} 
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-charcoal/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <ZoomIn size={24} className="text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 flex items-center justify-between px-1">
+                                        <span className="text-[10px] font-bold text-charcoal/60 uppercase tracking-widest">Page {idx + 1}</span>
+                                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-tan hover:text-charcoal transition-colors">
+                                            <Maximize2 size={12} />
+                                        </a>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </div>

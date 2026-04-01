@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Edit2, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Maximize2, FileText, ArrowLeft, Lock, Camera } from 'lucide-react';
+import { Image as ImageIcon, CheckCircle, ChevronDown, ChevronUp, X, Maximize2, FileText, ArrowLeft, Lock, Camera, Upload, Edit2, BookOpen, Sparkles, AlertCircle } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
@@ -27,75 +27,77 @@ function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
     }, [ref, handler]);
 }
 
-export function EditItem() {
-    const { isSAHSUser, lastSearchPath, user } = useAuth();
-    const PendingFilePreview = ({
-        file,
-        url,
-        isFeatured,
-        onSetFeatured,
-        onRemove,
-        onCrop
-    }: {
-        file: File,
-        url: string,
-        isFeatured: boolean,
-        onSetFeatured: (url: string) => void,
-        onRemove: () => void,
-        onCrop?: () => void
-    }) => {
-        const isImage = file.type.startsWith('image/');
+const PendingFilePreview = ({
+    file,
+    url,
+    isFeatured,
+    onSetFeatured,
+    onRemove,
+    onCrop,
+    onZoom
+}: {
+    file: File,
+    url: string,
+    isFeatured: boolean,
+    onSetFeatured: (url: string) => void,
+    onRemove: () => void,
+    onCrop?: () => void,
+    onZoom: (url: string) => void
+}) => {
+    const isImage = file.type.startsWith('image/');
 
-        return (
-            <div className={`relative aspect-square rounded-lg overflow-hidden border-2 border-dashed transition-all group/thumb ${isFeatured ? 'border-tan ring-2 ring-tan/20 shadow-md' : 'border-indigo-200'}`}>
-                {isImage ? (
-                    <img src={url} className="w-full h-full object-cover cursor-zoom-in" alt="new" onClick={() => onCrop ? null : setZoomedImage(url)} />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300">
-                        <ImageIcon size={20} />
-                    </div>
-                )}
-                <div className="absolute inset-0 bg-charcoal/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                    <button
-                        type="button"
-                        onClick={() => onSetFeatured(url)}
-                        className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
-                        title="Set as Featured"
-                    >
-                        <CheckCircle size={14} />
-                    </button>
-                    {onCrop && isImage && (
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onCrop();
-                            }}
-                            className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
-                            title="Crop & Center"
-                        >
-                            <Maximize2 size={12} />
-                            Center
-                        </button>
-                    )}
+    return (
+        <div className={`relative aspect-square rounded-lg overflow-hidden border-2 border-dashed transition-all group/thumb ${isFeatured ? 'border-tan ring-2 ring-tan/20 shadow-md' : 'border-indigo-200'}`}>
+            {isImage ? (
+                <img src={url} className="w-full h-full object-cover cursor-zoom-in" alt="new" onClick={() => onCrop ? null : onZoom(url)} />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300">
+                    <ImageIcon size={20} />
                 </div>
+            )}
+            <div className="absolute inset-0 bg-charcoal/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                 <button
                     type="button"
-                    onClick={onRemove}
-                    className="absolute top-1 right-1 bg-red-600/80 text-white p-0.5 rounded-full shadow-sm z-20 opacity-0 group-hover/thumb:opacity-100 hover:bg-red-700 transition-all scale-75 group-hover/thumb:scale-100"
-                    title="Remove"
+                    onClick={() => onSetFeatured(url)}
+                    className="p-1 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-colors"
+                    title="Set as Featured"
                 >
-                    <X size={10} />
+                    <CheckCircle size={14} />
                 </button>
-                {isFeatured && (
-                    <div className="absolute top-1 left-1 bg-tan text-white p-0.5 rounded-full shadow-sm z-20">
-                        <CheckCircle size={10} />
-                    </div>
+                {onCrop && isImage && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onCrop();
+                        }}
+                        className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
+                        title="Crop & Center"
+                    >
+                        <Maximize2 size={12} />
+                        Center
+                    </button>
                 )}
             </div>
-        );
-    };
+            <button
+                type="button"
+                onClick={onRemove}
+                className="absolute top-1 right-1 bg-red-600/80 text-white p-0.5 rounded-full shadow-sm z-20 opacity-0 group-hover/thumb:opacity-100 hover:bg-red-700 transition-all scale-75 group-hover/thumb:scale-100"
+                title="Remove"
+            >
+                <X size={10} />
+            </button>
+            {isFeatured && (
+                <div className="absolute top-1 left-1 bg-tan text-white p-0.5 rounded-full shadow-sm z-20">
+                    <CheckCircle size={10} />
+                </div>
+            )}
+        </div>
+    );
+};
 
+export default function EditItem() {
+    const { isSAHSUser, lastSearchPath, user } = useAuth();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,17 +112,61 @@ export function EditItem() {
     const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [existingFileUrls, setExistingFileUrls] = useState<string[]>([]);
+    const [accessionFiles, setAccessionFiles] = useState<File[]>([]);
+    const [existingAccessionUrls, setExistingAccessionUrls] = useState<string[]>([]);
+    const [additionalMediaFiles, setAdditionalMediaFiles] = useState<File[]>([]);
+    const [existingAdditionalMediaUrls, setExistingAdditionalMediaUrls] = useState<string[]>([]);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [fileObjectURLs, setFileObjectURLs] = useState<Map<File, string>>(new Map());
     const [croppingImageIndex, setCroppingImageIndex] = useState<number | null>(null);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+    const [selectedRelatedFigures, setSelectedRelatedFigures] = useState<{ id: string, full_name: string }[]>([]);
+    const [selectedRelatedDocs, setSelectedRelatedDocs] = useState<{ id: string, title: string }[]>([]);
+    const [selectedRelatedOrgs, setSelectedRelatedOrgs] = useState<{ id: string, org_name: string }[]>([]);
+    const [collections, setCollections] = useState<Collection[]>([]);
 
-    // Clean up blob URLs on unmount
-    useEffect(() => {
-        return () => {
-            fileObjectURLs.forEach(url => URL.revokeObjectURL(url));
-        };
-    }, []);
+
+
+
+    const removeNewFile = (index: number) => {
+        setSelectedFiles(prev => {
+            const newFiles = [...prev];
+            const fileToRemove = newFiles[index];
+            const url = fileObjectURLs.get(fileToRemove);
+            if (url) URL.revokeObjectURL(url);
+            newFiles.splice(index, 1);
+            return newFiles;
+        });
+    };
+
+    const removeExistingFile = (url: string) => {
+        setExistingFileUrls(prev => prev.filter((u: string) => u !== url));
+        if (featuredImageUrl === url) setFeaturedImageUrl(null);
+    };
+
+    const removeNewAccession = (index: number) => {
+        setAccessionFiles(prev => {
+            const newFiles = [...prev];
+            newFiles.splice(index, 1);
+            return newFiles;
+        });
+    };
+
+    const removeExistingAccession = (url: string) => {
+        setExistingAccessionUrls(prev => prev.filter((u: string) => u !== url));
+    };
+
+    const removeNewAdditional = (index: number) => {
+        setAdditionalMediaFiles(prev => {
+            const newFiles = [...prev];
+            newFiles.splice(index, 1);
+            return newFiles;
+        });
+    };
+
+    const removeExistingAdditional = (url: string) => {
+        setExistingAdditionalMediaUrls(prev => prev.filter((u: string) => u !== url));
+    };
 
     // Update object URLs when files change
     useEffect(() => {
@@ -132,48 +178,36 @@ export function EditItem() {
                     next.set(file, URL.createObjectURL(file));
                 }
             });
+            accessionFiles.forEach(file => {
+                if (!next.has(file)) {
+                    next.set(file, URL.createObjectURL(file));
+                }
+            });
+            additionalMediaFiles.forEach(file => {
+                if (!next.has(file)) {
+                    next.set(file, URL.createObjectURL(file));
+                }
+            });
             // Cleanup removed files
             next.forEach((url, file) => {
-                if (!selectedFiles.includes(file)) {
+                const isSelected = selectedFiles.includes(file) || 
+                                 accessionFiles.includes(file) || 
+                                 additionalMediaFiles.includes(file);
+                if (!isSelected) {
                     URL.revokeObjectURL(url);
                     next.delete(file);
                 }
             });
             return next;
         });
-    }, [selectedFiles]);
+    }, [selectedFiles, accessionFiles, additionalMediaFiles]);
 
-    const removeExistingFile = (url: string) => {
-        setExistingFileUrls(prev => {
-            const newUrls = prev.filter(u => u !== url);
-            if (featuredImageUrl === url) {
-                setFeaturedImageUrl(newUrls.length > 0 ? newUrls[0] : null);
-            }
-            return newUrls;
-        });
-    };
-
-    const removeNewFile = (index: number) => {
-        const fileToRemove = selectedFiles[index];
-        const urlToRemove = fileObjectURLs.get(fileToRemove);
-        
-        setSelectedFiles(prev => {
-            const next = prev.filter((_, i) => i !== index);
-            if (featuredImageUrl === urlToRemove) {
-                // If we removed the featured image, pick another one
-                if (existingFileUrls.length > 0) {
-                    setFeaturedImageUrl(existingFileUrls[0]);
-                } else if (next.length > 0) {
-                    // Note: We don't have the NEW Object URLs yet for the NEW files,
-                    // but they should be in the current fileObjectURLs map.
-                    setFeaturedImageUrl(fileObjectURLs.get(next[0]) || null);
-                } else {
-                    setFeaturedImageUrl(null);
-                }
-            }
-            return next;
-        });
-    };
+    // Cleanup all blob URLs on final unmount
+    useEffect(() => {
+        return () => {
+            fileObjectURLs.forEach((url: string) => URL.revokeObjectURL(url));
+        };
+    }, []); // Only runs on component destroy
 
     const handleCropComplete = (croppedBlob: Blob) => {
         if (croppingImageIndex === null) return;
@@ -186,15 +220,12 @@ export function EditItem() {
         const newFiles = [...selectedFiles];
         newFiles[croppingImageIndex] = croppedFile;
 
-        // NEW: Manually update the map immediately so other logic (like featured check) can use it
         setFileObjectURLs(prev => {
             const next = new Map(prev);
             next.set(croppedFile, croppedObjectURL);
-            // We don't delete the old one here, the useEffect will handle it
             return next;
         });
 
-        // Update featured image URL if the original was featured
         if (featuredImageUrl === originalObjectURL) {
             setFeaturedImageUrl(croppedObjectURL);
         }
@@ -206,24 +237,20 @@ export function EditItem() {
 
     // Networking / Linking
     const [allFigures, setAllFigures] = useState<{ id: string, title: string }[]>([]);
-    const [selectedRelatedFigures, setSelectedRelatedFigures] = useState<{ id: string, title: string }[]>([]);
     const [figureSearch, setFigureSearch] = useState('');
     const [debouncedFigureSearch, setDebouncedFigureSearch] = useState('');
     const [showFigureResults, setShowFigureResults] = useState(false);
 
     const [allDocs, setAllDocs] = useState<{ id: string, title: string }[]>([]);
-    const [selectedRelatedDocs, setSelectedRelatedDocs] = useState<{ id: string, title: string }[]>([]);
     const [docSearch, setDocSearch] = useState('');
     const [debouncedDocSearch, setDebouncedDocSearch] = useState('');
     const [showDocResults, setShowDocResults] = useState(false);
 
     const [allOrgs, setAllOrgs] = useState<{ id: string, title: string }[]>([]);
-    const [selectedRelatedOrgs, setSelectedRelatedOrgs] = useState<{ id: string, title: string }[]>([]);
     const [orgSearch, setOrgSearch] = useState('');
     const [debouncedOrgSearch, setDebouncedOrgSearch] = useState('');
     const [showOrgResults, setShowOrgResults] = useState(false);
 
-    // Debounce search terms to keep typing smooth
     useEffect(() => {
         const h = setTimeout(() => setDebouncedFigureSearch(figureSearch), 200);
         return () => clearTimeout(h);
@@ -253,13 +280,8 @@ export function EditItem() {
             const fileName = url.split('/').pop()?.split('?')[0] || 'existing_image.jpg';
             const file = new File([blob], fileName, { type: blob.type });
             
-            // Add to selected files
             const newIndex = selectedFiles.length;
             setSelectedFiles(prev => [...prev, file]);
-            
-            // Wait for fileObjectURLs to update via useEffect or just use the blob URL directly
-            // But croppingImageIndex uses fileObjectURLs.
-            // Let's just set the index and the useEffect will handle the rest.
             setCroppingImageIndex(newIndex);
         } catch (err) {
             console.error("Error cropping existing image:", err);
@@ -267,36 +289,35 @@ export function EditItem() {
         }
     };
 
-    // Collections
-    const [collections, setCollections] = useState<Collection[]>([]);
-    const [selectedCollectionId, setSelectedCollectionId] = useState<string>("");
-
     const handleCollectionChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         if (val === 'NEW_COLLECTION') {
-            const title = window.prompt("Enter the name of the new collection:");
-            if (title && title.trim()) {
+            const nextTitle = prompt("Enter the name for the new collection:");
+            if (nextTitle) {
                 try {
-                    const newCollData = {
-                        title: title.trim(),
-                        description: '',
-                        created_at: new Date().toISOString()
-                    };
-                    const docRef = await addDoc(collection(db, 'collections'), newCollData);
-                    const newColl = { id: docRef.id, ...newCollData } as Collection;
-                    setCollections(prev => [...prev, newColl].sort((a, b) => a.title.localeCompare(b.title)));
-                    setSelectedCollectionId(docRef.id);
+                    const docRef = await addDoc(collection(db, 'collections'), {
+                        title: nextTitle,
+                        description: "",
+                        created_at: new Date().toISOString(),
+                        item_count: 0
+                    });
+                    const newCol = { id: docRef.id, title: nextTitle, description: "", created_at: new Date().toISOString() };
+                    setCollections(prev => [...prev, newCol].sort((a, b) => a.title.localeCompare(b.title)));
+                    setItem((prev: any) => prev ? ({ ...prev, collection_id: docRef.id }) : null);
                 } catch (err) {
-                    alert("Failed to create collection.");
-                    setSelectedCollectionId(item?.collection_id || "");
+                    console.error("Error creating collection:", err);
                 }
-            } else {
-                setSelectedCollectionId(item?.collection_id || "");
             }
         } else {
-            setSelectedCollectionId(val);
+            setItem((prev: any) => prev ? ({ ...prev, collection_id: val }) : null);
         }
     };
+
+    useEffect(() => {
+        if (item) {
+            // Sync with current item's collection
+        }
+    }, [item?.collection_id]);
 
     useEffect(() => {
         const fetchItem = async () => {
@@ -308,9 +329,10 @@ export function EditItem() {
                     const data = { id: docSnap.id, ...(docSnap.data() || {}) } as ArchiveItem;
                     setItem(data);
                     setItemType(data.item_type || 'Document');
-                    setSelectedCollectionId(data.collection_id || "");
                     setFeaturedImageUrl(data.featured_image_url || null);
                     setExistingFileUrls(data.file_urls || []);
+                    setExistingAccessionUrls(data.accession_paperwork_urls || []);
+                    setExistingAdditionalMediaUrls(data.additional_media_urls || []);
                 } else {
                     setError("Item not found.");
                 }
@@ -321,9 +343,8 @@ export function EditItem() {
                 setIsLoading(false);
             }
         };
-        fetchItem();
 
-        const fetchCollections = async () => {
+        const fetchCollectionsAndLinked = async () => {
             try {
                 const q = query(collection(db, 'collections'));
                 const querySnapshot = await getDocs(q);
@@ -333,7 +354,6 @@ export function EditItem() {
                 })) as Collection[];
                 setCollections(collectionsData.sort((a, b) => a.title.localeCompare(b.title)));
 
-                // Fetch all archive items once and filter in memory to avoid index requirements
                 const qItemsAll = query(collection(db, 'archive_items'));
                 const itemsSnapAll = await getDocs(qItemsAll);
                 const allItemsData = itemsSnapAll.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
@@ -353,25 +373,24 @@ export function EditItem() {
                     .map(i => ({ id: i.id, title: i.title || i.org_name || "Unnamed Organization" }));
                 setAllOrgs(orgsList.sort((a, b) => a.title.localeCompare(b.title)));
 
-                // NEW: Populate the selected states from the initial item data now that we have all titles
                 if (item) {
-                    if (item.related_figures && item.related_figures.length > 0) {
-                        const matched = allItemsData
-                            .filter(i => item.related_figures!.includes(i.id))
-                            .map(i => ({ id: i.id, title: i.title || i.full_name || "Unnamed Figure" }));
-                        setSelectedRelatedFigures(matched);
+                     if (item.related_figures && item.related_figures.length > 0) {
+                        const linkedFigs = figsList
+                            .filter(f => item.related_figures?.includes(f.id))
+                            .map(f => ({ id: f.id, full_name: f.title }));
+                        setSelectedRelatedFigures(linkedFigs);
                     }
                     if (item.related_documents && item.related_documents.length > 0) {
-                        const matched = allItemsData
-                            .filter(i => item.related_documents!.includes(i.id))
-                            .map(i => ({ id: i.id, title: i.title || "Untitled Document" }));
-                        setSelectedRelatedDocs(matched);
+                        const linkedDocs = docsList
+                            .filter(d => item.related_documents?.includes(d.id))
+                            .map(d => ({ id: d.id, title: d.title }));
+                        setSelectedRelatedDocs(linkedDocs);
                     }
                     if (item.related_organizations && item.related_organizations.length > 0) {
-                        const matched = allItemsData
-                            .filter(i => item.related_organizations!.includes(i.id))
-                            .map(i => ({ id: i.id, title: i.title || i.org_name || "Unnamed Organization" }));
-                        setSelectedRelatedOrgs(matched);
+                        const linkedOrgs = orgsList
+                            .filter(o => item.related_organizations?.includes(o.id))
+                            .map(o => ({ id: o.id, org_name: o.title }));
+                        setSelectedRelatedOrgs(linkedOrgs);
                     }
                 }
 
@@ -379,22 +398,33 @@ export function EditItem() {
                 console.error("Error fetching collections/linked data:", error);
             }
         };
-        fetchCollections();
-    }, [id]);
 
-    // Update selected linked items when item is loaded
+        fetchItem();
+        fetchCollectionsAndLinked();
+    }, [id, item]);
+
     useEffect(() => {
-        if (item && allFigures.length > 0) {
-            const linkedFigs = allFigures.filter(f => item.related_figures?.includes(f.id));
-            setSelectedRelatedFigures(linkedFigs);
+        if (item) {
+            if (allFigures.length > 0 && (!selectedRelatedFigures.length && item.related_figures?.length)) {
+                const linkedFigs = allFigures
+                    .filter(f => item.related_figures?.includes(f.id))
+                    .map(f => ({ id: f.id, full_name: f.title }));
+                setSelectedRelatedFigures(linkedFigs);
+            }
+            if (allDocs.length > 0 && (!selectedRelatedDocs.length && item.related_documents?.length)) {
+                const linkedDocs = allDocs
+                    .filter(d => item.related_documents?.includes(d.id))
+                    .map(d => ({ id: d.id, title: d.title }));
+                setSelectedRelatedDocs(linkedDocs);
+            }
+            if (allOrgs.length > 0 && (!selectedRelatedOrgs.length && item.related_organizations?.length)) {
+                const linkedOrgs = allOrgs
+                    .filter(o => item.related_organizations?.includes(o.id))
+                    .map(o => ({ id: o.id, org_name: o.title }));
+                setSelectedRelatedOrgs(linkedOrgs);
+            }
         }
-        if (item && allDocs.length > 0) {
-            const linkedDocs = allDocs.filter(d => item.related_documents?.includes(d.id));
-            setSelectedRelatedDocs(linkedDocs);
-        }
-        if (item && allOrgs.length > 0) {
-        }
-    }, [item, allFigures, allDocs]);
+    }, [item, allFigures, allDocs, allOrgs]);
 
     const handleAutoExtract = async (mode: 'full' | 'transcription' = 'full') => {
         let file: File | null = null;
@@ -549,15 +579,42 @@ export function EditItem() {
                 }
             }
 
-            // Parse tags
-            const tagsString = formData.get('tags') as string;
-            const tags = tagsString ? tagsString.split(',').map(t => t.trim()).filter(Boolean) : [];
+            const uploadToStorage = async (files: File[], folder: string) => {
+                const urls: string[] = [];
+                for (const file of files) {
+                    const storageRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
+                    const uploadTask = uploadBytesResumable(storageRef, file);
 
-            const updateData: Partial<ArchiveItem> = {
+                    await new Promise<void>((resolve, reject) => {
+                        uploadTask.on('state_changed',
+                            (snapshot) => {
+                                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                                setUploadProgress(Math.round(progress));
+                            },
+                            (error) => reject(error),
+                            async () => {
+                                const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                                urls.push(downloadUrl);
+                                resolve();
+                            }
+                        );
+                    });
+                }
+                return urls;
+            };
+
+            const newAccessionUrls = accessionFiles.length > 0 
+                ? await uploadToStorage(accessionFiles, 'accession_paperwork') : [];
+            
+            const newAdditionalUrls = additionalMediaFiles.length > 0 
+                ? await uploadToStorage(additionalMediaFiles, 'additional_media') : [];
+
+            const updatedData: Partial<ArchiveItem> = {
                 item_type: itemType,
                 file_urls: fileUrls,
-                featured_image_url: finalFeaturedUrl || (fileUrls.length > 0 ? fileUrls[0] : null),
-                tags: tags,
+                accession_paperwork_urls: [...existingAccessionUrls, ...newAccessionUrls],
+                additional_media_urls: [...existingAdditionalMediaUrls, ...newAdditionalUrls],
+                featured_image_url: finalFeaturedUrl,
                 collection_id: (formData.get('collection_id') as string) || "",
 
                 // Core DC Elements
@@ -617,7 +674,7 @@ export function EditItem() {
                 updated_by_name: user?.displayName || null,
             };
 
-            await updateDoc(doc(db, 'archive_items', id), updateData);
+            await updateDoc(doc(db, 'archive_items', id), updatedData);
             setSuccess(true);
         } catch (err: any) {
             console.error("Error updating item: ", err);
@@ -627,7 +684,6 @@ export function EditItem() {
         }
     };
 
-    // Memoize filtered results to prevent expensive re-calculations on every render
     const filteredFigures = useMemo(() => {
         const search = debouncedFigureSearch.toLowerCase();
         return allFigures.filter(f =>
@@ -807,8 +863,6 @@ export function EditItem() {
                                             const newFilesArray = Array.from(files);
                                             setSelectedFiles(prev => {
                                                 const updated = [...prev, ...newFilesArray];
-                                                // Proactive workflow: If it's a Historic Figure and this is the first NEW image being added,
-                                                // open cropper for the first new image.
                                                 if (itemType === 'Historic Figure' && prev.length === 0 && newFilesArray.length > 0) {
                                                     setTimeout(() => setCroppingImageIndex(0), 100);
                                                 }
@@ -880,6 +934,7 @@ export function EditItem() {
                                                     onSetFeatured={(url) => setFeaturedImageUrl(url)}
                                                     onRemove={() => removeNewFile(idx)}
                                                     onCrop={() => setCroppingImageIndex(idx)}
+                                                    onZoom={(url) => setZoomedImage(url)}
                                                 />
                                             );
                                         })}
@@ -924,8 +979,167 @@ export function EditItem() {
                         </div>
 
                         <div className="space-y-6">
+                            {/* NEW: Supplemental Media & Documentation */}
+                            <div className="bg-white/50 border border-tan-light/30 rounded-2xl p-6 space-y-8">
+                                <div>
+                                    <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <FileText size={14} /> Accessioning Paperwork
+                                        <span className="ml-auto text-[9px] text-charcoal/40 bg-cream/50 px-2 py-0.5 rounded-full lowercase tracking-normal font-bold flex items-center gap-1">
+                                            <Lock size={10} /> Admin & Curators Only
+                                        </span>
+                                    </label>
+                                    
+                                    <div className="space-y-4">
+                                        {/* Existing Paperwork */}
+                                        {existingAccessionUrls.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {existingAccessionUrls.map((url, i) => (
+                                                    <div key={i} className="relative group/file">
+                                                        <div className="bg-tan/10 text-tan p-2 rounded-lg border border-tan-light/30 flex items-center gap-2 pr-8">
+                                                            <FileText size={14} />
+                                                            <span className="text-[10px] font-bold max-w-[120px] truncate">Paperwork {i + 1}</span>
+                                                            <a href={url} target="_blank" rel="noopener noreferrer" className="ml-1 text-tan hover:text-charcoal transition-colors">
+                                                                <Maximize2 size={10} />
+                                                            </a>
+                                                        </div>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => removeExistingAccession(url)}
+                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm opacity-0 group-hover/file:opacity-100 transition-opacity"
+                                                        >
+                                                            <X size={10} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* New Paperwork */}
+                                        <div 
+                                            onClick={() => document.getElementById('accession-upload')?.click()}
+                                            className="border-2 border-dashed border-tan-light/40 bg-white/50 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-tan-light/10 transition-all min-h-[5rem] group"
+                                        >
+                                            <input 
+                                                id="accession-upload"
+                                                type="file" 
+                                                multiple 
+                                                className="hidden" 
+                                                accept="image/*,application/pdf"
+                                                onChange={(e) => {
+                                                    if (e.target.files) setAccessionFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                                                }}
+                                            />
+                                            {accessionFiles.length > 0 ? (
+                                                <div className="flex flex-wrap gap-2 justify-center">
+                                                    {accessionFiles.map((f, i) => (
+                                                        <div key={i} className="relative group/file">
+                                                            <div className="bg-tan/5 text-tan/70 p-2 rounded-lg border border-tan-light/20 flex items-center gap-2 pr-8">
+                                                                <FileText size={14} />
+                                                                <span className="text-[10px] font-bold max-w-[80px] truncate">{f.name}</span>
+                                                            </div>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeNewAccession(i);
+                                                                }}
+                                                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm"
+                                                            >
+                                                                <X size={10} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center">
+                                                    <Upload size={18} className="text-tan/40 mb-1 group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest">Add Paperwork</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <Camera size={14} /> Additional Media (Video/Audio)
+                                        <span className="ml-auto text-[9px] text-charcoal/40 bg-cream/50 px-2 py-0.5 rounded-full lowercase tracking-normal font-bold">Visible to Visitors</span>
+                                    </label>
+                                    
+                                    <div className="space-y-4">
+                                        {/* Existing Media */}
+                                        {existingAdditionalMediaUrls.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {existingAdditionalMediaUrls.map((url, i) => (
+                                                    <div key={i} className="relative group/file">
+                                                        <div className="bg-indigo-50 text-indigo-600 p-2 rounded-lg border border-indigo-100 flex items-center gap-2 pr-8">
+                                                            <Camera size={14} />
+                                                            <span className="text-[10px] font-bold max-w-[120px] truncate">Media {i + 1}</span>
+                                                            <a href={url} target="_blank" rel="noopener noreferrer" className="ml-1 text-indigo-400 hover:text-indigo-700 transition-colors">
+                                                                <Maximize2 size={10} />
+                                                            </a>
+                                                        </div>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => removeExistingAdditional(url)}
+                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm opacity-0 group-hover/file:opacity-100 transition-opacity"
+                                                        >
+                                                            <X size={10} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* New Media */}
+                                        <div 
+                                            onClick={() => document.getElementById('media-upload')?.click()}
+                                            className="border-2 border-dashed border-tan-light/40 bg-white/50 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-tan-light/10 transition-all min-h-[5rem] group"
+                                        >
+                                            <input 
+                                                id="media-upload"
+                                                type="file" 
+                                                multiple 
+                                                className="hidden" 
+                                                accept="video/*,audio/*"
+                                                onChange={(e) => {
+                                                    if (e.target.files) setAdditionalMediaFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                                                }}
+                                            />
+                                            {additionalMediaFiles.length > 0 ? (
+                                                <div className="flex flex-wrap gap-2 justify-center">
+                                                    {additionalMediaFiles.map((f, i) => (
+                                                        <div key={i} className="relative group/file">
+                                                            <div className="bg-indigo-50/50 text-indigo-400 p-2 rounded-lg border border-indigo-100 flex items-center gap-2 pr-8">
+                                                                <Camera size={14} />
+                                                                <span className="text-[10px] font-bold max-w-[80px] truncate">{f.name}</span>
+                                                            </div>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeNewAdditional(i);
+                                                                }}
+                                                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm"
+                                                            >
+                                                                <X size={10} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center">
+                                                    <Upload size={18} className="text-indigo-300/40 mb-1 group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest">Add Media</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div>
-                                <label htmlFor="title" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Title / Name *</label>
+                                <label htmlFor="title" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Display Title / Name *</label>
                                 <input required type="text" name="title" id="title" defaultValue={item.title ?? undefined} placeholder={itemType === 'Document' ? "e.g. 1920 City Council Minutes" : itemType === 'Historic Organization' ? "e.g. Senoia General Store" : itemType === 'Artifact' ? "e.g. Civil War Bayonet" : "e.g. William Senoia"} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans" />
                             </div>
 
@@ -1021,8 +1235,13 @@ export function EditItem() {
                                                     </div>
                                                 ) : (
                                                     <div>
-                                                        <label htmlFor="collection_id" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
-                                                        <select name="collection_id" id="collection_id" value={selectedCollectionId} onChange={handleCollectionChange} className="w-full bg-white border border-moderate-tan/30 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none text-sm">
+                                                        <select 
+                                                            name="collection_id" 
+                                                            id="collection_id" 
+                                                            value={item.collection_id || ""} 
+                                                            onChange={handleCollectionChange}
+                                                            className="w-full bg-white border border-moderate-tan/30 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none text-sm"
+                                                        >
                                                             <option value="">-- No Collection --</option>
                                                             {collections.map(c => (
                                                                 <option key={c.id} value={c.id}>{c.title}</option>
@@ -1234,7 +1453,7 @@ export function EditItem() {
                                                     key={fig.id}
                                                     type="button"
                                                     onClick={() => {
-                                                        setSelectedRelatedFigures([...selectedRelatedFigures, fig]);
+                                                        setSelectedRelatedFigures([...selectedRelatedFigures, { id: fig.id, full_name: fig.title }]);
                                                         setFigureSearch('');
                                                         setShowFigureResults(false);
                                                     }}
@@ -1255,7 +1474,7 @@ export function EditItem() {
                                 <div className="flex flex-wrap gap-2 mt-4">
                                     {selectedRelatedFigures.map(fig => (
                                         <div key={fig.id} className="flex items-center gap-2 bg-tan text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider animate-in zoom-in duration-200">
-                                            {fig.title}
+                                            {fig.full_name}
                                             <button type="button" onClick={() => setSelectedRelatedFigures(selectedRelatedFigures.filter(f => f.id !== fig.id))} className="hover:text-charcoal transition-colors">
                                                 <ChevronUp size={12} className="rotate-45" />
                                             </button>
@@ -1345,7 +1564,7 @@ export function EditItem() {
                                                 key={org.id}
                                                 type="button"
                                                 onClick={() => {
-                                                    setSelectedRelatedOrgs([...selectedRelatedOrgs, org]);
+                                                    setSelectedRelatedOrgs([...selectedRelatedOrgs, { id: org.id, org_name: org.title }]);
                                                     setOrgSearch('');
                                                     setShowOrgResults(false);
                                                 }}
@@ -1366,7 +1585,7 @@ export function EditItem() {
                             <div className="flex flex-wrap gap-2 mt-4">
                                 {selectedRelatedOrgs.map(org => (
                                     <div key={org.id} className="flex items-center gap-2 bg-charcoal text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider animate-in zoom-in duration-200">
-                                        {org.title}
+                                        {org.org_name}
                                         <button type="button" onClick={() => setSelectedRelatedOrgs(selectedRelatedOrgs.filter(o => o.id !== org.id))} className="hover:text-tan transition-colors">
                                             <ChevronUp size={12} className="rotate-45" />
                                         </button>

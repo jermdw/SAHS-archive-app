@@ -2,19 +2,34 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Helper function to check if user has a @senoiahistory.com email
+    // Helper function for admin/curator roles
     function isSAHSUser() {
-      return request.auth != null && 
-             request.auth.token.email.matches('.*@senoiahistory[.]com');
+      let email = request.auth.token.email.lower();
+      return request.auth != null && (
+        email == 'catnolan@senoiahistory.com' || 
+        email == 'jeremywarren@senoiahistory.com' ||
+        firestore.get(/databases/(default)/documents/user_roles/$(email)).data.role in ['admin', 'curator']
+      );
     }
 
-    // archive_media folder: Anyone can read, only SAHS users can write
+    // archive_media folder: Everyone can read, only SAHS users can write
     match /archive_media/{allPaths=**} {
       allow read: if true;
       allow write: if isSAHSUser();
     }
 
-    // collections folder: Anyone can read, only SAHS users can write
+    // additional_media folder: Everyone can read, only SAHS users can write
+    match /additional_media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSAHSUser();
+    }
+
+    // accession_paperwork folder: Only SAHS users can read or write
+    match /accession_paperwork/{allPaths=**} {
+      allow read, write: if isSAHSUser();
+    }
+
+    // collections folder: Everyone can read, only SAHS users can write
     match /collections/{allPaths=**} {
       allow read: if true;
       allow write: if isSAHSUser();

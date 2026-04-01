@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Plus, Search, FileText, Tag, Users, Maximize2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Plus, Search, FileText, Tag, Users, Maximize2, Lock, Camera } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { collection, addDoc, getDocs, query } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -32,6 +32,8 @@ export function AddItem() {
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [accessionFiles, setAccessionFiles] = useState<File[]>([]);
+    const [additionalMediaFiles, setAdditionalMediaFiles] = useState<File[]>([]);
     const [featuredImageIndex, setFeaturedImageIndex] = useState(0);
     const [fileObjectURLs, setFileObjectURLs] = useState<Map<File, string>>(new Map());
 
@@ -59,9 +61,22 @@ export function AddItem() {
                     next.set(file, URL.createObjectURL(file));
                 }
             });
+            accessionFiles.forEach(file => {
+                if (!next.has(file)) {
+                    next.set(file, URL.createObjectURL(file));
+                }
+            });
+            additionalMediaFiles.forEach(file => {
+                if (!next.has(file)) {
+                    next.set(file, URL.createObjectURL(file));
+                }
+            });
             // Cleanup removed files
             next.forEach((url, file) => {
-                if (!selectedFiles.includes(file)) {
+                const isSelected = selectedFiles.includes(file) || 
+                                 accessionFiles.includes(file) || 
+                                 additionalMediaFiles.includes(file);
+                if (!isSelected) {
                     URL.revokeObjectURL(url);
                     next.delete(file);
                 }
@@ -304,6 +319,39 @@ export function AddItem() {
                 }
             }
 
+            const uploadToStorage = async (files: File[], folder: string) => {
+                const urls: string[] = [];
+                for (const file of files) {
+                    const storageRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
+                    const uploadTask = uploadBytesResumable(storageRef, file);
+
+                    await new Promise<void>((resolve, reject) => {
+                        uploadTask.on('state_changed',
+                            (snapshot) => {
+                                // Simplified progress check for nested uploads
+                                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                                setUploadProgress(Math.round(progress));
+                            },
+                            (error) => reject(error),
+                            async () => {
+                                const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                                urls.push(downloadUrl);
+                                resolve();
+                            }
+                        );
+                    });
+                }
+                return urls;
+            };
+
+            const accessionUrls = accessionFiles.length > 0 
+                ? await uploadToStorage(accessionFiles, 'accession_paperwork') 
+                : [];
+            
+            const additionalMediaUrls = additionalMediaFiles.length > 0 
+                ? await uploadToStorage(additionalMediaFiles, 'additional_media') 
+                : [];
+
             /*
              - [x] Enhance manual upload form with professional archival fields:
         - [x] Condition, Location, Category dropdowns
@@ -318,6 +366,8 @@ export function AddItem() {
                 item_type: itemType,
                 file_urls: fileUrls,
                 featured_image_url: fileUrls[featuredImageIndex] || (fileUrls.length > 0 ? fileUrls[0] : null),
+                accession_paperwork_urls: accessionUrls,
+                additional_media_urls: additionalMediaUrls,
                 tags: currentTags,
                 collection_id: (formData.get('collection_id') as string) || "",
                 created_at: new Date().toISOString(),
@@ -443,6 +493,8 @@ export function AddItem() {
                     onClick={() => {
                         setSuccess(false);
                         setSelectedFiles([]);
+                        setAccessionFiles([]);
+                        setAdditionalMediaFiles([]);
                         setCurrentTags([]);
                         setSelectedRelatedFigures([]);
                         setSelectedRelatedDocs([]);
@@ -681,6 +733,110 @@ export function AddItem() {
                         </div>
 
                         <div className="space-y-6">
+                            {/* NEW: Supplemental Media & Documentation */}
+                            <div className="bg-white/50 border border-tan-light/30 rounded-2xl p-6 space-y-6">
+                                <div>
+                                    <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <FileText size={14} /> Accessioning Paperwork
+                                        <span className="ml-auto text-[9px] text-charcoal/40 bg-cream/50 px-2 py-0.5 rounded-full lowercase tracking-normal font-bold flex items-center gap-1">
+                                            <Lock size={10} /> Admin & Curators Only
+                                        </span>
+                                    </label>
+                                    <div 
+                                        onClick={() => document.getElementById('accession-upload')?.click()}
+                                        className="border-2 border-dashed border-tan-light/40 bg-white/50 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-tan-light/10 transition-all min-h-[6rem] group"
+                                    >
+                                        <input 
+                                            id="accession-upload"
+                                            type="file" 
+                                            multiple 
+                                            className="hidden" 
+                                            accept="image/*,application/pdf"
+                                            onChange={(e) => {
+                                                if (e.target.files) setAccessionFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                        {accessionFiles.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2 justify-center">
+                                                {accessionFiles.map((f, i) => (
+                                                    <div key={i} className="relative group/file">
+                                                        <div className="bg-tan/10 text-tan p-2 rounded-lg border border-tan-light/30 flex items-center gap-2 pr-8">
+                                                            <FileText size={14} />
+                                                            <span className="text-[10px] font-bold max-w-[80px] truncate">{f.name}</span>
+                                                        </div>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setAccessionFiles(prev => prev.filter((_, idx) => idx !== i));
+                                                            }}
+                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm opacity-0 group-hover/file:opacity-100 transition-opacity"
+                                                        >
+                                                            <X size={10} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center">
+                                                <Upload size={18} className="text-tan/40 mb-1 group-hover:scale-110 transition-transform" />
+                                                <span className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest">Upload Scans</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <Camera size={14} /> Additional Media (Video/Audio)
+                                        <span className="ml-auto text-[9px] text-charcoal/40 bg-cream/50 px-2 py-0.5 rounded-full lowercase tracking-normal font-bold">Visible to Visitors</span>
+                                    </label>
+                                    <div 
+                                        onClick={() => document.getElementById('media-upload')?.click()}
+                                        className="border-2 border-dashed border-tan-light/40 bg-white/50 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-tan-light/10 transition-all min-h-[6rem] group"
+                                    >
+                                        <input 
+                                            id="media-upload"
+                                            type="file" 
+                                            multiple 
+                                            className="hidden" 
+                                            accept="video/*,audio/*"
+                                            onChange={(e) => {
+                                                if (e.target.files) setAdditionalMediaFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                        {additionalMediaFiles.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2 justify-center">
+                                                {additionalMediaFiles.map((f, i) => (
+                                                    <div key={i} className="relative group/file">
+                                                        <div className="bg-indigo-50 text-indigo-600 p-2 rounded-lg border border-indigo-100 flex items-center gap-2 pr-8">
+                                                            <Camera size={14} />
+                                                            <span className="text-[10px] font-bold max-w-[80px] truncate">{f.name}</span>
+                                                        </div>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setAdditionalMediaFiles(prev => prev.filter((_, idx) => idx !== i));
+                                                            }}
+                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm opacity-0 group-hover/file:opacity-100 transition-opacity"
+                                                        >
+                                                            <X size={10} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center">
+                                                <Upload size={18} className="text-indigo-300/40 mb-1 group-hover:scale-110 transition-transform" />
+                                                <span className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest">Upload Media</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                             <div>
                                 <label htmlFor="title" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Display Title / Name *</label>
                                 <input required type="text" name="title" id="title" placeholder={itemType === 'Historic Figure' ? "e.g. John Doe" : itemType === 'Historic Organization' ? "e.g. Senoia General Store" : itemType === 'Artifact' ? "e.g. Civil War Bayonet" : "Descriptive title for the archive"} className="w-full bg-white border border-tan-light/50 px-4 py-4 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans text-lg font-medium" />
