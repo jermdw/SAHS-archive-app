@@ -301,28 +301,37 @@ export function LocationDetail() {
         )}
 
         <div className="max-w-full mx-auto h-full flex flex-col animate-in fade-in duration-500 pb-16 print:hidden">
-            <Link to="/manage-locations" className="inline-flex items-center text-sm font-bold text-tan uppercase tracking-wider mb-6 hover:text-charcoal transition-colors">
-                <ChevronLeft size={16} className="mr-1" /> Back to Museum Locations
+            <Link to="/manage-locations" className="inline-flex items-center text-[10px] font-black text-tan uppercase tracking-[0.3em] mb-12 hover:text-charcoal transition-all group">
+                <ChevronLeft size={14} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Museum Wings
             </Link>
 
-            <div className="bg-white rounded-2xl border border-tan-light/50 overflow-hidden mb-10 shadow-sm flex flex-col md:flex-row">
-                <div className="md:w-1/4 bg-tan-light/10 relative min-h-[200px] flex items-center justify-center border-r border-tan-light/30">
-                    <MapPin size={80} className="text-tan/20" />
-                </div>
+            <div className="bg-white rounded-[60px] border border-tan-light/20 overflow-hidden shadow-2xl shadow-tan/5 mb-20 flex flex-col lg:flex-row relative">
+                {/* Decorative Element */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-tan/5 rounded-bl-[200px] -mr-20 -mt-20 pointer-events-none" />
                 
-                <div className="p-8 md:p-10 flex-1 flex flex-col justify-center">
-                    <div className="flex items-center gap-3 mb-2">
-                        <span className="text-[10px] font-black text-white bg-tan px-3 py-1 rounded-full uppercase tracking-[0.2em]">Physical Location</span>
-                        <span className="text-[10px] font-mono font-bold text-tan/60 uppercase tracking-widest">{locationData.id}</span>
+                <div className="lg:w-1/4 bg-tan-light/5 p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-tan-light/10">
+                    <div className="relative group/icon">
+                        <div className="absolute inset-0 bg-tan/20 blur-3xl rounded-full scale-0 group-hover/icon:scale-100 transition-transform duration-1000 opacity-30" />
+                        <MapPin size={120} className="text-tan/10 relative z-10" fill="currentColor" />
+                        <Tag size={40} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-tan relative z-20 transition-transform duration-500 group-hover/icon:scale-110" />
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4 text-charcoal tracking-tight">
+                </div>
+                <div className="p-12 md:p-16 lg:p-20 flex-1 flex flex-col justify-center relative z-10">
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="h-px w-10 bg-tan/30" />
+                        <span className="text-[10px] font-black text-tan uppercase tracking-[0.4em]">Display Location #{locationData.id}</span>
+                    </div>
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold mb-6 text-charcoal tracking-tight leading-[0.95]">
                         {locationData.name}
                     </h1>
-                    <p className="text-charcoal/70 text-lg max-w-3xl leading-relaxed whitespace-pre-wrap">
-                        {locationData.description || "No description provided."}
+                    <p className="text-charcoal/60 text-xl font-serif italic mb-10 max-w-3xl leading-relaxed">
+                        {locationData.description || "A dedicated archive space within the museum wings."}
                     </p>
-                    <div className="mt-6 flex items-center gap-4 text-sm font-bold text-charcoal/50 uppercase tracking-wider">
-                        <span className="flex items-center gap-2"><Box size={16} /> {items.length} Artifacts Filed</span>
+                    <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-3 text-xs font-black text-charcoal/40 uppercase tracking-[0.2em]">
+                            <Box size={20} className="text-tan" /> 
+                            <span>{items.length} Artifacts Filed</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -358,7 +367,7 @@ export function LocationDetail() {
 
             {/* Add Items Interface */}
             {isSelectMode && (
-                <div className="bg-cream/40 border-2 border-dashed border-tan/30 rounded-2xl p-6 md:p-8 mb-10 animate-in slide-in-from-top-4 duration-300">
+                <div className="bg-white border border-tan-light/20 rounded-[48px] p-12 mb-20 animate-in slide-in-from-top-8 duration-500 shadow-2xl shadow-tan/5">
                     <div className="flex flex-col md:flex-row gap-6">
                         <div className="flex-1">
                              <h3 className="text-xl font-serif font-bold text-charcoal mb-4 flex items-center gap-2">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Library, Users, FileText, Building, Box } from 'lucide-react';
+import { Search, Library, Users, FileText, Building, Box, Folder } from 'lucide-react';
 
 const BACKGROUND_IMAGES = [
     // Placeholder images - Please replace with the links to the images you attached!
@@ -133,8 +133,21 @@ export function Home() {
                             </div>
                             <h3 className="text-2xl font-serif font-bold text-charcoal mb-4">Artifact Collection</h3>
                             <p className="text-charcoal-light leading-relaxed">
-                                Our collection of physical artifacts captures the material history of Senoia. From textiles and furniture to ceramics and historical memorabilia, these items provide a tangible connection to the past and the craftsmanship of previous generations.
+                                Our collection of physical artifacts captures the material history of Senoia. From textiles and furniture to ceramics and historical memorabilia.
                             </p>
+                        </div>
+
+                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow">
+                            <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
+                                <Folder size={28} />
+                            </div>
+                            <h3 className="text-2xl font-serif font-bold text-charcoal mb-4">Museum Wings</h3>
+                            <p className="text-charcoal-light leading-relaxed">
+                                Explore the archive by its physical location in the museum. Browse by room to see items housed in specific galleries, shelves, and display cases.
+                            </p>
+                            <Link to="/interactive-map" className="inline-flex items-center gap-2 mt-4 text-tan font-bold text-sm uppercase tracking-wider hover:text-charcoal transition-colors">
+                                Open Museum Map &rarr;
+                            </Link>
                         </div>
 
                         <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow lg:col-span-1">
@@ -143,7 +156,7 @@ export function Home() {
                             </div>
                             <h3 className="text-2xl font-serif font-bold text-charcoal mb-4">Search the Archive</h3>
                             <p className="text-charcoal-light leading-relaxed">
-                                Looking for something specific? Use our advanced search tool to query the archive by keyword, date, location, or subject tags to quickly find historical records.
+                                Looking for something specific? Use our advanced search tool to query the archive by keyword, date, location, or subject tags.
                             </p>
                         </div>
                     </div>

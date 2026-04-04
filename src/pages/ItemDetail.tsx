@@ -29,6 +29,7 @@ export function ItemDetail() {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [zoomScale, setZoomScale] = useState(1);
     const [collectionName, setCollectionName] = useState<string | null>(null);
+    const [isCollectionPrivate, setIsCollectionPrivate] = useState(false);
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
 
     // Inline Location Editing State
@@ -94,7 +95,9 @@ export function ItemDetail() {
                             const collRef = doc(db, 'collections', data.collection_id);
                             const collSnap = await getDoc(collRef);
                             if (collSnap.exists()) {
-                                setCollectionName(collSnap.data().title);
+                                const collData = collSnap.data();
+                                setCollectionName(collData.title);
+                                setIsCollectionPrivate(collData.is_private === true);
                             }
                         } catch (err) {
                             console.error("Error fetching collection details:", err);
@@ -110,7 +113,13 @@ export function ItemDetail() {
                         const chunkedIds = ids.slice(0, 30);
                         const q = query(collection(db, 'archive_items'), where(documentId(), 'in', chunkedIds));
                         const snap = await getDocs(q);
-                        return snap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[];
+                        let results = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[];
+                        
+                        // Filter private items for non-SAHS users
+                        if (!isSAHSUser) {
+                            results = results.filter(i => !i.is_private);
+                        }
+                        return results;
                     };
 
                     const [forwardFigures, forwardDocs, forwardOrgs] = await Promise.all([
@@ -123,7 +132,13 @@ export function ItemDetail() {
                     const fetchBackward = async (field: string) => {
                         const q = query(collection(db, 'archive_items'), where(field, 'array-contains', id));
                         const snap = await getDocs(q);
-                        return snap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[];
+                        let results = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[];
+                        
+                        // Filter private items for non-SAHS users
+                        if (!isSAHSUser) {
+                            results = results.filter(i => !i.is_private);
+                        }
+                        return results;
                     };
 
                     const [backwardFigures, backwardDocs, backwardOrgs] = await Promise.all([
@@ -185,11 +200,15 @@ export function ItemDetail() {
         return <div className="flex justify-center items-center h-full text-charcoal/60 font-serif text-lg">{isDeleting ? 'Deleting...' : 'Loading resource...'}</div>;
     }
 
-    if (!item) {
+    if (!item || ((item.is_private || isCollectionPrivate) && !isSAHSUser)) {
         return (
-            <div className="flex flex-col items-center justify-center h-full">
-                <h2 className="text-2xl font-serif text-charcoal">Item Not Found</h2>
-                <Link to="/archive" className="mt-4 text-tan hover:underline">Return to Archive</Link>
+            <div className="flex flex-col items-center justify-center h-full py-20">
+                <h2 className="text-2xl font-serif text-charcoal mb-4">
+                    {!item ? "Item Not Found" : "Unauthorized: This item or its collection is private"}
+                </h2>
+                <Link to="/archive" className="text-tan hover:text-charcoal transition-colors font-medium">
+                    &larr; Return to Archive
+                </Link>
             </div>
         );
     }
@@ -334,9 +353,21 @@ export function ItemDetail() {
             </div>
 
             <div className="mb-12 max-w-6xl">
-                <h1 className="text-5xl md:text-7xl font-serif font-bold text-charcoal leading-tight mb-4 tracking-tighter">
-                    {item.title}
-                </h1>
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <h1 className="text-5xl md:text-7xl font-serif font-bold text-charcoal leading-tight tracking-tighter">
+                        {item.title}
+                    </h1>
+                    {item.is_private && isSAHSUser && (
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-amber-500 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-md translate-y-[-4px]">
+                            <Lock size={14} /> Private Item
+                        </div>
+                    )}
+                    {isCollectionPrivate && isSAHSUser && (
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-orange-500 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-md translate-y-[-4px]">
+                            <Lock size={14} /> Private Collection
+                        </div>
+                    )}
+                </div>
                 {item.item_type === 'Historic Figure' && item.also_known_as && (
                     <p className="text-2xl font-serif italic text-tan mb-4">"{item.also_known_as}"</p>
                 )}

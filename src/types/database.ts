@@ -1,3 +1,20 @@
+export interface Room {
+    id: string;      // Unique slug/ID
+    docId?: string;  // Firebase Document ID
+    name: string;    // Display name
+    description?: string;
+    created_at: string;
+    map_coordinates?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        rotation?: number;
+        z_index?: number;
+    } | null;
+    group_id?: string;
+}
+
 export interface Collection {
     id: string;
     title: string;
@@ -6,6 +23,7 @@ export interface Collection {
     file_urls?: string[];
     created_at: string;
     item_count?: number;
+    is_private?: boolean;
 }
 
 export interface MuseumLocation {
@@ -14,6 +32,7 @@ export interface MuseumLocation {
     name: string;    // Display name (e.g. "Gallery A, Shelf 1")
     description?: string;
     created_at: string;
+    room_id?: string;
     map_coordinates?: {
         x: number;
         y: number;
@@ -42,6 +61,7 @@ export interface ArchiveItem {
     updated_at?: string | null;
     updated_by_email?: string | null;
     updated_by_name?: string | null;
+    is_private?: boolean;
 
     // Figure specific
     full_name?: string | null;

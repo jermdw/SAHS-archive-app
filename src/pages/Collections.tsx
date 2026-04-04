@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FolderOpen, Plus, Trash2 } from 'lucide-react';
+import { FolderOpen, Plus, Trash2, Edit2, Lock } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,8 +23,13 @@ export function Collections() {
                     id: doc.id,
                     ...doc.data()
                 })) as Collection[];
-
-                setCollections(collectionsData);
+                
+                // Filter out private collections for non-SAHS users
+                if (!isSAHSUser) {
+                    setCollections(collectionsData.filter(c => !c.is_private));
+                } else {
+                    setCollections(collectionsData);
+                }
             } catch (error) {
                 console.error("Error fetching collections:", error);
             } finally {
@@ -101,13 +106,31 @@ export function Collections() {
                                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-charcoal/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
                                 {isSAHSUser && (
-                                    <button
-                                        onClick={(e) => handleDelete(e, col.id, col.title)}
-                                        className="absolute top-3 right-3 p-2 bg-red-600/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 shadow-sm z-10"
-                                        title="Delete Collection"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <div className="absolute top-3 right-3 flex gap-2 z-10">
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                navigate(`/edit-collection/${col.id}`);
+                                            }}
+                                            className="p-2 bg-tan/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-charcoal shadow-sm"
+                                            title="Edit Collection"
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleDelete(e, col.id, col.title)}
+                                            className="p-2 bg-red-600/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 shadow-sm"
+                                            title="Delete Collection"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {col.is_private && isSAHSUser && (
+                                    <div className="absolute top-3 left-3 bg-amber-500 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm z-10">
+                                        <Lock size={10} /> Private
+                                    </div>
                                 )}
 
                                 <div className="absolute bottom-4 left-4 right-4">

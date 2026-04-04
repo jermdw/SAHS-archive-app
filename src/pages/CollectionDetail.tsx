@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, FolderOpen, Image as ImageIcon } from 'lucide-react';
+import { ChevronLeft, FolderOpen, Image as ImageIcon, Lock, Users } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { DocumentCard } from '../components/DocumentCard';
@@ -12,6 +13,7 @@ export function CollectionDetail() {
     const [collectionData, setCollectionData] = useState<Collection | null>(null);
     const [items, setItems] = useState<ArchiveItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const { isSAHSUser } = useAuth();
 
     useEffect(() => {
         const fetchCollectionAndItems = async () => {
@@ -42,7 +44,12 @@ export function CollectionDetail() {
                 // Sort client-side to avoid needing a Firestore composite index
                 itemsData.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
                 
-                setItems(itemsData);
+                // Filter private items for non-SAHS users
+                if (!isSAHSUser) {
+                    setItems(itemsData.filter(i => !i.is_private));
+                } else {
+                    setItems(itemsData);
+                }
             } catch (error) {
                 console.error("Error fetching collection details:", error);
             } finally {
@@ -57,10 +64,12 @@ export function CollectionDetail() {
         return <div className="max-w-6xl mx-auto py-12 text-center text-charcoal/60 font-serif">Loading collection...</div>;
     }
 
-    if (!collectionData) {
+    if (!collectionData || (collectionData.is_private && !isSAHSUser)) {
         return (
             <div className="max-w-6xl mx-auto py-12 text-center">
-                <h2 className="text-2xl font-serif text-charcoal mb-4">Collection not found</h2>
+                <h2 className="text-2xl font-serif text-charcoal mb-4">
+                    {!collectionData ? "Collection not found" : "Unauthorized: This collection is private"}
+                </h2>
                 <Link to="/collections" className="text-tan hover:text-charcoal transition-colors">
                     &larr; Back to Collections
                 </Link>
@@ -90,8 +99,20 @@ export function CollectionDetail() {
                     <p className="text-charcoal/70 text-lg max-w-3xl leading-relaxed whitespace-pre-wrap">
                         {collectionData.description || "No description provided."}
                     </p>
-                    <div className="mt-6 flex items-center gap-4 text-sm font-bold text-charcoal/50 uppercase tracking-wider">
-                        <span className="flex items-center gap-2"><ImageIcon size={16} /> {items.length} Items</span>
+                    <div className="mt-6 flex flex-wrap items-center gap-6">
+                        <div className="flex items-center gap-4 text-sm font-bold text-charcoal/50 uppercase tracking-wider">
+                            <span className="flex items-center gap-2"><ImageIcon size={16} /> {items.length} Items</span>
+                        </div>
+                        {collectionData.is_private && isSAHSUser && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                <Lock size={12} /> Private Collection
+                            </div>
+                        )}
+                        {!collectionData.is_private && isSAHSUser && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-600 border border-green-100 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                <Users size={12} /> Public Collection
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

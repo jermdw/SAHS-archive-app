@@ -9,7 +9,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
-    const { isSAHSUser, isAdmin, logout, user, isEditingMode, setIsEditingMode } = useAuth();
+    const { isSAHSUser, realIsAdmin, logout, user, isEditingMode, setIsEditingMode } = useAuth();
     const navigate = useNavigate();
 
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -134,33 +134,39 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     </nav>
                 </div>
 
-                {isSAHSUser && (
+                {(isSAHSUser || realIsAdmin) && (
                     <div className="flex flex-col gap-6">
-                        <div>
-                            <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Location</h2>
-                            <nav className="flex flex-col gap-1">
-                                <NavLink to="/manage-locations" className={navLinkClass} onClick={handleLinkClick}>
-                                    <MapPin size={18} /> Museum Locations
-                                </NavLink>
-                                <NavLink to="/tagging" className={navLinkClass} onClick={handleLinkClick}>
-                                    <Camera size={18} /> Tagging Hub
-                                </NavLink>
-                                <NavLink to="/interactive-map" className={navLinkClass} onClick={handleLinkClick}>
-                                    <Map size={18} /> Interactive Map
-                                </NavLink>
-                            </nav>
-                        </div>
+                        {isSAHSUser && (
+                            <div>
+                                <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Location</h2>
+                                <nav className="flex flex-col gap-1">
+                                    <NavLink to="/manage-locations" className={navLinkClass} onClick={handleLinkClick}>
+                                        <MapPin size={18} /> Museum Locations
+                                    </NavLink>
+                                    <NavLink to="/tagging" className={navLinkClass} onClick={handleLinkClick}>
+                                        <Camera size={18} /> Tagging Hub
+                                    </NavLink>
+                                    <NavLink to="/interactive-map" className={navLinkClass} onClick={handleLinkClick}>
+                                        <Map size={18} /> Interactive Map
+                                    </NavLink>
+                                </nav>
+                            </div>
+                        )}
 
                         <div>
                             <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Manage</h2>
                             <nav className="flex flex-col gap-1">
-                                <NavLink to="/add-item" className={navLinkClass} onClick={handleLinkClick}>
-                                    <Upload size={18} /> Add Archive Item
-                                </NavLink>
-                                <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
-                                    <FolderOpen size={18} /> Collections
-                                </NavLink>
-                                {isAdmin && (
+                                {isSAHSUser && (
+                                    <>
+                                        <NavLink to="/add-item" className={navLinkClass} onClick={handleLinkClick}>
+                                            <Upload size={18} /> Add Archive Item
+                                        </NavLink>
+                                        <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
+                                            <FolderOpen size={18} /> Collections
+                                        </NavLink>
+                                    </>
+                                )}
+                                {realIsAdmin && (
                                     <NavLink to="/settings" className={navLinkClass} onClick={handleLinkClick}>
                                         <Settings size={18} /> Admin Settings
                                     </NavLink>

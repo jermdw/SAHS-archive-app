@@ -5,7 +5,8 @@ import { DocumentCard } from '../components/DocumentCard';
 import { ArchiveMap } from '../components/ArchiveMap';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import type { ArchiveItem, ItemType } from '../types/database';
+import type { ArchiveItem, ItemType, Collection } from '../types/database';
+import { useAuth } from '../contexts/AuthContext';
 
 export function BrowseArchive() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -17,8 +18,10 @@ export function BrowseArchive() {
     const sortBy = searchParams.get('sort') || 'created_desc';
 
     const [items, setItems] = useState<ArchiveItem[]>([]);
+    const [collectionPrivacyMap, setCollectionPrivacyMap] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(true);
     const [localSearch, setLocalSearch] = useState(search);
+    const { isSAHSUser } = useAuth();
 
     // Sync local search with URL search param initially
     useEffect(() => {
@@ -49,6 +52,17 @@ export function BrowseArchive() {
     useEffect(() => {
         const fetchItems = async () => {
             try {
+                // Fetch collections to determine privacy status
+                const collectionsSnapshot = await getDocs(collection(db, 'collections'));
+                const privacyMap: Record<string, boolean> = {};
+                collectionsSnapshot.docs.forEach(doc => {
+                    const data = doc.data() as Collection;
+                    if (data.is_private) {
+                        privacyMap[doc.id] = true;
+                    }
+                });
+                setCollectionPrivacyMap(privacyMap);
+
                 // Fetch all unified archive_items
                 const q = query(collection(db, 'archive_items'), orderBy('created_at', 'desc'));
                 const querySnapshot = await getDocs(q);
@@ -80,9 +94,15 @@ export function BrowseArchive() {
             const matchesType = selectedType === 'All Items' || item.item_type === selectedType;
             const matchesCollection = selectedCollection === 'All Collections' || item.collection_id === selectedCollection;
 
+            if (!isSAHSUser) {
+                const isItemPrivate = item.is_private === true;
+                const isCollectionPrivate = item.collection_id ? collectionPrivacyMap[item.collection_id] === true : false;
+                if (isItemPrivate || isCollectionPrivate) return false;
+            }
+
             return matchesSearch && matchesType && matchesCollection;
         });
-    }, [items, search, selectedType, selectedCollection]);
+    }, [items, search, selectedType, selectedCollection, isSAHSUser, collectionPrivacyMap]);
 
     // Unified client-side sorting - Memoized
     const sortedItems = useMemo(() => {
@@ -259,3 +279,4 @@ export function BrowseArchive() {
         </div>
     );
 }
+

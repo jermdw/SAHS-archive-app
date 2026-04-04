@@ -11,7 +11,7 @@ interface UserRole {
 }
 
 export function AdminSettings() {
-    const { isAdmin } = useAuth();
+    const { realIsAdmin, simulatedRole, setSimulatedRole } = useAuth();
     const [roles, setRoles] = useState<UserRole[]>([]);
     const [loading, setLoading] = useState(true);
     
@@ -20,9 +20,9 @@ export function AdminSettings() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (!isAdmin) return;
+        if (!realIsAdmin) return;
         fetchRoles();
-    }, [isAdmin]);
+    }, [realIsAdmin]);
 
     const fetchRoles = async () => {
         try {
@@ -72,7 +72,7 @@ export function AdminSettings() {
         }
     };
 
-    if (!isAdmin) {
+    if (!realIsAdmin) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-cream/30 rounded-2xl border border-tan-light/50 h-full min-h-[50vh]">
                 <Shield size={48} className="text-red-500/50 mb-4" />
@@ -94,6 +94,48 @@ export function AdminSettings() {
                         Manage privileged users and access control rules.
                     </p>
                 </div>
+            </div>
+
+            {/* Role Simulation Section */}
+            <div className="mb-10 bg-tan/5 border border-tan-light/50 rounded-2xl p-6 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h2 className="text-xl font-serif font-bold text-charcoal mb-2 flex items-center gap-2">
+                            <Shield className="text-tan" size={24} />
+                            Role Simulation
+                        </h2>
+                        <p className="text-charcoal/70 text-sm max-w-xl">
+                            Preview the website as a different user level. This only affects your current browser session and does not change your actual database permissions.
+                        </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 p-1 bg-cream rounded-xl border border-tan-light/30 self-start md:self-auto">
+                        <button
+                            onClick={() => setSimulatedRole(null)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${!simulatedRole ? 'bg-white text-tan shadow-sm' : 'text-charcoal/60 hover:text-charcoal'}`}
+                        >
+                            Real Admin
+                        </button>
+                        <button
+                            onClick={() => setSimulatedRole('curator')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${simulatedRole === 'curator' ? 'bg-white text-tan shadow-sm' : 'text-charcoal/60 hover:text-charcoal'}`}
+                        >
+                            Curator
+                        </button>
+                        <button
+                            onClick={() => setSimulatedRole('visitor')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${simulatedRole === 'visitor' ? 'bg-white text-tan shadow-sm' : 'text-charcoal/60 hover:text-charcoal'}`}
+                        >
+                            Visitor
+                        </button>
+                    </div>
+                </div>
+                {simulatedRole && (
+                    <div className="mt-4 px-4 py-2 bg-tan/10 rounded-lg inline-flex items-center gap-2 text-tan text-xs font-bold uppercase tracking-wider">
+                        <Loader2 className="animate-spin" size={14} />
+                        Simulating {simulatedRole} View
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

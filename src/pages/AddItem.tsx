@@ -26,7 +26,7 @@ function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
 }
 
 export function AddItem() {
-    const { isSAHSUser, user } = useAuth();
+    const { isSAHSUser, isAdmin, user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -114,6 +114,9 @@ export function AddItem() {
     const [showDocResults, setShowDocResults] = useState(false);
 
     const [selectedCollectionId, setSelectedCollectionId] = useState("");
+    const [artifactId, setArtifactId] = useState('');
+    const [suggestedId, setSuggestedId] = useState<string | null>(null);
+    const [isPrivate, setIsPrivate] = useState(false);
 
     const handleCollectionChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
@@ -173,10 +176,32 @@ export function AddItem() {
 
                 // Fetch All Tags for suggestions
                 const tags = new Set<string>();
+                const artifactIds = new Set<number>();
+                
                 allItemsData.forEach(item => {
                     if (item.tags) item.tags.forEach((t: string) => tags.add(t));
+                    
+                    // Collect numeric artifact IDs for suggestion logic
+                    if (item.artifact_id) {
+                        const num = parseInt(item.artifact_id, 10);
+                        if (!isNaN(num) && num > 0) {
+                            artifactIds.add(num);
+                        }
+                    }
                 });
                 setAllExistingTags(Array.from(tags).sort());
+
+                // Calculate next available ID (gap-filling)
+                const sortedIds = Array.from(artifactIds).sort((a, b) => a - b);
+                let next = 1;
+                for (const idNum of sortedIds) {
+                    if (idNum === next) {
+                        next++;
+                    } else if (idNum > next) {
+                        break;
+                    }
+                }
+                setSuggestedId(next.toString());
 
             } catch (error) {
                 console.error("Error fetching initial form data:", error);
@@ -373,6 +398,7 @@ export function AddItem() {
                 created_at: new Date().toISOString(),
                 uploaded_by_email: user?.email || null,
                 uploaded_by_name: user?.displayName || null,
+                is_private: isPrivate,
 
                 title: formData.get('title') as string || "",
                 description: formData.get('description') as string || "",
@@ -500,7 +526,38 @@ export function AddItem() {
                         setSelectedRelatedDocs([]);
                         setSelectedRelatedOrgs([]);
                         setUploadProgress(null);
+                        setArtifactId('');
                         (document.getElementById('add-item-form') as HTMLFormElement)?.reset();
+                        // Re-fetch data to update suggested ID based on what was just added
+                        const fetchInitialData = async () => {
+                            try {
+                                const qItemsAll = query(collection(db, 'archive_items'));
+                                const itemsSnapAll = await getDocs(qItemsAll);
+                                const allItemsData = itemsSnapAll.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+                                
+                                const artifactIds = new Set<number>();
+                                allItemsData.forEach(item => {
+                                    if (item.artifact_id) {
+                                        const num = parseInt(item.artifact_id, 10);
+                                        if (!isNaN(num) && num > 0) artifactIds.add(num);
+                                    }
+                                });
+                                
+                                const sortedIds = Array.from(artifactIds).sort((a, b) => a - b);
+                                let next = 1;
+                                for (const idNum of sortedIds) {
+                                    if (idNum === next) {
+                                        next++;
+                                    } else if (idNum > next) {
+                                        break;
+                                    }
+                                }
+                                setSuggestedId(next.toString());
+                            } catch (e) {
+                                console.error("Error refreshing suggestions:", e);
+                            }
+                        };
+                        fetchInitialData();
                     }}
                     className="bg-tan text-white px-6 py-3 rounded-lg font-medium hover:bg-charcoal transition-colors"
                 >
@@ -550,6 +607,31 @@ export function AddItem() {
                     Add Archive Item
                 </h1>
                 <p className="text-charcoal/70 text-lg">Preserve a new document, photograph, or historic figure in the digital vault.</p>
+            </div>
+
+            <div className="mb-8 flex items-center justify-between bg-white p-5 rounded-2xl border border-tan-light/50 shadow-sm">
+                <div className="flex items-center gap-4 text-charcoal">
+                    <div className={`p-2.5 rounded-xl transition-colors ${isPrivate ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'}`}>
+                        {isPrivate ? <Lock size={20} /> : <Users size={20} />}
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-sm uppercase tracking-wider">{isPrivate ? 'Private Resource' : 'Public Resource'}</h3>
+                        <p className="text-xs text-charcoal/60 leading-relaxed">
+                            {isPrivate 
+                                ? 'Hidden from public visitors. Only Admins and Curators can view this item.' 
+                                : 'Visible to all visitors in the public archive and search results.'}
+                        </p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setIsPrivate(!isPrivate)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? 'bg-amber-500' : 'bg-tan/30'}`}
+                >
+                    <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-6' : 'translate-x-1'}`}
+                    />
+                </button>
             </div>
 
             {error && (
@@ -701,20 +783,22 @@ export function AddItem() {
 
                             {isSAHSUser && (
                                 <div className="space-y-3 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleAutoExtract('full')}
-                                        disabled={isExtracting || selectedFiles.length === 0}
-                                        className={`w-full flex items-center justify-center gap-3 py-4 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isExtracting
-                                            ? 'bg-tan-light/10 text-tan border-tan-light/30 cursor-not-allowed'
-                                            : selectedFiles.length === 0
-                                                ? 'bg-cream/50 text-charcoal/20 border-tan-light/20 cursor-not-allowed'
-                                                : 'bg-indigo-50/50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 hover:shadow-md'
-                                            }`}
-                                    >
-                                        <Sparkles size={18} className={isExtracting ? 'animate-pulse' : ''} />
-                                        {isExtracting ? 'Analyzing Document Content...' : 'Full AI Extraction'}
-                                    </button>
+                                    {isAdmin && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleAutoExtract('full')}
+                                            disabled={isExtracting || selectedFiles.length === 0}
+                                            className={`w-full flex items-center justify-center gap-3 py-4 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isExtracting
+                                                ? 'bg-tan-light/10 text-tan border-tan-light/30 cursor-not-allowed'
+                                                : selectedFiles.length === 0
+                                                    ? 'bg-cream/50 text-charcoal/20 border-tan-light/20 cursor-not-allowed'
+                                                    : 'bg-indigo-50/50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 hover:shadow-md'
+                                                }`}
+                                        >
+                                            <Sparkles size={18} className={isExtracting ? 'animate-pulse' : ''} />
+                                            {isExtracting ? 'Analyzing Document Content...' : 'Full AI Extraction'}
+                                        </button>
+                                    )}
                                     
                                     <button
                                         type="button"
@@ -1028,8 +1112,27 @@ export function AddItem() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="artifact_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Artifact ID #</label>
-                                <input type="text" name="artifact_id" id="artifact_id" placeholder="e.g. 2024.01.05" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
+                                <div className="flex items-center justify-between mb-2">
+                                    <label htmlFor="artifact_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider">Artifact ID #</label>
+                                    {suggestedId && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setArtifactId(suggestedId)}
+                                            className="text-[10px] font-bold text-tan hover:text-charcoal transition-colors uppercase tracking-widest flex items-center gap-1"
+                                        >
+                                            <Sparkles size={10} /> Suggest: {suggestedId}
+                                        </button>
+                                    )}
+                                </div>
+                                <input 
+                                    type="text" 
+                                    name="artifact_id" 
+                                    id="artifact_id" 
+                                    value={artifactId}
+                                    onChange={(e) => setArtifactId(e.target.value)}
+                                    placeholder="e.g. 2024.01.05" 
+                                    className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" 
+                                />
                             </div>
                             {itemType !== 'Artifact' && (
                                 <>

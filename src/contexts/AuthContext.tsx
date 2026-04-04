@@ -10,9 +10,13 @@ interface AuthContextType {
     loading: boolean;
     loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
-    isSAHSUser: boolean; // Alias for isAdmin || isCurator
-    isAdmin: boolean;
-    isCurator: boolean;
+    isSAHSUser: boolean; // Effective role
+    isAdmin: boolean;    // Effective role
+    isCurator: boolean;  // Effective role
+    realIsAdmin: boolean; // Actual database role
+    realIsCurator: boolean; // Actual database role
+    simulatedRole: 'admin' | 'curator' | 'visitor' | null;
+    setSimulatedRole: (role: 'admin' | 'curator' | 'visitor' | null) => void;
     isEditingMode: boolean;
     setIsEditingMode: (value: boolean) => void;
     lastSearchPath: string;
@@ -27,8 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isCurator, setIsCurator] = useState(false);
     const [isEditingMode, setIsEditingMode] = useState(false);
     const [lastSearchPath, setLastSearchPath] = useState('/archive');
+    const [simulatedRole, setSimulatedRole] = useState<'admin' | 'curator' | 'visitor' | null>(() => {
+        return localStorage.getItem('sahs_simulated_role') as any || null;
+    });
 
     const location = useLocation();
+
+    const handleSetSimulatedRole = (role: 'admin' | 'curator' | 'visitor' | null) => {
+        if (!isAdmin) return; // Only real admins can simulate roles
+        setSimulatedRole(role);
+        if (role) {
+            localStorage.setItem('sahs_simulated_role', role);
+        } else {
+            localStorage.removeItem('sahs_simulated_role');
+        }
+    };
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -116,7 +133,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await signOut(auth);
     };
 
-    const isSAHSUser = isAdmin || isCurator;
+    const effectiveIsAdmin = isAdmin && (!simulatedRole || simulatedRole === 'admin');
+    const effectiveIsCurator = (isAdmin || isCurator) && (!simulatedRole || simulatedRole === 'admin' || simulatedRole === 'curator');
+    const effectiveIsSAHSUser = effectiveIsAdmin || effectiveIsCurator;
 
     return (
         <AuthContext.Provider value={{ 
@@ -124,9 +143,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loading, 
             loginWithGoogle, 
             logout, 
-            isSAHSUser, 
-            isAdmin, 
-            isCurator,
+            isSAHSUser: effectiveIsSAHSUser, 
+            isAdmin: effectiveIsAdmin, 
+            isCurator: effectiveIsCurator,
+            realIsAdmin: isAdmin,
+            realIsCurator: isCurator,
+            simulatedRole,
+            setSimulatedRole: handleSetSimulatedRole,
             isEditingMode,
             setIsEditingMode,
             lastSearchPath

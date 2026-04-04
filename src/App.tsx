@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import { BrowseArchive } from './pages/BrowseArchive';
 import { ItemDetail } from './pages/ItemDetail';
@@ -7,14 +7,17 @@ import EditItem from './pages/EditItem';
 import { Collections } from './pages/Collections';
 import { CollectionDetail } from './pages/CollectionDetail';
 import { AddCollection } from './pages/AddCollection';
+import { EditCollection } from './pages/EditCollection';
 import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Home } from './pages/Home';
 import { SearchArchive } from './pages/SearchArchive';
 import { AdminSettings } from './pages/AdminSettings';
 import { ManageLocations } from './pages/ManageLocations';
+import { ManageRoomLocations } from './pages/ManageRoomLocations';
 import { TaggingHub } from './pages/TaggingHub';
 import { LocationDetail } from './pages/LocationDetail';
+import { RoomDetail } from './pages/RoomDetail';
 import { InteractiveMap } from './pages/InteractiveMap';
 
 function PageWrapper() {
@@ -26,7 +29,8 @@ function PageWrapper() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isSAHSUser, loading } = useAuth();
+  const { user, isSAHSUser, realIsAdmin, loading } = useAuth();
+  const location = useLocation();
   
   if (loading) {
     return (
@@ -35,6 +39,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <p className="font-serif text-charcoal/60 text-lg">Verifying access...</p>
       </div>
     );
+  }
+
+  // Admins always have access to /settings to toggle simulation
+  if (realIsAdmin && location.pathname === '/settings') {
+    return <>{children}</>;
   }
 
   if (!user || !isSAHSUser) {
@@ -67,9 +76,12 @@ function App() {
               <Route path="add-item" element={<ProtectedRoute><AddItem /></ProtectedRoute>} />
               <Route path="add-collection" element={<ProtectedRoute><AddCollection /></ProtectedRoute>} />
               <Route path="edit-item/:id" element={<ProtectedRoute><EditItem /></ProtectedRoute>} />
+              <Route path="edit-collection/:id" element={<ProtectedRoute><EditCollection /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
               <Route path="tagging" element={<ProtectedRoute><TaggingHub /></ProtectedRoute>} />
               <Route path="manage-locations" element={<ProtectedRoute><ManageLocations /></ProtectedRoute>} />
+              <Route path="manage-locations/rooms/:roomId" element={<ProtectedRoute><ManageRoomLocations /></ProtectedRoute>} />
+              <Route path="rooms/:id" element={<ProtectedRoute><RoomDetail /></ProtectedRoute>} />
               <Route path="locations/:id" element={<ProtectedRoute><LocationDetail /></ProtectedRoute>} />
               <Route path="interactive-map" element={<ProtectedRoute><InteractiveMap /></ProtectedRoute>} />
             </Route>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Image as ImageIcon, CheckCircle, ChevronDown, ChevronUp, X, Maximize2, FileText, ArrowLeft, Lock, Camera, Upload, Edit2, BookOpen, Sparkles, AlertCircle } from 'lucide-react';
+import { Image as ImageIcon, CheckCircle, ChevronDown, ChevronUp, X, Maximize2, FileText, ArrowLeft, Lock, Camera, Upload, Edit2, BookOpen, Sparkles, AlertCircle, Users } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
@@ -97,7 +97,7 @@ const PendingFilePreview = ({
 };
 
 export default function EditItem() {
-    const { isSAHSUser, lastSearchPath, user } = useAuth();
+    const { isSAHSUser, isAdmin, lastSearchPath, user } = useAuth();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -124,6 +124,7 @@ export default function EditItem() {
     const [selectedRelatedDocs, setSelectedRelatedDocs] = useState<{ id: string, title: string }[]>([]);
     const [selectedRelatedOrgs, setSelectedRelatedOrgs] = useState<{ id: string, org_name: string }[]>([]);
     const [collections, setCollections] = useState<Collection[]>([]);
+    const [isPrivate, setIsPrivate] = useState(false);
 
 
 
@@ -333,6 +334,7 @@ export default function EditItem() {
                     setExistingFileUrls(data.file_urls || []);
                     setExistingAccessionUrls(data.accession_paperwork_urls || []);
                     setExistingAdditionalMediaUrls(data.additional_media_urls || []);
+                    setIsPrivate(data.is_private || false);
                 } else {
                     setError("Item not found.");
                 }
@@ -616,6 +618,7 @@ export default function EditItem() {
                 additional_media_urls: [...existingAdditionalMediaUrls, ...newAdditionalUrls],
                 featured_image_url: finalFeaturedUrl,
                 collection_id: (formData.get('collection_id') as string) || "",
+                is_private: isPrivate,
 
                 // Core DC Elements
                 title: formData.get('title') as string || "",
@@ -802,6 +805,31 @@ export default function EditItem() {
                 </div>
             </div>
 
+            <div className="mb-8 flex items-center justify-between bg-white p-5 rounded-2xl border border-tan-light/50 shadow-sm">
+                <div className="flex items-center gap-4 text-charcoal">
+                    <div className={`p-2.5 rounded-xl transition-colors ${isPrivate ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'}`}>
+                        {isPrivate ? <Lock size={20} /> : <Users size={20} />}
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-sm uppercase tracking-wider">{isPrivate ? 'Private Resource' : 'Public Resource'}</h3>
+                        <p className="text-xs text-charcoal/60 leading-relaxed">
+                            {isPrivate 
+                                ? 'Hidden from public visitors. Only Admins and Curators can view this item.' 
+                                : 'Visible to all visitors in the public archive and search results.'}
+                        </p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setIsPrivate(!isPrivate)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? 'bg-amber-500' : 'bg-tan/30'}`}
+                >
+                    <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-6' : 'translate-x-1'}`}
+                    />
+                </button>
+            </div>
+
             {error && (
                 <div className="mb-8 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
                     <AlertCircle className="shrink-0 mt-0.5" size={20} />
@@ -947,20 +975,22 @@ export default function EditItem() {
 
                             {isSAHSUser && (
                                 <div className="space-y-3 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleAutoExtract('full')}
-                                        disabled={isExtracting || (selectedFiles.length === 0 && !featuredImageUrl)}
-                                        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-bold text-sm transition-all border ${isExtracting
-                                            ? 'bg-tan-light/20 text-tan border-tan-light/50 cursor-not-allowed'
-                                            : (selectedFiles.length === 0 && !featuredImageUrl)
-                                                ? 'bg-cream/50 text-charcoal/30 border-tan-light/30 cursor-not-allowed'
-                                                : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm'
-                                            }`}
-                                    >
-                                        <Sparkles size={16} className={isExtracting ? 'animate-pulse' : ''} />
-                                        {isExtracting ? 'Analyzing Document Content...' : 'Full AI Extraction'}
-                                    </button>
+                                    {isAdmin && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleAutoExtract('full')}
+                                            disabled={isExtracting || (selectedFiles.length === 0 && !featuredImageUrl)}
+                                            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-bold text-sm transition-all border ${isExtracting
+                                                ? 'bg-tan-light/20 text-tan border-tan-light/50 cursor-not-allowed'
+                                                : (selectedFiles.length === 0 && !featuredImageUrl)
+                                                    ? 'bg-cream/50 text-charcoal/30 border-tan-light/30 cursor-not-allowed'
+                                                    : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm'
+                                                }`}
+                                        >
+                                            <Sparkles size={16} className={isExtracting ? 'animate-pulse' : ''} />
+                                            {isExtracting ? 'Analyzing Document Content...' : 'Full AI Extraction'}
+                                        </button>
+                                    )}
                                     
                                     <button
                                         type="button"
