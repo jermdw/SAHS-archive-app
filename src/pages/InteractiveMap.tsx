@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { Rnd } from 'react-rnd';
 import { db } from '../lib/firebase';
-import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, getDoc, writeBatch } from 'firebase/firestore';
-import { Save, Plus, MapPin, ZoomIn, ZoomOut, Maximize, Edit3, X, Pointer, BoxSelect, Maximize2, RotateCw, ChevronsUp, ChevronsDown, LayoutGrid } from 'lucide-react';
+import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, getDoc, writeBatch, setDoc } from 'firebase/firestore';
+import { Plus, MapPin, ZoomIn, ZoomOut, Maximize, Edit3, X, BoxSelect, Maximize2, RotateCw, LayoutGrid } from 'lucide-react';
 import type { MuseumLocation, Room } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -33,8 +33,8 @@ export function InteractiveMap() {
     const [isBindingMode, setIsBindingMode] = useState(false);
     
     // New Feature States
-    const [isSnapping, setIsSnapping] = useState(true);
-    const [displayStyle, setDisplayStyle] = useState<'box' | 'pin'>('box');
+    const [isSnapping] = useState(true);
+    const [displayStyle] = useState<'box' | 'pin'>('box');
     const absoluteSnap = (val: number) => isSnapping ? Math.round(val / 12) * 12 : val;
 
     // Structural Rooms
@@ -43,14 +43,14 @@ export function InteractiveMap() {
     // Multi-select and Drag tracking
     const selectedIdsRef = useRef<Set<string>>(new Set());
     const dragStartPosRef = useRef<Record<string, {x: number, y: number}>>({});
-    const [selectionTick, setSelectionTick] = useState(0); // For triggering UI buttons reacting to ref changes
+    const [, setSelectionTick] = useState(0); // For triggering UI buttons reacting to ref changes
     const [sidebarPos, setSidebarPos] = useState({ x: 32, y: 96 });
     const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
     const [resizingRoomId, setResizingRoomId] = useState<string | null>(null);
     const [activeDimensions, setActiveDimensions] = useState<{ width: number, height: number } | null>(null);
 
     // History and Undo tracking
-    const [history, setHistory] = useState<LayoutHistoryState[]>([]);
+    const [, setHistory] = useState<LayoutHistoryState[]>([]);
     
     const saveSnapshot = () => {
         setHistory(prev => {
@@ -306,18 +306,7 @@ export function InteractiveMap() {
         }
     };
 
-    const removeRoom = (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if(window.confirm("Delete this room structure? (This removes it from both the map AND Locations tab)")) {
-            const room = rooms.find(r => r.id === id || r.docId === id);
-            if (!room?.docId) return;
-            
-            saveSnapshot();
-            deleteDoc(doc(db, 'rooms', room.docId)).then(() => {
-                setRooms(prev => prev.filter(r => r.docId !== room.docId));
-            });
-        }
-    };
+
 
     const removeFromMap = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -371,39 +360,7 @@ export function InteractiveMap() {
         });
     };
 
-    const bringToFront = (id: string, type: 'room' | 'location', e: React.MouseEvent) => {
-        e.stopPropagation();
-        saveSnapshot();
-        // Simplified Z-index logic for now - just push to top of current array/state
-        if (type === 'room') {
-            const roomIndex = rooms.findIndex(r => r.id === id || r.docId === id);
-            if (roomIndex > -1) {
-                const room = rooms[roomIndex];
-                setRooms(prev => [...prev.filter((_, i) => i !== roomIndex), room]);
-            }
-        } else {
-            // For locations, we use the localCoords object which doesn't really have order, 
-            // but we can add a persistent z_index field
-            setLocalCoords(prev => {
-                const current = prev[id] || {};
-                let maxZ = 10;
-                Object.values(prev).forEach(c => maxZ = Math.max(maxZ, c.z_index || 10));
-                return { ...prev, [id]: { ...current, z_index: maxZ + 1 } };
-            });
-        }
-    };
 
-    const sendToBack = (id: string, type: 'room' | 'location', e: React.MouseEvent) => {
-        e.stopPropagation();
-        saveSnapshot();
-        if (type === 'room') {
-            const roomIndex = rooms.findIndex(r => r.id === id || r.docId === id);
-            if (roomIndex > -1) {
-                const room = rooms[roomIndex];
-                setRooms(prev => [room, ...prev.filter((_, i) => i !== roomIndex)]);
-            }
-        }
-    };
 
     const handleMergeRooms = async () => {
         const selectedArr = Array.from(selectedIdsRef.current);
@@ -475,6 +432,63 @@ export function InteractiveMap() {
         }
     };
 
+    const handleUnmergeRoom = async () => {
+        if (!isEditMode || selectedIdsRef.current.size !== 1) return;
+        const selectedId = Array.from(selectedIdsRef.current)[0];
+        const roomToUnmerge = rooms.find(r => r.id === selectedId || r.docId === selectedId);
+        
+        if (!roomToUnmerge || !roomToUnmerge.geometries || roomToUnmerge.geometries.length <= 1) return;
+        
+        if(!window.confirm(`Unmerge "${roomToUnmerge.name}" back into ${roomToUnmerge.geometries.length} separate rooms?`)) return;
+
+        setIsSaving(true);
+        saveSnapshot();
+        try {
+            const mainGeom = roomToUnmerge.geometries[0];
+            const extractedGeoms = roomToUnmerge.geometries.slice(1);
+
+            // 1. Restore the main room to basic coords
+            await updateDoc(doc(db, 'rooms', roomToUnmerge.docId!), {
+                map_coordinates: mainGeom,
+                geometries: null
+            });
+
+            // 2. Spawn completely independent rooms for the broken off pieces
+            const newRooms: Room[] = [];
+            for (let i = 0; i < extractedGeoms.length; i++) {
+                const geom = extractedGeoms[i];
+                const newRoomRef = doc(collection(db, 'rooms'));
+                const newData = {
+                    id: 'room_ext_' + Date.now() + '_' + i,
+                    name: `${roomToUnmerge.name} (Part ${i+2})`,
+                    created_at: new Date().toISOString(),
+                    map_coordinates: geom
+                };
+                await setDoc(newRoomRef, newData);
+                newRooms.push({ ...newData, docId: newRoomRef.id } as any);
+            }
+
+            // 3. Update UI
+            setRooms(prev => {
+                const updatedMain = prev.map(r => r.docId === roomToUnmerge.docId ? {
+                    ...r,
+                    map_coordinates: mainGeom,
+                    geometries: undefined
+                } : r);
+                return [...updatedMain, ...newRooms];
+            });
+
+            selectedIdsRef.current.clear();
+            setSelectionTick(t => t + 1);
+            alert("Rooms unmerged successfully. You can now rename and move them independently.");
+        } catch (error) {
+            console.error("Unmerging failed:", error);
+            alert("Failed to unmerge rooms.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const rotateItem = (id: string, type: 'room' | 'location', currentRotation: number, e: React.MouseEvent) => {
         e.stopPropagation();
         const res = window.prompt("Enter rotation degrees:", currentRotation.toString());
@@ -502,23 +516,33 @@ export function InteractiveMap() {
         if (!isEditMode) return;
         const isShift = e.shiftKey;
         
-        // If not shift, always clear previous selection to ensure only the clicked item is active
+        let stateChanged = false;
+
+        // If not shift, clear previous selection...
         if (!isShift) {
-            selectedIdsRef.current.forEach(sid => setSelectionDOM(sid, false));
-            selectedIdsRef.current.clear();
+            if (selectedIdsRef.current.size > 1 || !selectedIdsRef.current.has(id)) {
+                selectedIdsRef.current.forEach(sid => setSelectionDOM(sid, false));
+                selectedIdsRef.current.clear();
+                stateChanged = true;
+            }
         }
 
         if (selectedIdsRef.current.has(id)) {
-            // Only toggle off if shift is held (multi-select mode)
+            // Only toggle off if shift is held
             if (isShift) {
                 selectedIdsRef.current.delete(id);
                 setSelectionDOM(id, false);
+                stateChanged = true;
             }
         } else {
             selectedIdsRef.current.add(id);
             setSelectionDOM(id, true);
+            stateChanged = true;
         }
-        setSelectionTick(t => t + 1);
+        
+        if (stateChanged) {
+            setSelectionTick(t => t + 1);
+        }
     };
 
     const handleCanvasClick = (e: React.MouseEvent) => {
@@ -528,7 +552,7 @@ export function InteractiveMap() {
         setSelectionTick(t => t + 1);
     };
 
-    const handleGroupDragStart = (draggedId: string, e?: any) => {
+    const handleGroupDragStart = (draggedId: string, _draggedIndex?: number, e?: any) => {
         if (!isEditMode) return;
 
         // Safety: If dragging an unselected item without shift, force it to be the sole selection
@@ -554,6 +578,7 @@ export function InteractiveMap() {
                     // Main ID tracks the first geometry for calculations
                     dragStartPosRef.current[id] = { x: room.geometries[0].x, y: room.geometries[0].y };
                 } else if (room.map_coordinates) {
+                    dragStartPosRef.current[`${id}-geom-0`] = { x: room.map_coordinates.x, y: room.map_coordinates.y };
                     dragStartPosRef.current[id] = { x: room.map_coordinates.x, y: room.map_coordinates.y };
                 }
             } else if (localCoords[id]) {
@@ -562,15 +587,15 @@ export function InteractiveMap() {
         });
     };
 
-    const handleGroupDrag = (draggedId: string, d: { x: number, y: number }) => {
-        const start = dragStartPosRef.current[draggedId];
+    const handleGroupDrag = (draggedId: string, draggedIndex: number | undefined, d: { x: number, y: number }) => {
+        const start = draggedIndex !== undefined 
+            ? dragStartPosRef.current[`${draggedId}-geom-${draggedIndex}`] 
+            : dragStartPosRef.current[draggedId];
         if (!start) return;
         const offsetX = d.x - start.x;
         const offsetY = d.y - start.y;
 
         selectedIdsRef.current.forEach(id => {
-            if (id === draggedId) return;
-
             // Handle Room following (DOM Update)
             const roomNode = document.getElementById(`rnd-node-${id}`);
             if (roomNode && dragStartPosRef.current[id]) {
@@ -581,7 +606,7 @@ export function InteractiveMap() {
             const room = rooms.find(r => r.id === id || r.docId === id);
             if (room && room.geometries && room.geometries.length > 1) {
                 room.geometries.forEach((_, gi) => {
-                    const geomNode = document.getElementById(`inner-rnd-${id}-geom-${gi}`); // I'll need to add this ID
+                    const geomNode = document.getElementById(gi === 0 ? `rnd-node-${id}` : `inner-rnd-${id}-geom-${gi}`);
                     const gStart = dragStartPosRef.current[`${id}-geom-${gi}`];
                     if (geomNode && gStart) {
                         geomNode.style.transform = `translate(${gStart.x + offsetX}px, ${gStart.y + offsetY}px)`;
@@ -594,11 +619,19 @@ export function InteractiveMap() {
             if (locNode && !roomNode && dragStartPosRef.current[id]) {
                 locNode.style.transform = `translate(${dragStartPosRef.current[id].x + offsetX}px, ${dragStartPosRef.current[id].y + offsetY}px)`;
             }
+
+            // Handle Room Label following
+            const labelNode = document.getElementById(`room-label-${id}`);
+            if (labelNode && dragStartPosRef.current[id]) {
+                labelNode.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+            }
         });
     };
 
-    const handleGroupDragStopStateSync = (draggedId: string, d: { x: number, y: number }) => {
-        const start = dragStartPosRef.current[draggedId];
+    const handleGroupDragStopStateSync = (draggedId: string, draggedIndex: number | undefined, d: { x: number, y: number }) => {
+        const start = draggedIndex !== undefined 
+            ? dragStartPosRef.current[`${draggedId}-geom-${draggedIndex}`] 
+            : dragStartPosRef.current[draggedId];
         if (!start) return;
         const offsetX = d.x - start.x;
         const offsetY = d.y - start.y;
@@ -744,6 +777,14 @@ export function InteractiveMap() {
                                                 Merge Selected Rooms
                                             </button>
                                         )}
+                                        {(() => {
+                                            const sl = selectedIdsRef.current.size === 1 ? rooms.find(r => r.docId === Array.from(selectedIdsRef.current)[0] || r.id === Array.from(selectedIdsRef.current)[0]) : null;
+                                            return sl && sl.geometries && sl.geometries.length > 1 ? (
+                                                <button onClick={handleUnmergeRoom} className="w-full flex items-center justify-center gap-2 bg-red-800/80 text-white py-3 rounded-lg text-sm font-black uppercase tracking-widest shadow-md hover:bg-red-700 transition-all mb-4 animate-in zoom-in-95">
+                                                    Unmerge Block
+                                                </button>
+                                            ) : null;
+                                        })()}
                                         <button onClick={()=>setIsBindingMode(true)} className="w-full flex items-center justify-center gap-2 bg-tan/10 text-tan border border-tan/30 border-dashed py-3 rounded-lg text-sm font-bold hover:bg-tan hover:text-white transition-all"><Plus size={18}/> Place Shelf Block</button>
                                         <button onClick={addRoom} className="w-full flex items-center justify-center gap-2 bg-charcoal/5 border py-3 rounded-lg text-sm font-bold hover:bg-charcoal hover:text-white transition-all"><BoxSelect size={18}/> New Structural Room</button>
                                         
@@ -801,7 +842,7 @@ export function InteractiveMap() {
                                         key={`${room.docId}-box-${index}`}
                                         id={index === 0 ? `rnd-node-${room.docId}` : `inner-rnd-${room.docId}-geom-${index}`}
                                         onMouseDownCapture={(e: any) => handleItemSelection(room.docId!, e)}
-                                        className={`absolute transition-all ${isEditMode ? 'cursor-move' : 'pointer-events-none'}`}
+                                        className={`absolute ${isEditMode ? 'cursor-move' : 'pointer-events-none'}`}
                                         style={{ 
                                             backgroundColor: 'rgba(210, 180, 140, 0.2)',
                                             border: isSelected ? '2px solid #3b82f6' : '2px solid rgba(139, 115, 85, 0.3)', // Thick 2px structural line
@@ -810,13 +851,11 @@ export function InteractiveMap() {
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode}
-                                        dragGrid={[12, 12]}
-                                        resizeGrid={[12, 12]}
                                         position={{ x: c.x, y: c.y }}
                                         size={{ width: c.width, height: c.height }}
-                                        onDragStart={(e: any) => handleGroupDragStart(room.docId!, e)}
-                                        onDrag={(_e: any, d: any) => handleGroupDrag(room.docId!, d)}
-                                        onDragStop={(_e: any, d: any) => handleGroupDragStopStateSync(room.docId!, d)}
+                                        onDragStart={(e: any) => handleGroupDragStart(room.docId!, index, e)}
+                                        onDrag={(_e: any, d: any) => handleGroupDrag(room.docId!, index, d)}
+                                        onDragStop={(_e: any, d: any) => handleGroupDragStopStateSync(room.docId!, index, d)}
                                         onResizeStart={() => {
                                             setResizingRoomId(`${room.docId}-${index}`);
                                             setActiveDimensions({ width: c.width, height: c.height });
@@ -893,7 +932,8 @@ export function InteractiveMap() {
                                         
                                         {/* Master Room Label (Centered over all boxes) */}
                                         <div 
-                                            className="absolute pointer-events-none flex items-center justify-center text-center z-40"
+                                            id={`room-label-${room.docId}`}
+                                            className="absolute pointer-events-none flex items-center justify-center text-center z-40 transition-transform duration-75"
                                             style={{ 
                                                 left: minX, 
                                                 top: minY, 
@@ -902,7 +942,7 @@ export function InteractiveMap() {
                                             }}
                                         >
                                             <span 
-                                                className={`font-serif font-bold text-charcoal flex flex-col items-center gap-1 pointer-events-none transform transition-opacity ${isSelected ? 'opacity-100' : 'opacity-85'}`}
+                                                className={`relative w-full px-2 text-center break-words font-serif font-bold text-charcoal flex flex-col items-center pointer-events-none transform transition-opacity ${isSelected ? 'opacity-100' : 'opacity-85'}`}
                                                 style={{ 
                                                     textShadow: '0 0 10px white, 0 0 10px white, 0 0 5px white',
                                                     fontSize: 'min(20px, max(14px, 3vw))',
@@ -910,7 +950,7 @@ export function InteractiveMap() {
                                                 }}
                                             >
                                                 {room.name}
-                                                <div className="h-[3px] w-12 bg-tan/60"></div>
+                                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 h-[3px] w-12 bg-tan/60 shrink-0"></div>
                                             </span>
                                         </div>
                                     </Fragment>
@@ -925,18 +965,16 @@ export function InteractiveMap() {
                                     <Rnd
                                         key={loc.id}
                                         id={`rnd-node-${loc.id}`}
-                                        onMouseDownCapture={(e) => handleItemSelection(loc.id, e)}
+                                        onMouseDownCapture={(e: any) => handleItemSelection(loc.id, e)}
                                         className={`absolute group ${isEditMode ? 'cursor-move' : 'cursor-pointer'}`}
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode && c.display_type !== 'pin'}
-                                        dragGrid={[12, 12]}
-                                        resizeGrid={[12, 12]}
                                         position={{ x: c.x, y: c.y }}
                                         size={{ width: c.width, height: c.height }}
-                                        onDragStart={(e) => handleGroupDragStart(loc.id, e)}
-                                        onDrag={(_e, d) => handleGroupDrag(loc.id, d)}
-                                        onDragStop={(_e, d) => handleGroupDragStopStateSync(loc.id, d)}
+                                        onDragStart={(e: any) => handleGroupDragStart(loc.id, undefined, e)}
+                                        onDrag={(_e, d: any) => handleGroupDrag(loc.id, undefined, d)}
+                                        onDragStop={(_e, d: any) => handleGroupDragStopStateSync(loc.id, undefined, d)}
                                         onResizeStop={(_e, _dir, ref, _delta, pos) => {
                                             saveSnapshot();
                                             setLocalCoords(prev => ({ ...prev, [loc.id]: { ...prev[loc.id], x: pos.x, y: pos.y, width: parseInt(ref.style.width, 10), height: parseInt(ref.style.height, 10) }}));
@@ -957,8 +995,8 @@ export function InteractiveMap() {
                                             )}
                                             {isEditMode && (
                                                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 flex gap-1">
-                                                    <button onClick={(e) => rotateItem(loc.id, 'location', c.rotation || 0, e)} className="bg-white border p-1 rounded"><RotateCw size={10}/></button>
-                                                    <button onClick={(e) => removeBlock(loc.id, e)} className="bg-red-400 text-white p-1 rounded"><X size={10}/></button>
+                                                    <button onClick={(e: any) => rotateItem(loc.id, 'location', c.rotation || 0, e)} className="bg-white border p-1 rounded"><RotateCw size={10}/></button>
+                                                    <button onClick={(e: any) => removeBlock(loc.id, e)} className="bg-red-400 text-white p-1 rounded"><X size={10}/></button>
                                                 </div>
                                             )}
                                             {!isEditMode && (

@@ -9,6 +9,7 @@ import type { ArchiveItem, ItemType, Collection } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
 import { QRCodeDisplay } from '../components/QRCodeDisplay';
+import { convertPdfToPngs } from '../lib/pdfUtils';
 
 function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
     useEffect(() => {
@@ -118,6 +119,8 @@ export default function EditItem() {
     const [existingAdditionalMediaUrls, setExistingAdditionalMediaUrls] = useState<string[]>([]);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [fileObjectURLs, setFileObjectURLs] = useState<Map<File, string>>(new Map());
+    const [isConvertingPdf, setIsConvertingPdf] = useState(false);
+    const [pdfConvertProgress, setPdfConvertProgress] = useState(0);
     const [croppingImageIndex, setCroppingImageIndex] = useState<number | null>(null);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [selectedRelatedFigures, setSelectedRelatedFigures] = useState<{ id: string, full_name: string }[]>([]);
@@ -885,19 +888,43 @@ export default function EditItem() {
                                     className="hidden"
                                     multiple
                                     accept="image/png, image/jpeg, image/webp, application/pdf"
-                                    onChange={(e) => {
+                                    onChange={async (e) => {
                                         const files = e.target.files;
-                                        if (files) {
-                                            const newFilesArray = Array.from(files);
-                                            setSelectedFiles(prev => {
-                                                const updated = [...prev, ...newFilesArray];
-                                                if (itemType === 'Historic Figure' && prev.length === 0 && newFilesArray.length > 0) {
-                                                    setTimeout(() => setCroppingImageIndex(0), 100);
-                                                }
-                                                return updated;
-                                            });
+                                        if (!files) return;
+                                        
+                                        const fileArray = Array.from(files);
+                                        const finalFiles: File[] = [];
+                                        
+                                        const hasPdf = fileArray.some(f => f.type === 'application/pdf');
+                                        if (hasPdf) {
+                                            setIsConvertingPdf(true);
+                                            setPdfConvertProgress(0);
                                         }
-                                        e.target.value = '';
+
+                                        try {
+                                            for (let i = 0; i < fileArray.length; i++) {
+                                                const file = fileArray[i];
+                                                if (file.type === 'application/pdf') {
+                                                    const pngs = await convertPdfToPngs(file, (p) => {
+                                                        setPdfConvertProgress(p);
+                                                    });
+                                                    finalFiles.push(...pngs);
+                                                } else {
+                                                    finalFiles.push(file);
+                                                }
+                                            }
+                                        } catch (error) {
+                                            console.error("Failed to convert PDF:", error);
+                                            alert("Failed to read PDF file.");
+                                        } finally {
+                                            setIsConvertingPdf(false);
+                                            setPdfConvertProgress(0);
+                                            e.target.value = '';
+                                        }
+
+                                        setSelectedFiles(prev => {
+                                            return [...prev, ...finalFiles];
+                                        });
                                     }}
                                 />
                                 <div className="w-10 h-10 bg-cream rounded-full flex items-center justify-center text-tan shadow-sm mb-2 group-hover:scale-110 transition-transform">
@@ -906,6 +933,16 @@ export default function EditItem() {
                                 <p className="font-bold text-sm text-charcoal mb-0.5">Click to append scans</p>
                                 <p className="text-[10px] text-charcoal/50">Multiple PNG, JPG, or PDF allowed</p>
                             </div>
+
+                            {isConvertingPdf && (
+                                <div className="flex flex-col items-center gap-3 mb-6">
+                                    <div className="w-8 h-8 border-4 border-tan border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="font-bold text-charcoal">Converting Extracted PDF Pages...</p>
+                                    <div className="w-full max-w-[200px] h-2 bg-cream rounded-full overflow-hidden">
+                                        <div className="h-full bg-tan transition-all duration-300" style={{ width: `${Math.max(5, pdfConvertProgress)}%` }}></div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Image Grid: Existing and New */}
                             {(existingFileUrls.length > 0 || selectedFiles.length > 0) && (
@@ -1233,6 +1270,26 @@ export default function EditItem() {
                                 </>
                             ) : null}
 
+                                    <div className="mb-6">
+                                        <label htmlFor="collection_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
+                                        <div className="relative">
+                                            <select 
+                                                name="collection_id" 
+                                                id="collection_id" 
+                                                value={item.collection_id || ""} 
+                                                onChange={handleCollectionChange}
+                                                className="w-full bg-white border border-moderate-tan/30 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none text-sm"
+                                            >
+                                                <option value="">-- No Collection --</option>
+                                                {collections.map(c => (
+                                                    <option key={c.id} value={c.id}>{c.title}</option>
+                                                ))}
+                                                <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
+                                            </select>
+                                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-2 gap-4">
                                         {itemType !== 'Historic Organization' && (
                                             <>
@@ -1257,27 +1314,6 @@ export default function EditItem() {
                                                             </select>
                                                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
                                                         </div>
-                                                    </div>
-                                                )}
-                                                {itemType === 'Artifact' ? (
-                                                    <div>
-                                                        {/* Removed artifact_id from here, moved to Core Archival Metadata section */}
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <select 
-                                                            name="collection_id" 
-                                                            id="collection_id" 
-                                                            value={item.collection_id || ""} 
-                                                            onChange={handleCollectionChange}
-                                                            className="w-full bg-white border border-moderate-tan/30 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 focus:border-tan/30 transition-all font-sans appearance-none text-sm"
-                                                        >
-                                                            <option value="">-- No Collection --</option>
-                                                            {collections.map(c => (
-                                                                <option key={c.id} value={c.id}>{c.title}</option>
-                                                            ))}
-                                                            <option value="NEW_COLLECTION" className="font-bold text-tan">+ Create New Collection...</option>
-                                                        </select>
                                                     </div>
                                                 )}
                                             </>

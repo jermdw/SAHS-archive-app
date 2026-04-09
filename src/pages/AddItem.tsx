@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Plus, Search, FileText, Tag, Users, Maximize2, Lock, Camera } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
+import { useSearchParams } from 'react-router-dom';
 import { collection, addDoc, getDocs, query } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ItemType, Collection, ArchiveItem } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
+import { convertPdfToPngs } from '../lib/pdfUtils';
 
 function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
     useEffect(() => {
@@ -26,6 +28,7 @@ function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
 }
 
 export function AddItem() {
+    const [searchParams] = useSearchParams();
     const { isSAHSUser, isAdmin, user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +39,8 @@ export function AddItem() {
     const [additionalMediaFiles, setAdditionalMediaFiles] = useState<File[]>([]);
     const [featuredImageIndex, setFeaturedImageIndex] = useState(0);
     const [fileObjectURLs, setFileObjectURLs] = useState<Map<File, string>>(new Map());
+    const [isConvertingPdf, setIsConvertingPdf] = useState(false);
+    const [pdfConvertProgress, setPdfConvertProgress] = useState(0);
 
     const figureRef = useRef<HTMLDivElement>(null);
     const docRef = useRef<HTMLDivElement>(null);
@@ -113,7 +118,7 @@ export function AddItem() {
     const [docSearch, setDocSearch] = useState('');
     const [showDocResults, setShowDocResults] = useState(false);
 
-    const [selectedCollectionId, setSelectedCollectionId] = useState("");
+    const [selectedCollectionId, setSelectedCollectionId] = useState(searchParams.get('collection_id') || "");
     const [artifactId, setArtifactId] = useState('');
     const [suggestedId, setSuggestedId] = useState<string | null>(null);
     const [isPrivate, setIsPrivate] = useState(false);
@@ -684,26 +689,55 @@ export function AddItem() {
                                     className="hidden"
                                     multiple
                                     accept="image/png, image/jpeg, image/webp, application/pdf"
-                                    onChange={(e) => {
+                                    onChange={async (e) => {
                                         const files = e.target.files;
-                                        if (files) {
-                                            const newFiles = Array.from(files);
-                                            setSelectedFiles(prev => {
-                                                const updated = [...prev, ...newFiles];
-                                                // Proactive workflow: If it's a Historic Figure and this is the first image(s) being added,
-                                                // or if it was empty before, open cropper for the first new image.
-                                                if (itemType === 'Historic Figure' && prev.length === 0 && newFiles.length > 0) {
-                                                    setTimeout(() => setCroppingImageIndex(0), 100);
-                                                }
-                                                return updated;
-                                            });
+                                        if (!files) return;
+                                        
+                                        const fileArray = Array.from(files);
+                                        const finalFiles: File[] = [];
+                                        
+                                        const hasPdf = fileArray.some(f => f.type === 'application/pdf');
+                                        if (hasPdf) {
+                                            setIsConvertingPdf(true);
+                                            setPdfConvertProgress(0);
                                         }
-                                        // Reset input so same file can be selected again if needed
-                                        e.target.value = '';
+
+                                        try {
+                                            for (let i = 0; i < fileArray.length; i++) {
+                                                const file = fileArray[i];
+                                                if (file.type === 'application/pdf') {
+                                                    const pngs = await convertPdfToPngs(file, (p) => {
+                                                        setPdfConvertProgress(p);
+                                                    });
+                                                    finalFiles.push(...pngs);
+                                                } else {
+                                                    finalFiles.push(file);
+                                                }
+                                            }
+                                        } catch (error) {
+                                            console.error("Failed to convert PDF:", error);
+                                            alert("Failed to read PDF file.");
+                                        } finally {
+                                            setIsConvertingPdf(false);
+                                            setPdfConvertProgress(0);
+                                            e.target.value = '';
+                                        }
+
+                                        setSelectedFiles(prev => {
+                                            return [...prev, ...finalFiles];
+                                        });
                                     }}
                                 />
                                 {/* Image Grid */}
-                                {selectedFiles.length > 0 ? (
+                                {isConvertingPdf ? (
+                                    <div className="flex flex-col items-center gap-3 mt-4">
+                                        <div className="w-8 h-8 border-4 border-tan border-t-transparent rounded-full animate-spin"></div>
+                                        <p className="font-bold text-charcoal">Converting Extracted PDF Pages...</p>
+                                        <div className="w-full max-w-[200px] h-2 bg-cream rounded-full overflow-hidden">
+                                            <div className="h-full bg-tan transition-all duration-300" style={{ width: `${Math.max(5, pdfConvertProgress)}%` }}></div>
+                                        </div>
+                                    </div>
+                                ) : selectedFiles.length > 0 ? (
                                     <div className="grid grid-cols-4 gap-2 w-full max-w-sm mt-4">
                                         {selectedFiles.map((file, idx) => {
                                             const url = fileObjectURLs.get(file) || '';
