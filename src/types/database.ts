@@ -12,6 +12,14 @@ export interface Room {
         rotation?: number;
         z_index?: number;
     } | null;
+    geometries?: Array<{
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        rotation?: number;
+        z_index?: number;
+    }>;
     group_id?: string;
 }
 
