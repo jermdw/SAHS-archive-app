@@ -755,13 +755,34 @@ export function InteractiveMap() {
         });
     };
 
-    const handleGroupDragStopStateSync = (draggedId: string, draggedIndex: number | undefined, d: { x: number, y: number }) => {
+    const handleGroupDragStopStateSync = (draggedId: string, draggedIndex: number | undefined, _d: any) => {
         const start = draggedIndex !== undefined 
             ? dragStartPosRef.current[`${draggedId}-geom-${draggedIndex}`] 
             : dragStartPosRef.current[draggedId];
+        
         if (!start) return;
-        const offsetX = d.x - start.x;
-        const offsetY = d.y - start.y;
+        
+        // Direct DOM read to bypass React-Rnd losing coordinates during fully controlled mode
+        const leadNodeId = draggedIndex !== undefined && draggedIndex !== 0 
+            ? `inner-rnd-${draggedId}-geom-${draggedIndex}` 
+            : `rnd-node-${draggedId}`;
+            
+        const leadNode = document.getElementById(leadNodeId);
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        if (leadNode) {
+            const transform = leadNode.style.transform;
+            const match = transform.match(/translate(?:3d)?\(([-0-9.]+)px,\s*([-0-9.]+)px/);
+            if (match) {
+                const domX = parseFloat(match[1]);
+                const domY = parseFloat(match[2]);
+                offsetX = domX - start.x;
+                offsetY = domY - start.y;
+            }
+        }
+        
+        if (offsetX === 0 && offsetY === 0) return;
 
         saveSnapshot();
 
