@@ -1299,36 +1299,48 @@ export function InteractiveMap() {
                                 );
                             })}
 
-                                    {/* Render Locations */}
+                                    {/* Render Locations (Pins/Blocks) */}
                                     {locations.filter(l => l.name?.toLowerCase() !== 'compass rose').map(loc => {
                                 const c = localCoords[loc.id];
                                 if (!c) return null;
                                 const isSelected = selectedIdsRef.current.has(loc.id);
+                                
                                 return (
                                     <Rnd
                                         key={loc.id}
                                         id={`rnd-node-${loc.id}`}
-                                        onMouseDownCapture={(e: any) => {
-                                            if (e.shiftKey) handleItemSelection(loc.id, e);
+                                        className={`absolute group ${isEditMode ? 'cursor-move' : (c.display_type === 'pin' ? 'cursor-pointer' : 'pointer-events-none')}`}
+                                        style={{ 
+                                            backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.1)' : (c.display_type === 'pin' ? 'transparent' : 'rgba(210, 180, 140, 0.15)'),
+                                            zIndex: isSelected ? 150 : (c.z_index || 100),
+                                            border: isSelected ? '2px solid #3b82f6' : (c.display_type === 'pin' ? 'none' : '2px solid #d2b48c'),
+                                            borderRadius: c.display_type === 'pin' ? '0' : '4px'
                                         }}
-                                        onClickCapture={(e: any) => {
-                                            if (!e.shiftKey) handleItemSelection(loc.id, e);
-                                        }}
-                                        className={`absolute group ${isEditMode ? 'cursor-move' : 'cursor-pointer'}`}
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode && c.display_type !== 'pin'}
                                         position={draggingId === loc.id ? undefined : { x: c.x, y: c.y }}
                                         size={{ width: c.width, height: c.height }}
-                                        onDragStart={(e: any) => handleGroupDragStart(loc.id, undefined, e)}
-                                        onDrag={(_e, d: any) => handleGroupDrag(loc.id, undefined, d)}
-                                        onDragStop={(_e, d: any) => handleGroupDragStopStateSync(loc.id, undefined, d)}
+                                        onDragStart={(e: any) => handleGroupDragStart(loc.id, 0, e)}
+                                        onDrag={(_e: any, d: any) => handleGroupDrag(loc.id, 0, d)}
+                                        onDragStop={(_e: any, d: any) => handleGroupDragStopStateSync(loc.id, 0, d)}
+                                        onResizeStart={() => {
+                                            setResizingRoomId(`${loc.id}-0`);
+                                            setActiveDimensions({ width: c.width, height: c.height });
+                                        }}
+                                        onResize={(_e: any, _dir: any, ref: any) => {
+                                            setActiveDimensions({ 
+                                                width: parseInt(ref.style.width, 10), 
+                                                height: parseInt(ref.style.height, 10) 
+                                            });
+                                        }}
                                         onResizeStop={(_e, _dir, ref, _delta, pos) => {
                                             saveSnapshot();
                                             markDirty(loc.id);
+                                            setResizingRoomId(null);
+                                            setActiveDimensions(null);
                                             setLocalCoords(prev => ({ ...prev, [loc.id]: { ...prev[loc.id], x: pos.x, y: pos.y, width: parseInt(ref.style.width, 10), height: parseInt(ref.style.height, 10) }}));
                                         }}
-                                        style={{ zIndex: isSelected ? 150 : (c.z_index || 100) }}
                                     >
                                         <div 
                                             id={`inner-rnd-${loc.id}`} 
@@ -1339,11 +1351,11 @@ export function InteractiveMap() {
                                         >
                                             {c.display_type === 'pin' ? (
                                                 <div className="flex flex-col items-center">
-                                                    <MapPin size={48} className="text-red-500 drop-shadow-md" fill="white"/>
-                                                    <span className="text-[10px] font-bold bg-white/90 border px-1 rounded shadow-sm">{loc.name}</span>
+                                                    <MapPin size={48} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
+                                                    <span className={`text-[10px] font-bold ${isSelected ? 'bg-blue-50' : 'bg-white/90'} border px-1 rounded shadow-sm transition-colors`}>{loc.name}</span>
                                                 </div>
                                             ) : (
-                                                <div className="w-full h-full border-2 border-tan bg-white/90 flex items-center justify-center p-1 text-center">
+                                                <div className="w-full h-full flex items-center justify-center p-1 text-center">
                                                     <span className="font-serif font-bold text-charcoal text-[9px] uppercase leading-tight">{loc.name}</span>
                                                 </div>
                                             )}
