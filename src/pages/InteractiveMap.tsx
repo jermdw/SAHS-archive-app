@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { Rnd } from 'react-rnd';
 import { db } from '../lib/firebase';
 import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, getDoc, writeBatch, setDoc } from 'firebase/firestore';
-import { Plus, MapPin, ZoomIn, ZoomOut, Maximize, Edit3, X, BoxSelect, Maximize2, RotateCw, LayoutGrid, Compass } from 'lucide-react';
+import { Plus, MapPin, Square, ZoomIn, ZoomOut, Maximize, Edit3, X, BoxSelect, Maximize2, RotateCw, LayoutGrid, Compass } from 'lucide-react';
 import type { MuseumLocation, Room } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -367,8 +367,21 @@ export function InteractiveMap() {
                 display_type: displayStyle
             }
         }));
+
+        // Smart Panning: Center the map on the new item
+        if (wrapperRef.current) {
+            const wrapper = wrapperRef.current;
+            const targetX = (startX * scale) - (wrapper.clientWidth / 2) + (75 * scale);
+            const targetY = (startY * scale) - (wrapper.clientHeight / 2) + (50 * scale);
+            wrapper.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
+        }
+
         setSelectedLocationForBinding('');
         setIsBindingMode(false);
+
+        // Highlight the new item
+        setTimeout(() => setDraggingId(selectedLocationForBinding), 100);
+        setTimeout(() => setDraggingId(null), 1000);
     };
 
     const removeBlock = (id: string, e: React.MouseEvent) => {
@@ -427,18 +440,24 @@ export function InteractiveMap() {
     const placeExistingRoom = (roomDocId: string) => {
         const room = rooms.find(r => r.docId === roomDocId);
         if (!room) return;
-        
-        // Find a center screen position and snap it
-        const wrapper = wrapperRef.current;
-        const startX = wrapper ? absoluteSnap((wrapper.scrollLeft + wrapper.clientWidth/2) / scale - 180) : absoluteSnap(CANVAS_WIDTH/2 - 180);
-        const startY = wrapper ? absoluteSnap((wrapper.scrollTop + wrapper.clientHeight/2) / scale - 180) : absoluteSnap(CANVAS_HEIGHT/2 - 180);
-        
+
+        const startX = Math.round((CANVAS_WIDTH / 2 - 100) / 12) * 12;
+        const startY = Math.round((CANVAS_HEIGHT / 2 - 100) / 12) * 12;
+
         saveSnapshot();
-        markDirty(roomDocId);
-        setRooms(prev => prev.map(r => r.docId === roomDocId ? {
+        markDirty(id);
+        setRooms(prev => prev.map(r => r.docId === id ? {
             ...r,
-            map_coordinates: { x: startX, y: startY, width: 360, height: 360 }
+            map_coordinates: { x: startX, y: startY, width: 200, height: 200 }
         } : r));
+
+        // Smart Panning: Center the map on the new room
+        if (wrapperRef.current) {
+            const wrapper = wrapperRef.current;
+            const targetX = (startX * scale) - (wrapper.clientWidth / 2) + (100 * scale);
+            const targetY = (startY * scale) - (wrapper.clientHeight / 2) + (100 * scale);
+            wrapper.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
+        }
     };
 
     const placeAllUnplacedRooms = () => {
@@ -939,25 +958,46 @@ export function InteractiveMap() {
                                 
                                 {isBindingMode ? (
                                     <div className="space-y-3 p-3 bg-tan/5 rounded-lg border border-tan/20 animate-in slide-in-from-top-2">
-                                        <div className="flex gap-1 mb-2">
-                                            <button 
-                                                onClick={() => setDisplayStyle('box')} 
-                                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all ${displayStyle === 'box' ? 'bg-tan text-white shadow-md' : 'bg-white border border-tan/20 text-tan/60'}`}
-                                            >
-                                                <Square size={12}/> Block
-                                            </button>
-                                            <button 
-                                                onClick={() => setDisplayStyle('pin')} 
-                                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all ${displayStyle === 'pin' ? 'bg-tan text-white shadow-md' : 'bg-white border border-tan/20 text-tan/60'}`}
-                                            >
-                                                <MapPin size={12}/> Pin
-                                            </button>
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase text-tan/60 mb-2 tracking-tighter">Step 1: Choose Style</p>
+                                            <div className="flex gap-1 mb-3">
+                                                <button 
+                                                    onClick={() => setDisplayStyle('box')} 
+                                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all ${displayStyle === 'box' ? 'bg-tan text-white shadow-md' : 'bg-white border border-tan/20 text-tan/60'}`}
+                                                >
+                                                    <Square size={12}/> Block
+                                                </button>
+                                                <button 
+                                                    onClick={() => setDisplayStyle('pin')} 
+                                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all ${displayStyle === 'pin' ? 'bg-tan text-white shadow-md' : 'bg-white border border-tan/20 text-tan/60'}`}
+                                                >
+                                                    <MapPin size={12}/> Pin
+                                                </button>
+                                            </div>
                                         </div>
-                                        <select className="w-full bg-cream p-2 rounded border border-tan/20 text-sm font-serif font-bold text-charcoal outline-none focus:ring-1 focus:ring-tan" value={selectedLocationForBinding} onChange={e=>setSelectedLocationForBinding(e.target.value)}>
-                                            <option value="">Select location...</option>
-                                            {locations.filter(l => l.name?.toLowerCase() !== 'compass rose' && !localCoords[l.id]).map(l=><option key={l.id} value={l.id}>{l.name}</option>)}
-                                        </select>
-                                        <div className="flex gap-2">
+
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase text-tan/60 mb-2 tracking-tighter">Step 2: Select Location</p>
+                                            {(() => {
+                                                const unplaced = locations.filter(l => l.name?.toLowerCase() !== 'compass rose' && !localCoords[l.id]);
+                                                if (unplaced.length === 0) {
+                                                    return (
+                                                        <div className="bg-white border-2 border-dashed border-tan/20 p-4 rounded-lg text-center">
+                                                            <p className="text-xs italic text-charcoal/40 mb-2">No unplaced locations found.</p>
+                                                            <Link to="/manage-locations" className="text-[10px] font-black uppercase text-tan hover:text-charcoal underline">Add New Location</Link>
+                                                        </div>
+                                                    );
+                                                }
+                                                return (
+                                                    <select className="w-full bg-cream p-2 rounded border border-tan/20 text-sm font-serif font-bold text-charcoal outline-none focus:ring-1 focus:ring-tan" value={selectedLocationForBinding} onChange={e=>setSelectedLocationForBinding(e.target.value)}>
+                                                        <option value="">Select location...</option>
+                                                        {unplaced.map(l=><option key={l.id} value={l.id}>{l.name}</option>)}
+                                                    </select>
+                                                );
+                                            })()}
+                                        </div>
+
+                                        <div className="flex gap-2 pt-2">
                                             <button onClick={addBlock} className="flex-1 bg-charcoal text-white py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-lg hover:bg-black transition-all">Place {displayStyle === 'pin' ? 'Pin' : 'Block'}</button>
                                             <button onClick={()=>setIsBindingMode(false)} className="px-3 bg-white border border-charcoal/10 text-charcoal/60 text-xs rounded-lg hover:bg-charcoal/5 transition-colors">Cancel</button>
                                         </div>
