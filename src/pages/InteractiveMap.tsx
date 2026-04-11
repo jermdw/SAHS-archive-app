@@ -253,24 +253,41 @@ export function InteractiveMap() {
         try {
             const stripUndefined = (obj: any) => JSON.parse(JSON.stringify(obj));
 
-            // Save all items that have been marked as dirty
-            const promises = Array.from(dirtyIdsRef.current).map(id => {
-                // Check if it's a location ID
+            // Filter out removals and actual updates
+            const updates = Array.from(dirtyIdsRef.current).filter(id => {
+                const isRoom = rooms.find(r => r.docId === id || r.id === id);
+                const isLoc = locations.find(l => l.id === id);
+                return isRoom || isLoc;
+            });
+
+            const promises = updates.map(id => {
+                // 1. Try finding as location
                 const loc = locations.find(l => l.id === id);
                 if (loc?.docId && localCoords[id]) {
-                    return updateDoc(doc(db, 'locations', loc.docId), { 
-                        map_coordinates: stripUndefined(localCoords[id]) 
-                    });
+                    const c = localCoords[id];
+                    // SAFETY: Only save if coordinates are valid numbers and not zero (unless intended)
+                    if (typeof c.x === 'number' && typeof c.y === 'number' && !isNaN(c.x) && !isNaN(c.y)) {
+                        return updateDoc(doc(db, 'locations', loc.docId), { 
+                            map_coordinates: stripUndefined(c) 
+                        });
+                    }
                 }
-                
-                // Check if it's a room ID
+
+                // 2. Try finding as room
                 const room = rooms.find(r => r.docId === id || r.id === id);
                 if (room?.docId) {
-                    return updateDoc(doc(db, 'rooms', room.docId), {
-                        name: room.name,
-                        map_coordinates: room.map_coordinates ? stripUndefined(room.map_coordinates) : null,
-                        geometries: room.geometries ? stripUndefined(room.geometries) : null
-                    });
+                    const c = room.map_coordinates;
+                    // If coordinates were intentionally removed (null), allow it
+                    if (c === null) {
+                        return updateDoc(doc(db, 'rooms', room.docId), { map_coordinates: null });
+                    }
+                    // Otherwise only save if safe
+                    if (c && typeof c.x === 'number' && !isNaN(c.x)) {
+                        return updateDoc(doc(db, 'rooms', room.docId), { 
+                            map_coordinates: room.map_coordinates, 
+                            geometries: room.geometries 
+                        });
+                    }
                 }
                 return Promise.resolve();
             });
@@ -445,8 +462,8 @@ export function InteractiveMap() {
         const startY = Math.round((CANVAS_HEIGHT / 2 - 100) / 12) * 12;
 
         saveSnapshot();
-        markDirty(id);
-        setRooms(prev => prev.map(r => r.docId === id ? {
+        markDirty(roomDocId);
+        setRooms(prev => prev.map(r => r.docId === roomDocId ? {
             ...r,
             map_coordinates: { x: startX, y: startY, width: 200, height: 200 }
         } : r));
@@ -830,7 +847,7 @@ export function InteractiveMap() {
                     const finalX = absoluteSnap(sStart.x + offsetX);
                     const finalY = absoluteSnap(sStart.y + offsetY);
                     
-                    // Safety: Never save NaN and keep within reasonable bounds
+                    // SAFETY: Prevent coordinate jump if math fails
                     if (!isNaN(finalX) && !isNaN(finalY)) {
                         markDirty(id);
                         next[id] = {
