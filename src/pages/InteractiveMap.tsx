@@ -679,10 +679,8 @@ export function InteractiveMap() {
             selectedIdsRef.current.clear();
             selectedIdsRef.current.add(draggedId);
             setSelectionDOM(draggedId, true);
-            // We consciously avoid setSelectionTick(t + 1) here to avoid resetting Rnd's internal drag state
         }
-
-        setDraggingId(draggedId);
+        
         dragStartPosRef.current = {};
         
         // Track start position for EVERY selected item (and internal room geometries)
@@ -819,7 +817,6 @@ export function InteractiveMap() {
         
         // Clear drag tracking
         dragStartPosRef.current = {};
-        setDraggingId(null);
         setSelectionTick(t => t + 1); // Finally sync selection UI
     };
 
@@ -1189,7 +1186,7 @@ export function InteractiveMap() {
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode}
-                                        position={draggingId === room.docId ? undefined : { x: c.x, y: c.y }}
+                                        position={{ x: c.x, y: c.y }}
                                         size={{ width: c.width, height: c.height }}
                                         onDragStart={(e: any) => handleGroupDragStart(room.docId!, index, e)}
                                         onDrag={(_e: any, d: any) => handleGroupDrag(room.docId!, index, d)}
@@ -1320,7 +1317,7 @@ export function InteractiveMap() {
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode && c.display_type !== 'pin'}
-                                        position={draggingId === loc.id ? undefined : { x: c.x, y: c.y }}
+                                        position={{ x: c.x, y: c.y }}
                                         size={{ width: c.width, height: c.height }}
                                         onDragStart={(e: any) => handleGroupDragStart(loc.id, undefined, e)}
                                         onDrag={(_e, d: any) => handleGroupDrag(loc.id, undefined, d)}
