@@ -16,6 +16,45 @@ const CANVAS_WIDTH = 2400;
 const CANVAS_HEIGHT = 1600;
 const PIXELS_PER_FOOT = 24; // 1 foot = 24 pixels (1 inch = 2 pixels)
 
+const getSmartBorders = (current: any, all: any[], isSelected: boolean) => {
+    const borderStyle = isSelected ? '2px solid #3b82f6' : '2px solid rgba(139, 115, 85, 0.3)';
+    const style: any = {
+        borderTop: borderStyle,
+        borderBottom: borderStyle,
+        borderLeft: borderStyle,
+        borderRight: borderStyle
+    };
+
+    const threshold = 2; // px threshold for "touching"
+
+    all.forEach(other => {
+        if (other === current) return;
+
+        // Check Left overlap
+        if (Math.abs(current.x - (other.x + other.width)) < threshold && 
+            current.y < other.y + other.height && current.y + current.height > other.y) {
+            style.borderLeft = 'none';
+        }
+        // Check Right overlap
+        if (Math.abs((current.x + current.width) - other.x) < threshold && 
+            current.y < other.y + other.height && current.y + current.height > other.y) {
+            style.borderRight = 'none';
+        }
+        // Check Top overlap
+        if (Math.abs(current.y - (other.y + other.height)) < threshold && 
+            current.x < other.x + other.width && current.x + current.width > other.x) {
+            style.borderTop = 'none';
+        }
+        // Check Bottom overlap
+        if (Math.abs((current.y + current.height) - other.y) < threshold && 
+            current.x < other.x + other.width && current.x + current.width > other.x) {
+            style.borderBottom = 'none';
+        }
+    });
+
+    return style;
+};
+
 export function InteractiveMap() {
     const { isSAHSUser } = useAuth();
     const [locations, setLocations] = useState<MuseumLocation[]>([]);
@@ -42,12 +81,14 @@ export function InteractiveMap() {
     
     // Multi-select and Drag tracking
     const selectedIdsRef = useRef<Set<string>>(new Set());
+    const dirtyIdsRef = useRef<Set<string>>(new Set());
     const dragStartPosRef = useRef<Record<string, {x: number, y: number}>>({});
     const [, setSelectionTick] = useState(0); // For triggering UI buttons reacting to ref changes
     const [sidebarPos, setSidebarPos] = useState({ x: 32, y: 96 });
     const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
     const [resizingRoomId, setResizingRoomId] = useState<string | null>(null);
     const [activeDimensions, setActiveDimensions] = useState<{ width: number, height: number } | null>(null);
+    const [draggingId, setDraggingId] = useState<string | null>(null);
 
     // History and Undo tracking
     const [, setHistory] = useState<LayoutHistoryState[]>([]);
@@ -193,38 +234,39 @@ export function InteractiveMap() {
         try {
             const stripUndefined = (obj: any) => JSON.parse(JSON.stringify(obj));
 
-            // Save Locations
-            const promises = Object.entries(localCoords).map(([id, coords]) => {
+            // Save all items that have been marked as dirty
+            const promises = Array.from(dirtyIdsRef.current).map(id => {
+                // Check if it's a location ID
                 const loc = locations.find(l => l.id === id);
-                if (loc?.docId) {
+                if (loc?.docId && localCoords[id]) {
                     return updateDoc(doc(db, 'locations', loc.docId), { 
-                        map_coordinates: stripUndefined(coords) 
+                        map_coordinates: stripUndefined(localCoords[id]) 
+                    });
+                }
+                
+                // Check if it's a room ID
+                const room = rooms.find(r => r.docId === id || r.id === id);
+                if (room?.docId) {
+                    return updateDoc(doc(db, 'rooms', room.docId), {
+                        name: room.name,
+                        map_coordinates: room.map_coordinates ? stripUndefined(room.map_coordinates) : null,
+                        geometries: room.geometries ? stripUndefined(room.geometries) : null
                     });
                 }
                 return Promise.resolve();
             });
             
-            // Clean unmapped locations
+            // Special Case: Handle items removed from the map
             locations.forEach(loc => {
-                if (loc.map_coordinates && !localCoords[loc.id] && loc.docId) {
+                if (loc.map_coordinates && !localCoords[loc.id] && loc.docId && dirtyIdsRef.current.has(loc.id)) {
                     promises.push(updateDoc(doc(db, 'locations', loc.docId), { 
                         map_coordinates: null 
                     }));
                 }
             });
 
-            // NEW: Save Rooms individually to their docs
-            const roomPromises = rooms.map(room => {
-                if (room.docId) {
-                    return updateDoc(doc(db, 'rooms', room.docId), {
-                        name: room.name,
-                        map_coordinates: room.map_coordinates ? stripUndefined(room.map_coordinates) : null
-                    });
-                }
-                return Promise.resolve();
-            });
-
-            await Promise.all([...promises, ...roomPromises]);
+            await Promise.all(promises);
+            dirtyIdsRef.current.clear();
 
             setIsEditMode(false);
             alert("Layout saved successfully!");
@@ -250,7 +292,7 @@ export function InteractiveMap() {
         const startX = Math.round((CANVAS_WIDTH / 2 - (isPin ? 24 : 50)) / 12) * 12;
         const startY = Math.round((CANVAS_HEIGHT / 2 - (isPin ? 24 : 50)) / 12) * 12;
         
-        saveSnapshot();
+        markDirty(selectedLocationForBinding);
         setLocalCoords(prev => ({
             ...prev,
             [selectedLocationForBinding]: {
@@ -269,6 +311,7 @@ export function InteractiveMap() {
         e.stopPropagation();
         if(window.confirm("Remove this location from the map?")) {
             saveSnapshot();
+            markDirty(id);
             selectedIdsRef.current.delete(id);
             setLocalCoords(prev => {
                 const next = { ...prev };
@@ -312,6 +355,7 @@ export function InteractiveMap() {
         e.stopPropagation();
         if(window.confirm("Hide this room from the map design? (Folder will remain in Locations)")) {
             saveSnapshot();
+            markDirty(id);
             setRooms(prev => prev.map(r => (r.id === id || r.docId === id) ? { ...r, map_coordinates: null } : r));
         }
     };
@@ -326,6 +370,7 @@ export function InteractiveMap() {
         const startY = wrapper ? absoluteSnap((wrapper.scrollTop + wrapper.clientHeight/2) / scale - 180) : absoluteSnap(CANVAS_HEIGHT/2 - 180);
         
         saveSnapshot();
+        markDirty(roomDocId);
         setRooms(prev => prev.map(r => r.docId === roomDocId ? {
             ...r,
             map_coordinates: { x: startX, y: startY, width: 360, height: 360 }
@@ -491,12 +536,19 @@ export function InteractiveMap() {
 
     const rotateItem = (id: string, type: 'room' | 'location', currentRotation: number, e: React.MouseEvent) => {
         e.stopPropagation();
-        const res = window.prompt("Enter rotation degrees:", currentRotation.toString());
-        if (!res) return;
-        const deg = parseInt(res, 10);
-        if (isNaN(deg)) return;
+        
+        // Simple click increments by 90, Alt/Shift allows manual
+        let deg = (currentRotation + 90) % 360;
+        if (e.altKey || e.shiftKey) {
+            const res = window.prompt("Enter rotation degrees:", currentRotation.toString());
+            if (!res) return;
+            const manual = parseInt(res, 10);
+            if (isNaN(manual)) return;
+            deg = manual;
+        }
 
         saveSnapshot();
+        markDirty(id);
         if (type === 'room') {
             setRooms(prev => prev.map(r => (r.id === id || r.docId === id) ? { 
                 ...r, 
@@ -508,8 +560,10 @@ export function InteractiveMap() {
     };
 
     const setSelectionDOM = (id: string, select: boolean) => {
-        const el = document.getElementById(`inner-rnd-${id}`);
-        if (el) el.setAttribute('data-selected', select ? 'true' : 'false');
+        const elements = document.querySelectorAll(`[data-selection-id="${id}"]`);
+        elements.forEach(el => {
+            el.setAttribute('data-selected', select ? 'true' : 'false');
+        });
     };
 
     const handleItemSelection = (id: string, e: any) => {
@@ -545,6 +599,10 @@ export function InteractiveMap() {
         }
     };
 
+    const markDirty = (id: string) => {
+        dirtyIdsRef.current.add(id);
+    };
+
     const handleCanvasClick = (e: React.MouseEvent) => {
         if ((e.target as HTMLElement).closest('.react-draggable') || (e.target as HTMLElement).closest('button')) return;
         selectedIdsRef.current.forEach(sid => setSelectionDOM(sid, false));
@@ -561,9 +619,10 @@ export function InteractiveMap() {
             selectedIdsRef.current.clear();
             selectedIdsRef.current.add(draggedId);
             setSelectionDOM(draggedId, true);
-            setSelectionTick(t => t + 1);
+            // We consciously avoid setSelectionTick(t + 1) here to avoid resetting Rnd's internal drag state
         }
 
+        setDraggingId(draggedId);
         dragStartPosRef.current = {};
         
         // Track start position for EVERY selected item (and internal room geometries)
@@ -642,6 +701,7 @@ export function InteractiveMap() {
         setRooms(prev => prev.map(r => {
             const id = r.docId || r.id;
             if (selectedIdsRef.current.has(id)) {
+                markDirty(id);
                 // If it has geometries, update all of them by the offset
                 if (r.geometries && r.geometries.length > 0) {
                     return {
@@ -676,6 +736,7 @@ export function InteractiveMap() {
             const next = { ...prev };
             Object.keys(next).forEach(id => {
                 if (selectedIdsRef.current.has(id) && dragStartPosRef.current[id]) {
+                    markDirty(id);
                     next[id] = {
                         ...next[id],
                         x: absoluteSnap(dragStartPosRef.current[id].x + offsetX),
@@ -688,6 +749,8 @@ export function InteractiveMap() {
         
         // Clear drag tracking
         dragStartPosRef.current = {};
+        setDraggingId(null);
+        setSelectionTick(t => t + 1); // Finally sync selection UI
     };
 
     return (
@@ -816,7 +879,7 @@ export function InteractiveMap() {
                         background-size: 24px 24px;
                         background-image: linear-gradient(to right, rgba(140,120,100,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(140,120,100,0.1) 1px, transparent 1px);
                     }
-                    [data-selected="true"] { outline: 3px solid #c4a484 !important; outline-offset: 2px !important; z-index: 50 !important; }
+                    [data-selected="true"] { outline: 3px solid #c4a484 !important; outline-offset: 2px !important; }
                 `}</style>
 
                 {!loading && (
@@ -827,7 +890,50 @@ export function InteractiveMap() {
                                 const geometries = room.geometries || (room.map_coordinates ? [room.map_coordinates] : []);
                                 if (geometries.length === 0) return null;
 
-                                // Compute Bounding Box for Centering Label
+                                // Compute Label Anchor (Midpoint of shared seams if merged, else bounding box center)
+                                let anchorX = 0, anchorY = 0;
+                                const internalMidpoints: {x: number, y: number}[] = [];
+                                const threshold = 2;
+
+                                geometries.forEach((g1, i) => {
+                                    geometries.forEach((g2, j) => {
+                                        if (i >= j) return;
+                                        // Check shared vertical edge
+                                        if (Math.abs(g1.x - (g2.x + g2.width)) < threshold || Math.abs(g2.x - (g1.x + g1.width)) < threshold) {
+                                            const overlapY_Start = Math.max(g1.y, g2.y);
+                                            const overlapY_End = Math.min(g1.y + g1.height, g2.y + g2.height);
+                                            if (overlapY_Start < overlapY_End) {
+                                                const x = Math.min(g1.x, g2.x) + (Math.abs(g1.x - g2.x) < 5 ? 0 : Math.min(g1.width, g2.width)); // Rough midpoint x
+                                                internalMidpoints.push({ x: (g1.x + g1.width + g2.x) / 2, y: (overlapY_Start + overlapY_End) / 2 });
+                                            }
+                                        }
+                                        // Check shared horizontal edge
+                                        if (Math.abs(g1.y - (g2.y + g2.height)) < threshold || Math.abs(g2.y - (g1.y + g1.height)) < threshold) {
+                                            const overlapX_Start = Math.max(g1.x, g2.x);
+                                            const overlapX_End = Math.min(g1.x + g1.width, g2.x + g2.width);
+                                            if (overlapX_Start < overlapX_End) {
+                                                internalMidpoints.push({ x: (overlapX_Start + overlapX_End) / 2, y: (g1.y + g1.height + g2.y) / 2 });
+                                            }
+                                        }
+                                    });
+                                });
+
+                                // Compute Label Anchor (Weighted center based on box areas)
+                                let totalArea = 0;
+                                let weightedX = 0;
+                                let weightedY = 0;
+
+                                geometries.forEach(g => {
+                                    const area = g.width * g.height;
+                                    totalArea += area;
+                                    weightedX += (g.x + g.width / 2) * area;
+                                    weightedY += (g.y + g.height / 2) * area;
+                                });
+
+                                anchorX = totalArea > 0 ? weightedX / totalArea : geometries[0].x + geometries[0].width / 2;
+                                anchorY = totalArea > 0 ? weightedY / totalArea : geometries[0].y + geometries[0].height / 2;
+
+                                // Still need bounding box for large-text breakout
                                 let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
                                 geometries.forEach(g => {
                                     minX = Math.min(minX, g.x);
@@ -841,17 +947,16 @@ export function InteractiveMap() {
                                     <Rnd
                                         key={`${room.docId}-box-${index}`}
                                         id={index === 0 ? `rnd-node-${room.docId}` : `inner-rnd-${room.docId}-geom-${index}`}
-                                        onMouseDownCapture={(e: any) => handleItemSelection(room.docId!, e)}
                                         className={`absolute ${isEditMode ? 'cursor-move' : 'pointer-events-none'}`}
                                         style={{ 
                                             backgroundColor: 'rgba(210, 180, 140, 0.2)',
-                                            border: isSelected ? '2px solid #3b82f6' : '2px solid rgba(139, 115, 85, 0.3)', // Thick 2px structural line
-                                            zIndex: isSelected ? 50 : 5
+                                            zIndex: isSelected ? 40 : 5,
+                                            ...getSmartBorders(c, geometries, isSelected)
                                         }}
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode}
-                                        position={{ x: c.x, y: c.y }}
+                                        position={draggingId === room.docId ? undefined : { x: c.x, y: c.y }}
                                         size={{ width: c.width, height: c.height }}
                                         onDragStart={(e: any) => handleGroupDragStart(room.docId!, index, e)}
                                         onDrag={(_e: any, d: any) => handleGroupDrag(room.docId!, index, d)}
@@ -868,6 +973,7 @@ export function InteractiveMap() {
                                         }}
                                         onResizeStop={(_e: any, _dir: any, ref: any, _delta: any, pos: any) => {
                                             saveSnapshot();
+                                            markDirty(room.docId!);
                                             setResizingRoomId(null);
                                             setActiveDimensions(null);
                                             setRooms(prev => prev.map(r => r.docId === room.docId ? {
@@ -876,7 +982,11 @@ export function InteractiveMap() {
                                             } : r));
                                         }}
                                     >
-                                        <div className="w-full h-full relative">
+                                        <div 
+                                            data-selection-id={room.docId}
+                                            data-selected={isSelected ? "true" : "false"}
+                                            className="w-full h-full relative"
+                                        >
                                             {/* Dimensional Feedback (Center on box being resized) */}
                                             {resizingRoomId === `${room.docId}-${index}` && activeDimensions && (
                                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
@@ -898,18 +1008,14 @@ export function InteractiveMap() {
 
                                 return (
                                     <Fragment key={room.docId}>
-                                        {/* Master Wall Layer (Bold Perimeter Outline) */}
+                                        {/* Master Wall Layer (Subtle background) */}
                                         <div 
-                                            className="absolute pointer-events-none z-10"
+                                            className="absolute pointer-events-none z-10 opacity-30"
                                             style={{ 
                                                 left: 0, 
                                                 top: 0, 
                                                 width: '100%', 
                                                 height: '100%',
-                                                // Create a bold 3px crisp "Wall" around the combined geometries
-                                                filter: isSelected 
-                                                    ? 'drop-shadow(3px 0px 0px #3b82f6) drop-shadow(-3px 0px 0px #3b82f6) drop-shadow(0px 3px 0px #3b82f6) drop-shadow(0px -3px 0px #3b82f6)'
-                                                    : 'drop-shadow(3px 0px 0px #8b7355) drop-shadow(-3px 0px 0px #8b7355) drop-shadow(0px 3px 0px #8b7355) drop-shadow(0px -3px 0px #8b7355)'
                                             }}
                                         >
                                             {geometries.map((c, i) => (
@@ -921,7 +1027,7 @@ export function InteractiveMap() {
                                                         top: c.y, 
                                                         width: c.width, 
                                                         height: c.height,
-                                                        backgroundColor: 'rgba(0,0,0,0.01)' // Almost invisible to prevent tinting, but sharp enough for the filter
+                                                        backgroundColor: 'rgba(0, 0, 0, 0.01)' // Back to original invisible trigger
                                                     }} 
                                                 />
                                             ))}
@@ -930,15 +1036,15 @@ export function InteractiveMap() {
                                         {/* Unit Interaction Boxes (Invisible, but handle dragging/resizing) */}
                                         {geometries.map((c, i) => renderBox(c, i))}
                                         
-                                        {/* Master Room Label (Centered over all boxes) */}
+                                        {/* Master Room Label (Centered over Anchor) */}
                                         <div 
                                             id={`room-label-${room.docId}`}
-                                            className="absolute pointer-events-none flex items-center justify-center text-center z-40 transition-transform duration-75"
+                                            className="absolute pointer-events-none flex items-center justify-center text-center z-[70] transition-transform duration-75"
                                             style={{ 
-                                                left: minX, 
-                                                top: minY, 
-                                                width: maxX - minX, 
-                                                height: maxY - minY 
+                                                left: anchorX - 60, 
+                                                top: anchorY - 40, 
+                                                width: 120, 
+                                                height: 80 
                                             }}
                                         >
                                             <span 
@@ -961,28 +1067,41 @@ export function InteractiveMap() {
                             {locations.map(loc => {
                                 const c = localCoords[loc.id];
                                 if (!c) return null;
+                                const isSelected = selectedIdsRef.current.has(loc.id);
                                 return (
                                     <Rnd
                                         key={loc.id}
                                         id={`rnd-node-${loc.id}`}
-                                        onMouseDownCapture={(e: any) => handleItemSelection(loc.id, e)}
+                                        onMouseDownCapture={(e: any) => {
+                                            if (e.shiftKey) handleItemSelection(loc.id, e);
+                                        }}
+                                        onClickCapture={(e: any) => {
+                                            if (!e.shiftKey) handleItemSelection(loc.id, e);
+                                        }}
                                         className={`absolute group ${isEditMode ? 'cursor-move' : 'cursor-pointer'}`}
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode && c.display_type !== 'pin'}
-                                        position={{ x: c.x, y: c.y }}
+                                        position={draggingId === loc.id ? undefined : { x: c.x, y: c.y }}
                                         size={{ width: c.width, height: c.height }}
                                         onDragStart={(e: any) => handleGroupDragStart(loc.id, undefined, e)}
                                         onDrag={(_e, d: any) => handleGroupDrag(loc.id, undefined, d)}
                                         onDragStop={(_e, d: any) => handleGroupDragStopStateSync(loc.id, undefined, d)}
                                         onResizeStop={(_e, _dir, ref, _delta, pos) => {
                                             saveSnapshot();
+                                            markDirty(loc.id);
                                             setLocalCoords(prev => ({ ...prev, [loc.id]: { ...prev[loc.id], x: pos.x, y: pos.y, width: parseInt(ref.style.width, 10), height: parseInt(ref.style.height, 10) }}));
                                         }}
                                         onClickCapture={(e: any) => handleItemSelection(loc.id, e)}
-                                        style={{ zIndex: c.z_index || 10 }}
+                                        style={{ zIndex: isSelected ? 50 : (c.z_index || 10) }}
                                     >
-                                        <div id={`inner-rnd-${loc.id}`} className="w-full h-full relative" style={{ transform: `rotate(${c.rotation || 0}deg)` }}>
+                                        <div 
+                                            id={`inner-rnd-${loc.id}`} 
+                                            data-selection-id={loc.id}
+                                            data-selected={isSelected ? "true" : "false"}
+                                            className="w-full h-full relative" 
+                                            style={{ transform: `rotate(${c.rotation || 0}deg)` }}
+                                        >
                                             {c.display_type === 'pin' ? (
                                                 <div className="flex flex-col items-center">
                                                     <MapPin size={48} className="text-red-500 drop-shadow-md" fill="white"/>

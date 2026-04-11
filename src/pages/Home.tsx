@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Library, Users, FileText, Building, Box, Folder } from 'lucide-react';
+import { Search, Library, Users, FileText, Building, Box } from 'lucide-react';
 
 const BACKGROUND_IMAGES = [
     // Placeholder images - Please replace with the links to the images you attached!
@@ -96,8 +96,8 @@ export function Home() {
                         Discover the stories, people, and events that shaped our community
                     </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 text-left">
-                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow">
+                    <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-12 text-left">
+                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-2">
                             <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
                                 <FileText size={28} />
                             </div>
@@ -107,7 +107,7 @@ export function Home() {
                             </p>
                         </div>
 
-                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow">
+                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-2">
                             <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
                                 <Users size={28} />
                             </div>
@@ -117,7 +117,7 @@ export function Home() {
                             </p>
                         </div>
 
-                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow">
+                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-2">
                             <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
                                 <Building size={28} />
                             </div>
@@ -127,7 +127,7 @@ export function Home() {
                             </p>
                         </div>
 
-                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow">
+                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-2 lg:col-start-2">
                             <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
                                 <Box size={28} />
                             </div>
@@ -137,31 +137,19 @@ export function Home() {
                             </p>
                         </div>
 
-                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow">
-                            <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
-                                <Folder size={28} />
-                            </div>
-                            <h3 className="text-2xl font-serif font-bold text-charcoal mb-4">Museum Wings</h3>
-                            <p className="text-charcoal-light leading-relaxed">
-                                Explore the archive by its physical location in the museum. Browse by room to see items housed in specific galleries, shelves, and display cases.
-                            </p>
-                            <Link to="/interactive-map" className="inline-flex items-center gap-2 mt-4 text-tan font-bold text-sm uppercase tracking-wider hover:text-charcoal transition-colors">
-                                Open Museum Map &rarr;
-                            </Link>
-                        </div>
-
-                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow lg:col-span-1">
+                        <div className="bg-white p-8 rounded-2xl border border-tan-light shadow-sm hover:shadow-md transition-shadow md:col-span-2 md:col-start-2 lg:col-span-2 lg:col-start-4">
                             <div className="w-12 h-12 bg-tan-light/30 text-tan rounded-xl flex items-center justify-center mb-6">
                                 <Search size={28} />
                             </div>
                             <h3 className="text-2xl font-serif font-bold text-charcoal mb-4">Search the Archive</h3>
                             <p className="text-charcoal-light leading-relaxed">
-                                Looking for something specific? Use our advanced search tool to query the archive by keyword, date, location, or subject tags.
+                                Looking for something specific? Use our advanced search tool to query the archive by keyword, date, location, or subject tags. Use filters and categories to narrow down your search results.
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
+
 
             {/* Footer / Copyright Notice */}
             <footer className="bg-charcoal text-cream/70 py-16 px-8 text-center text-sm border-t-4 border-tan">

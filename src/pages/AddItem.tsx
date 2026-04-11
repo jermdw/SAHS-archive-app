@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Plus, Search, FileText, Tag, Users, Maximize2, Lock, Camera } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { useSearchParams } from 'react-router-dom';
@@ -9,6 +9,7 @@ import type { ItemType, Collection, ArchiveItem } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
 import { convertPdfToPngs } from '../lib/pdfUtils';
+import { GoogleDrivePicker } from '../components/GoogleDrivePicker';
 
 function useClickOutside(ref: React.RefObject<any>, handler: () => void) {
     useEffect(() => {
@@ -36,6 +37,8 @@ export function AddItem() {
     const [error, setError] = useState<string | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [accessionFiles, setAccessionFiles] = useState<File[]>([]);
+    const [isConvertingAccessionPdf, setIsConvertingAccessionPdf] = useState(false);
+    const [accessionPdfProgress, setAccessionPdfProgress] = useState(0);
     const [additionalMediaFiles, setAdditionalMediaFiles] = useState<File[]>([]);
     const [featuredImageIndex, setFeaturedImageIndex] = useState(0);
     const [fileObjectURLs, setFileObjectURLs] = useState<Map<File, string>>(new Map());
@@ -284,6 +287,70 @@ export function AddItem() {
         }
     };
 
+    const processFiles = async (files: FileList | File[]) => {
+        const fileArray = Array.from(files);
+        const finalFiles: File[] = [];
+        
+        const hasPdf = fileArray.some(f => f.type === 'application/pdf');
+        if (hasPdf) {
+            setIsConvertingPdf(true);
+            setPdfConvertProgress(0);
+        }
+
+        try {
+            for (let i = 0; i < fileArray.length; i++) {
+                const file = fileArray[i];
+                if (file.type === 'application/pdf') {
+                    const pngs = await convertPdfToPngs(file, (p) => {
+                        setPdfConvertProgress(p);
+                    });
+                    finalFiles.push(...pngs);
+                } else {
+                    finalFiles.push(file);
+                }
+            }
+            setSelectedFiles(prev => [...prev, ...finalFiles]);
+        } catch (error) {
+            console.error("Failed to process files:", error);
+            alert("Failed to read or convert one or more files.");
+        } finally {
+            setIsConvertingPdf(false);
+            setPdfConvertProgress(0);
+        }
+    };
+
+    const processAccessionFiles = async (files: FileList | File[]) => {
+        const fileArray = Array.from(files);
+        setIsConvertingAccessionPdf(true);
+        setAccessionPdfProgress(0);
+
+        try {
+            const finalFiles: File[] = [];
+            for (let i = 0; i < fileArray.length; i++) {
+                const file = fileArray[i];
+                if (file.type === 'application/pdf') {
+                    const pngs = await convertPdfToPngs(file, (p) => {
+                        setAccessionPdfProgress(p);
+                    });
+                    finalFiles.push(...pngs);
+                } else {
+                    finalFiles.push(file);
+                }
+            }
+            setAccessionFiles(prev => [...prev, ...finalFiles]);
+        } catch (error) {
+            console.error("Failed to process accession files:", error);
+            alert("Failed to read or convert one or more accession files.");
+        } finally {
+            setIsConvertingAccessionPdf(false);
+            setAccessionPdfProgress(0);
+        }
+    };
+
+    const handleDriveFiles = useCallback((files: File[]) => {
+        processFiles(files);
+    }, []);
+
     const getCoordinatesFromAddress = async (address: string) => {
         try {
             const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, {
@@ -414,7 +481,7 @@ export function AddItem() {
                 subject: formData.get('subject') as string || "",
                 coverage: formData.get('location') as string || "",
 
-                category: formData.get('category') as string || "",
+                category: itemType === 'Artifact' ? 'Artifact' : (formData.get('category') as string || ""),
 
                 // SAHS Specific
                 condition: (formData.get('condition') as any) || null,
@@ -666,17 +733,20 @@ export function AddItem() {
                                 ))}
                             </div>
 
-                            <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3 underline underline-offset-4 decoration-tan/30 flex items-center">
+                             <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-3 underline underline-offset-4 decoration-tan/30 flex items-center gap-2">
                                 {itemType === 'Document' ? 'Document Scans / Photos' : itemType === 'Artifact' ? 'Artifact Photos' : 'Representative Media / Portraits'}
-                                {selectedFiles.length > 0 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => { setSelectedFiles([]); setFeaturedImageIndex(0); }}
-                                        className="ml-auto text-[10px] font-black uppercase text-red-500 hover:text-red-700 tracking-widest transition-colors flex items-center gap-1"
-                                    >
-                                        <X size={10} /> Clear All
-                                    </button>
-                                )}
+                                <div className="ml-auto flex items-center gap-2">
+                                    <GoogleDrivePicker onFilesSelected={handleDriveFiles} onError={setError} />
+                                    {selectedFiles.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSelectedFiles([]); setFeaturedImageIndex(0); }}
+                                            className="text-[10px] font-black uppercase text-red-500 hover:text-red-700 tracking-widest transition-colors flex items-center gap-1"
+                                        >
+                                            <X size={10} /> Clear
+                                        </button>
+                                    )}
+                                </div>
                             </label>
                             <div
                                 onClick={() => fileInputRef.current?.click()}
@@ -690,42 +760,10 @@ export function AddItem() {
                                     multiple
                                     accept="image/png, image/jpeg, image/webp, application/pdf"
                                     onChange={async (e) => {
-                                        const files = e.target.files;
-                                        if (!files) return;
-                                        
-                                        const fileArray = Array.from(files);
-                                        const finalFiles: File[] = [];
-                                        
-                                        const hasPdf = fileArray.some(f => f.type === 'application/pdf');
-                                        if (hasPdf) {
-                                            setIsConvertingPdf(true);
-                                            setPdfConvertProgress(0);
-                                        }
-
-                                        try {
-                                            for (let i = 0; i < fileArray.length; i++) {
-                                                const file = fileArray[i];
-                                                if (file.type === 'application/pdf') {
-                                                    const pngs = await convertPdfToPngs(file, (p) => {
-                                                        setPdfConvertProgress(p);
-                                                    });
-                                                    finalFiles.push(...pngs);
-                                                } else {
-                                                    finalFiles.push(file);
-                                                }
-                                            }
-                                        } catch (error) {
-                                            console.error("Failed to convert PDF:", error);
-                                            alert("Failed to read PDF file.");
-                                        } finally {
-                                            setIsConvertingPdf(false);
-                                            setPdfConvertProgress(0);
+                                        if (e.target.files) {
+                                            await processFiles(e.target.files);
                                             e.target.value = '';
                                         }
-
-                                        setSelectedFiles(prev => {
-                                            return [...prev, ...finalFiles];
-                                        });
                                     }}
                                 />
                                 {/* Image Grid */}
@@ -871,11 +909,22 @@ export function AddItem() {
                                             className="hidden" 
                                             accept="image/*,application/pdf"
                                             onChange={(e) => {
-                                                if (e.target.files) setAccessionFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                                                if (e.target.files) processAccessionFiles(e.target.files);
                                                 e.target.value = '';
                                             }}
                                         />
-                                        {accessionFiles.length > 0 ? (
+                                        {isConvertingAccessionPdf && (
+                                            <div className="flex flex-col items-center justify-center p-4">
+                                                <div className="w-full bg-tan/10 h-1 rounded-full overflow-hidden mb-2">
+                                                    <div 
+                                                        className="bg-tan h-full transition-all duration-300" 
+                                                        style={{ width: `${accessionPdfProgress}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-[9px] font-bold text-tan uppercase tracking-widest animate-pulse">Converting Paperwork... {accessionPdfProgress}%</span>
+                                            </div>
+                                        )}
+                                        {!isConvertingAccessionPdf && accessionFiles.length > 0 ? (
                                             <div className="flex flex-wrap gap-2 justify-center">
                                                 {accessionFiles.map((f, i) => (
                                                     <div key={i} className="relative group/file">
@@ -1004,7 +1053,7 @@ export function AddItem() {
                                             <input type="text" name="date" id="date" placeholder="Approximate or Exact Date" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
                                         </div>
                                     )}
-                                    {itemType !== 'Historic Organization' && (
+                                    {itemType !== 'Historic Organization' && itemType !== 'Artifact' && (
                                         <div>
                                             <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
                                             <div className="relative">
