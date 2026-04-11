@@ -253,22 +253,20 @@ export function InteractiveMap() {
         try {
             const stripUndefined = (obj: any) => JSON.parse(JSON.stringify(obj));
 
-            // Filter out removals and actual updates
-            const updates = Array.from(dirtyIdsRef.current).filter(id => {
-                const isRoom = rooms.find(r => r.docId === id || r.id === id);
-                const isLoc = locations.find(l => l.id === id);
-                return isRoom || isLoc;
-            });
+            const updates = Array.from(dirtyIdsRef.current);
+            console.log("Saving updates for IDs:", updates);
 
             const promises = updates.map(id => {
                 // 1. Try finding as location
-                const loc = locations.find(l => l.id === id);
-                if (loc?.docId && localCoords[id]) {
-                    const c = localCoords[id];
-                    // SAFETY: Only save if coordinates are valid numbers and not zero (unless intended)
-                    if (typeof c.x === 'number' && typeof c.y === 'number' && !isNaN(c.x) && !isNaN(c.y)) {
+                const loc = locations.find(l => l.id === id || l.docId === id);
+                const lCoords = localCoords[id];
+                
+                if (loc?.docId && lCoords) {
+                    // SAFETY: Only save if coordinates are valid numbers
+                    if (typeof lCoords.x === 'number' && typeof lCoords.y === 'number' && !isNaN(lCoords.x) && !isNaN(lCoords.y)) {
+                        console.log(`Saving Location ${loc.name} (${id}) at`, lCoords);
                         return updateDoc(doc(db, 'locations', loc.docId), { 
-                            map_coordinates: stripUndefined(c) 
+                            map_coordinates: stripUndefined(lCoords) 
                         });
                     }
                 }
@@ -279,13 +277,15 @@ export function InteractiveMap() {
                     const c = room.map_coordinates;
                     // If coordinates were intentionally removed (null), allow it
                     if (c === null) {
+                        console.log(`Removing Room ${room.name} from map`);
                         return updateDoc(doc(db, 'rooms', room.docId), { map_coordinates: null });
                     }
                     // Otherwise only save if safe
                     if (c && typeof c.x === 'number' && !isNaN(c.x)) {
+                        console.log(`Saving Room ${room.name} at`, c);
                         return updateDoc(doc(db, 'rooms', room.docId), { 
-                            map_coordinates: room.map_coordinates, 
-                            geometries: room.geometries 
+                            map_coordinates: stripUndefined(c), 
+                            geometries: room.geometries ? stripUndefined(room.geometries) : null
                         });
                     }
                 }
