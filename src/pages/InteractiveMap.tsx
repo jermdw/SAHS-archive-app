@@ -74,7 +74,7 @@ export function InteractiveMap() {
     
     // New Feature States
     const [isSnapping] = useState(true);
-    const [displayStyle, setDisplayStyle] = useState<'box' | 'pin'>('box');
+    const [displayStyle] = useState<'box' | 'pin'>('box');
     const absoluteSnap = (val: number) => isSnapping ? Math.round(val / 12) * 12 : val;
 
     // Structural Rooms
@@ -277,7 +277,8 @@ export function InteractiveMap() {
             
             // Special Case: Handle items removed from the map
             locations.forEach(loc => {
-                if (loc.map_coordinates && !localCoords[loc.id] && loc.docId && dirtyIdsRef.current.has(loc.id)) {
+                // If it's dirty and NOT in localCoords anymore, we must ensure it's removed from Firestore
+                if (!localCoords[loc.id] && loc.docId && dirtyIdsRef.current.has(loc.id)) {
                     promises.push(updateDoc(doc(db, 'locations', loc.docId), { 
                         map_coordinates: null 
                     }));
@@ -290,6 +291,10 @@ export function InteractiveMap() {
             }, { merge: true }));
 
             await Promise.all(promises);
+            
+            // Re-sync local state with database to ensure no stale offsets or coordinates
+            await fetchMapData();
+            
             dirtyIdsRef.current.clear();
             pristineStateRef.current = null; // Clear pristine state after success
 
@@ -679,8 +684,10 @@ export function InteractiveMap() {
             selectedIdsRef.current.clear();
             selectedIdsRef.current.add(draggedId);
             setSelectionDOM(draggedId, true);
+            // We consciously avoid setSelectionTick(t + 1) here to avoid resetting Rnd's internal drag state
         }
-        
+
+        setDraggingId(draggedId);
         dragStartPosRef.current = {};
         
         // Track start position for EVERY selected item (and internal room geometries)
@@ -708,28 +715,32 @@ export function InteractiveMap() {
         const start = draggedIndex !== undefined 
             ? dragStartPosRef.current[`${draggedId}-geom-${draggedIndex}`] 
             : dragStartPosRef.current[draggedId];
-        if (!start) return;
+        
+        // Safety: Prevent jumping to (0,0) or NaN
+        if (!start || isNaN(d.x) || isNaN(d.y)) return;
+        
         const offsetX = d.x - start.x;
         const offsetY = d.y - start.y;
 
         selectedIdsRef.current.forEach(id => {
             const isLead = id === draggedId;
 
-            // Handle Room following (DOM Update)
-            const roomNode = document.getElementById(`rnd-node-${id}`);
-            if (roomNode && dragStartPosRef.current[id]) {
+            // Handle Node following (Rooms and Pins use the same rnd-node prefix)
+            const node = document.getElementById(`rnd-node-${id}`);
+            const nodeStart = dragStartPosRef.current[id];
+            
+            if (node && nodeStart) {
                 // If it's the lead item, let Rnd handle its own transform, UNLESS we are dragging a sub-geometry
                 if (!isLead || (draggedIndex !== undefined && draggedIndex !== 0)) {
-                    roomNode.style.transform = `translate(${dragStartPosRef.current[id].x + offsetX}px, ${dragStartPosRef.current[id].y + offsetY}px)`;
+                    node.style.transform = `translate(${nodeStart.x + offsetX}px, ${nodeStart.y + offsetY}px)`;
                 }
             }
 
-            // Handle Merged Room Sub-Geometries (DOM Update)
+            // Handle Merged Room Sub-Geometries (Internal Boxes)
             const room = rooms.find(r => r.id === id || r.docId === id);
             if (room && room.geometries && room.geometries.length > 1) {
                 room.geometries.forEach((_, gi) => {
-                    // Skip the specific geometry being dragged by Rnd
-                    if (isLead && gi === draggedIndex) return;
+                    if (isLead && gi === draggedIndex) return; // Rnd handles the grabbed one
 
                     const geomNode = document.getElementById(gi === 0 ? `rnd-node-${id}` : `inner-rnd-${id}-geom-${gi}`);
                     const gStart = dragStartPosRef.current[`${id}-geom-${gi}`];
@@ -739,50 +750,21 @@ export function InteractiveMap() {
                 });
             }
 
-            // Handle Location following (DOM Update)
-            const locNode = document.getElementById(`rnd-node-${id}`); // Reusing same ID pattern
-            if (locNode && !roomNode && dragStartPosRef.current[id]) {
-                if (!isLead) {
-                    locNode.style.transform = `translate(${dragStartPosRef.current[id].x + offsetX}px, ${dragStartPosRef.current[id].y + offsetY}px)`;
-                }
-            }
-
             // Handle Room Label following
             const labelNode = document.getElementById(`room-label-${id}`);
-            if (labelNode && dragStartPosRef.current[id]) {
+            if (labelNode && nodeStart) {
                 labelNode.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
             }
         });
     };
 
-    const handleGroupDragStopStateSync = (draggedId: string, draggedIndex: number | undefined, _d: any) => {
+    const handleGroupDragStopStateSync = (draggedId: string, draggedIndex: number | undefined, d: { x: number, y: number }) => {
         const start = draggedIndex !== undefined 
             ? dragStartPosRef.current[`${draggedId}-geom-${draggedIndex}`] 
             : dragStartPosRef.current[draggedId];
-        
         if (!start) return;
-        
-        // Direct DOM read to bypass React-Rnd losing coordinates during fully controlled mode
-        const leadNodeId = draggedIndex !== undefined && draggedIndex !== 0 
-            ? `inner-rnd-${draggedId}-geom-${draggedIndex}` 
-            : `rnd-node-${draggedId}`;
-            
-        const leadNode = document.getElementById(leadNodeId);
-        let offsetX = 0;
-        let offsetY = 0;
-        
-        if (leadNode) {
-            const transform = leadNode.style.transform;
-            const match = transform.match(/translate(?:3d)?\(([-0-9.]+)px,\s*([-0-9.]+)px/);
-            if (match) {
-                const domX = parseFloat(match[1]);
-                const domY = parseFloat(match[2]);
-                offsetX = domX - start.x;
-                offsetY = domY - start.y;
-            }
-        }
-        
-        if (offsetX === 0 && offsetY === 0) return;
+        const offsetX = d.x - start.x;
+        const offsetY = d.y - start.y;
 
         saveSnapshot();
 
@@ -820,17 +802,24 @@ export function InteractiveMap() {
             return r;
         }));
 
-        // Update Locations (Shelves)
+        // Update Locations (Shelves/Pins)
         setLocalCoords(prev => {
             const next = { ...prev };
             Object.keys(next).forEach(id => {
-                if (selectedIdsRef.current.has(id) && dragStartPosRef.current[id]) {
-                    markDirty(id);
-                    next[id] = {
-                        ...next[id],
-                        x: absoluteSnap(dragStartPosRef.current[id].x + offsetX),
-                        y: absoluteSnap(dragStartPosRef.current[id].y + offsetY)
-                    };
+                const sStart = dragStartPosRef.current[id];
+                if (selectedIdsRef.current.has(id) && sStart) {
+                    const finalX = absoluteSnap(sStart.x + offsetX);
+                    const finalY = absoluteSnap(sStart.y + offsetY);
+                    
+                    // Safety: Never save NaN and keep within reasonable bounds
+                    if (!isNaN(finalX) && !isNaN(finalY)) {
+                        markDirty(id);
+                        next[id] = {
+                            ...next[id],
+                            x: finalX,
+                            y: finalY
+                        };
+                    }
                 }
             });
             return next;
@@ -838,6 +827,7 @@ export function InteractiveMap() {
         
         // Clear drag tracking
         dragStartPosRef.current = {};
+        setDraggingId(null);
         setSelectionTick(t => t + 1); // Finally sync selection UI
     };
 
@@ -949,23 +939,13 @@ export function InteractiveMap() {
                                 
                                 {isBindingMode ? (
                                     <div className="space-y-3">
-                                        <select className="w-full bg-cream p-2 rounded border focus:border-tan outline-none" value={selectedLocationForBinding} onChange={e=>setSelectedLocationForBinding(e.target.value)}>
+                                        <select className="w-full bg-cream p-2 rounded border" value={selectedLocationForBinding} onChange={e=>setSelectedLocationForBinding(e.target.value)}>
                                             <option value="">Select location...</option>
                                             {locations.filter(l => l.name?.toLowerCase() !== 'compass rose' && !localCoords[l.id]).map(l=><option key={l.id} value={l.id}>{l.name}</option>)}
                                         </select>
-                                        <div className="flex gap-1 p-1 bg-tan/5 rounded border border-tan/10">
-                                            <button 
-                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDisplayStyle('box'); }} 
-                                                className={`flex-1 py-1 text-[10px] font-black uppercase tracking-widest rounded transition-all ${displayStyle === 'box' ? 'bg-white shadow text-tan' : 'text-charcoal/40 hover:text-charcoal'}`}
-                                            >Shelf Box</button>
-                                            <button 
-                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDisplayStyle('pin'); }} 
-                                                className={`flex-1 py-1 text-[10px] font-black uppercase tracking-widest rounded transition-all ${displayStyle === 'pin' ? 'bg-white shadow text-tan' : 'text-charcoal/40 hover:text-charcoal'}`}
-                                            >Map Pin</button>
-                                        </div>
                                         <div className="flex gap-2">
-                                            <button onClick={addBlock} className="flex-1 bg-tan text-white py-2 rounded text-sm font-bold">Place {displayStyle === 'pin' ? 'Pin' : 'Block'}</button>
-                                            <button onClick={()=>{setIsBindingMode(false); setDisplayStyle('box');}} className="px-3 bg-cream text-charcoal text-sm rounded">Cancel</button>
+                                            <button onClick={addBlock} className="flex-1 bg-tan text-white py-2 rounded text-sm font-bold">Place</button>
+                                            <button onClick={()=>setIsBindingMode(false)} className="px-3 bg-cream text-charcoal text-sm rounded">Cancel</button>
                                         </div>
                                     </div>
                                 ) : (
@@ -1207,7 +1187,7 @@ export function InteractiveMap() {
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode}
-                                        position={{ x: c.x, y: c.y }}
+                                        position={draggingId === room.docId ? undefined : { x: c.x, y: c.y }}
                                         size={{ width: c.width, height: c.height }}
                                         onDragStart={(e: any) => handleGroupDragStart(room.docId!, index, e)}
                                         onDrag={(_e: any, d: any) => handleGroupDrag(room.docId!, index, d)}
@@ -1338,7 +1318,7 @@ export function InteractiveMap() {
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode && c.display_type !== 'pin'}
-                                        position={{ x: c.x, y: c.y }}
+                                        position={draggingId === loc.id ? undefined : { x: c.x, y: c.y }}
                                         size={{ width: c.width, height: c.height }}
                                         onDragStart={(e: any) => handleGroupDragStart(loc.id, undefined, e)}
                                         onDrag={(_e, d: any) => handleGroupDrag(loc.id, undefined, d)}
@@ -1348,7 +1328,7 @@ export function InteractiveMap() {
                                             markDirty(loc.id);
                                             setLocalCoords(prev => ({ ...prev, [loc.id]: { ...prev[loc.id], x: pos.x, y: pos.y, width: parseInt(ref.style.width, 10), height: parseInt(ref.style.height, 10) }}));
                                         }}
-                                        style={{ zIndex: isSelected ? 50 : (c.z_index || 10) }}
+                                        style={{ zIndex: isSelected ? 150 : (c.z_index || 100) }}
                                     >
                                         <div 
                                             id={`inner-rnd-${loc.id}`} 
@@ -1357,17 +1337,14 @@ export function InteractiveMap() {
                                             className="w-full h-full relative" 
                                             style={{ transform: `rotate(${c.rotation || 0}deg)` }}
                                         >
-                                            {/* Bulletproof drag overlay to intercept all mouse events correctly */}
-                                            <div className="absolute inset-0 z-10 select-none cursor-move" draggable={false} onDragStart={e => e.preventDefault()} />
-                                            
                                             {c.display_type === 'pin' ? (
-                                                <div className="flex flex-col items-center justify-center w-full h-full select-none" draggable={false}>
-                                                    <MapPin size={48} className="text-red-500 drop-shadow-md mb-0.5" fill="white" />
-                                                    <span className="text-[10px] font-bold bg-white/90 border border-tan/20 px-1.5 py-0.5 rounded shadow-sm select-none" draggable={false}>{loc.name}</span>
+                                                <div className="flex flex-col items-center">
+                                                    <MapPin size={48} className="text-red-500 drop-shadow-md" fill="white"/>
+                                                    <span className="text-[10px] font-bold bg-white/90 border px-1 rounded shadow-sm">{loc.name}</span>
                                                 </div>
                                             ) : (
-                                                <div className="w-full h-full border-2 border-tan bg-white/90 flex items-center justify-center p-1 text-center select-none" draggable={false}>
-                                                    <span className="font-serif font-bold text-charcoal text-[9px] uppercase leading-tight select-none" draggable={false}>{loc.name}</span>
+                                                <div className="w-full h-full border-2 border-tan bg-white/90 flex items-center justify-center p-1 text-center">
+                                                    <span className="font-serif font-bold text-charcoal text-[9px] uppercase leading-tight">{loc.name}</span>
                                                 </div>
                                             )}
                                             {isEditMode && (
@@ -1400,7 +1377,7 @@ export function InteractiveMap() {
                 }}
                 disableDragging={!isEditMode}
                 enableResizing={false}
-                className="z-[25]"
+                className="z-[100]"
                 dragHandleClassName="compass-drag-handle"
             >
                 <div className={`relative w-full h-full flex items-center justify-center transition-opacity duration-300 ${!isEditMode && compassRose.x === 32 && compassRose.y === 32 ? 'opacity-40 hover:opacity-100' : 'opacity-100'}`}>
@@ -1411,17 +1388,17 @@ export function InteractiveMap() {
                         <Compass size={40} className="text-charcoal/80 drop-shadow-sm" strokeWidth={1.5} />
                         
                         {/* Cardinal Directions */}
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
-                            <span className="text-[11px] font-black text-tan/80 select-none inline-block" style={{ transform: `rotate(${-compassRose.rotation}deg)`, transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>N</span>
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] font-black text-tan/80 select-none pointer-events-none">
+                            <div style={{ transform: `rotate(${-compassRose.rotation}deg)`, transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>N</div>
                         </div>
-                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
-                            <span className="text-[11px] font-black text-charcoal/40 select-none inline-block" style={{ transform: `rotate(${-compassRose.rotation}deg)`, transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>S</span>
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-black text-charcoal/40 select-none pointer-events-none">
+                            <div style={{ transform: `rotate(${-compassRose.rotation}deg)`, transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>S</div>
                         </div>
-                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
-                            <span className="text-[11px] font-black text-charcoal/40 select-none inline-block" style={{ transform: `rotate(${-compassRose.rotation}deg)`, transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>W</span>
+                        <div className="absolute -left-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-charcoal/40 select-none pointer-events-none">
+                            <div style={{ transform: `rotate(${-compassRose.rotation}deg)`, transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>W</div>
                         </div>
-                        <div className="absolute -right-3 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
-                            <span className="text-[11px] font-black text-charcoal/40 select-none inline-block" style={{ transform: `rotate(${-compassRose.rotation}deg)`, transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>E</span>
+                        <div className="absolute -right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-charcoal/40 select-none pointer-events-none">
+                            <div style={{ transform: `rotate(${-compassRose.rotation}deg)`, transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>E</div>
                         </div>
                         
                         {/* Decorative cardinal lines */}
