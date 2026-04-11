@@ -254,47 +254,54 @@ export function InteractiveMap() {
             const stripUndefined = (obj: any) => JSON.parse(JSON.stringify(obj));
 
             const updates = Array.from(dirtyIdsRef.current);
-            console.log("Saving updates for IDs:", updates);
+            console.log("Initiating Direct Commit for IDs:", updates);
 
-            const promises = updates.map(id => {
-                // 1. Try finding as location
-                const loc = locations.find(l => l.id === id || l.docId === id);
-                const lCoords = localCoords[id];
-                
-                if (loc?.docId && lCoords) {
-                    // SAFETY: Only save if coordinates are valid numbers
-                    if (typeof lCoords.x === 'number' && typeof lCoords.y === 'number' && !isNaN(lCoords.x) && !isNaN(lCoords.y)) {
-                        console.log(`Saving Location ${loc.name} (${id}) at`, lCoords);
-                        return updateDoc(doc(db, 'locations', loc.docId), { 
-                            map_coordinates: stripUndefined(lCoords) 
-                        });
+            const promises = updates.map(async (id) => {
+                try {
+                    // 1. Check Locations (Pins/Blocks)
+                    const loc = locations.find(l => l.id === id || l.docId === id);
+                    const lCoords = localCoords[id];
+                    
+                    if (loc?.docId && lCoords) {
+                        if (typeof lCoords.x === 'number' && !isNaN(lCoords.x)) {
+                            console.log(`[COMMIT] Location: ${loc.name} at (${lCoords.x}, ${lCoords.y})`);
+                            await updateDoc(doc(db, 'locations', loc.docId), { 
+                                map_coordinates: stripUndefined({
+                                    ...lCoords,
+                                    display_type: lCoords.display_type || loc.display_type || (loc.map_coordinates?.display_type)
+                                })
+                            });
+                            return;
+                        } else {
+                            console.warn(`[SKIP] Location ${id} has invalid coordinates:`, lCoords);
+                        }
                     }
-                }
 
-                // 2. Try finding as room
-                const room = rooms.find(r => r.docId === id || r.id === id);
-                if (room?.docId) {
-                    const c = room.map_coordinates;
-                    // If coordinates were intentionally removed (null), allow it
-                    if (c === null) {
-                        console.log(`Removing Room ${room.name} from map`);
-                        return updateDoc(doc(db, 'rooms', room.docId), { map_coordinates: null });
+                    // 2. Check Rooms
+                    const room = rooms.find(r => r.docId === id || r.id === id);
+                    if (room?.docId) {
+                        const c = room.map_coordinates;
+                        if (c === null) {
+                            console.log(`[COMMIT] Removing Room: ${room.name}`);
+                            await updateDoc(doc(db, 'rooms', room.docId), { map_coordinates: null });
+                        } else if (c && typeof c.x === 'number' && !isNaN(c.x)) {
+                            console.log(`[COMMIT] Room: ${room.name} at (${c.x}, ${c.y})`);
+                            await updateDoc(doc(db, 'rooms', room.docId), { 
+                                map_coordinates: stripUndefined(c), 
+                                geometries: room.geometries ? stripUndefined(room.geometries) : null,
+                                display_type: 'room' // Rooms are always room type
+                            });
+                        } else {
+                            console.warn(`[SKIP] Room ${id} has invalid coordinates:`, c);
+                        }
                     }
-                    // Otherwise only save if safe
-                    if (c && typeof c.x === 'number' && !isNaN(c.x)) {
-                        console.log(`Saving Room ${room.name} at`, c);
-                        return updateDoc(doc(db, 'rooms', room.docId), { 
-                            map_coordinates: stripUndefined(c), 
-                            geometries: room.geometries ? stripUndefined(room.geometries) : null
-                        });
-                    }
+                } catch (err) {
+                    console.error(`[ERROR] Failed to save item ${id}:`, err);
                 }
-                return Promise.resolve();
             });
-            
+
             // Special Case: Handle items removed from the map
             locations.forEach(loc => {
-                // If it's dirty and NOT in localCoords anymore, we must ensure it's removed from Firestore
                 if (!localCoords[loc.id] && loc.docId && dirtyIdsRef.current.has(loc.id)) {
                     promises.push(updateDoc(doc(db, 'locations', loc.docId), { 
                         map_coordinates: null 
