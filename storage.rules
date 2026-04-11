@@ -6,9 +6,11 @@ service firebase.storage {
     function isSAHSUser() {
       let email = request.auth.token.email.lower();
       return request.auth != null && (
+        email.endsWith('@senoiahistory.com') || 
         email == 'catnolan@senoiahistory.com' || 
         email == 'jeremywarren@senoiahistory.com' ||
-        firestore.get(/databases/(default)/documents/user_roles/$(email)).data.role in ['admin', 'curator']
+        (firestore.exists(/databases/(default)/documents/user_roles/$(email)) && 
+         firestore.get(/databases/(default)/documents/user_roles/$(email)).data.role in ['admin', 'curator'])
       );
     }
 
