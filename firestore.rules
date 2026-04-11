@@ -6,6 +6,7 @@ service cloud.firestore {
     function isSAHSUser() {
       let email = request.auth.token.email.lower();
       return request.auth != null && (
+        email.endsWith('@senoiahistory.com') || 
         email == 'catnolan@senoiahistory.com' || 
         email == 'jeremywarren@senoiahistory.com' ||
         get(/databases/$(database)/documents/user_roles/$(email)).data.role in ['admin', 'curator']
