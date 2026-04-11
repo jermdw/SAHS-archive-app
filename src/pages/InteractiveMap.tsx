@@ -1174,14 +1174,21 @@ export function InteractiveMap() {
                                         key={`${room.docId}-box-${index}`}
                                         id={index === 0 ? `rnd-node-${room.docId}` : `inner-rnd-${room.docId}-geom-${index}`}
                                         className={`absolute ${isEditMode ? 'cursor-move' : 'pointer-events-none'}`}
+                                        onMouseDownCapture={(e: any) => {
+                                            if (isEditMode && e.shiftKey) handleItemSelection(room.docId!, e);
+                                        }}
+                                        onClickCapture={(e: any) => {
+                                            if (isEditMode && !e.shiftKey) handleItemSelection(room.docId!, e);
+                                        }}
                                         style={{ 
                                             backgroundColor: (hoveredBlock?.roomId === room.docId && hoveredBlock.index === index) 
                                                 ? 'rgba(59, 130, 246, 0.4)' 
-                                                : isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(210, 180, 140, 0.25)',
+                                                : isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.5)',
                                             zIndex: isSelected ? 40 : 5,
                                             boxShadow: (hoveredBlock?.roomId === room.docId && hoveredBlock.index === index) 
                                                 ? '0 0 15px rgba(59, 130, 246, 0.5)' 
                                                 : 'none',
+                                            border: isSelected ? '2px solid #3b82f6' : '1px solid #d2b48c',
                                             ...getSmartBorders(c, geometries, isSelected)
                                         }}
                                         scale={scale}
@@ -1310,8 +1317,14 @@ export function InteractiveMap() {
                                         key={loc.id}
                                         id={`rnd-node-${loc.id}`}
                                         className={`absolute group ${isEditMode ? 'cursor-move' : (c.display_type === 'pin' ? 'cursor-pointer' : 'pointer-events-none')}`}
+                                        onMouseDownCapture={(e: any) => {
+                                            if (isEditMode && e.shiftKey) handleItemSelection(loc.id, e);
+                                        }}
+                                        onClickCapture={(e: any) => {
+                                            if (isEditMode && !e.shiftKey) handleItemSelection(loc.id, e);
+                                        }}
                                         style={{ 
-                                            backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.1)' : (c.display_type === 'pin' ? 'transparent' : 'rgba(210, 180, 140, 0.15)'),
+                                            backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.1)' : (c.display_type === 'pin' ? 'transparent' : 'rgba(255, 255, 255, 0.9)'),
                                             zIndex: isSelected ? 150 : (c.z_index || 100),
                                             border: isSelected ? '2px solid #3b82f6' : (c.display_type === 'pin' ? 'none' : '2px solid #d2b48c'),
                                             borderRadius: c.display_type === 'pin' ? '0' : '4px'
