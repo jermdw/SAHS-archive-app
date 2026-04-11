@@ -74,7 +74,7 @@ export function InteractiveMap() {
     
     // New Feature States
     const [isSnapping] = useState(true);
-    const [displayStyle] = useState<'box' | 'pin'>('box');
+    const [displayStyle, setDisplayStyle] = useState<'box' | 'pin'>('box');
     const absoluteSnap = (val: number) => isSnapping ? Math.round(val / 12) * 12 : val;
 
     // Structural Rooms
@@ -938,14 +938,28 @@ export function InteractiveMap() {
                                 </div>
                                 
                                 {isBindingMode ? (
-                                    <div className="space-y-3">
-                                        <select className="w-full bg-cream p-2 rounded border" value={selectedLocationForBinding} onChange={e=>setSelectedLocationForBinding(e.target.value)}>
+                                    <div className="space-y-3 p-3 bg-tan/5 rounded-lg border border-tan/20 animate-in slide-in-from-top-2">
+                                        <div className="flex gap-1 mb-2">
+                                            <button 
+                                                onClick={() => setDisplayStyle('box')} 
+                                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all ${displayStyle === 'box' ? 'bg-tan text-white shadow-md' : 'bg-white border border-tan/20 text-tan/60'}`}
+                                            >
+                                                <Square size={12}/> Block
+                                            </button>
+                                            <button 
+                                                onClick={() => setDisplayStyle('pin')} 
+                                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all ${displayStyle === 'pin' ? 'bg-tan text-white shadow-md' : 'bg-white border border-tan/20 text-tan/60'}`}
+                                            >
+                                                <MapPin size={12}/> Pin
+                                            </button>
+                                        </div>
+                                        <select className="w-full bg-cream p-2 rounded border border-tan/20 text-sm font-serif font-bold text-charcoal outline-none focus:ring-1 focus:ring-tan" value={selectedLocationForBinding} onChange={e=>setSelectedLocationForBinding(e.target.value)}>
                                             <option value="">Select location...</option>
                                             {locations.filter(l => l.name?.toLowerCase() !== 'compass rose' && !localCoords[l.id]).map(l=><option key={l.id} value={l.id}>{l.name}</option>)}
                                         </select>
                                         <div className="flex gap-2">
-                                            <button onClick={addBlock} className="flex-1 bg-tan text-white py-2 rounded text-sm font-bold">Place</button>
-                                            <button onClick={()=>setIsBindingMode(false)} className="px-3 bg-cream text-charcoal text-sm rounded">Cancel</button>
+                                            <button onClick={addBlock} className="flex-1 bg-charcoal text-white py-2.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-lg hover:bg-black transition-all">Place {displayStyle === 'pin' ? 'Pin' : 'Block'}</button>
+                                            <button onClick={()=>setIsBindingMode(false)} className="px-3 bg-white border border-charcoal/10 text-charcoal/60 text-xs rounded-lg hover:bg-charcoal/5 transition-colors">Cancel</button>
                                         </div>
                                     </div>
                                 ) : (
@@ -963,7 +977,7 @@ export function InteractiveMap() {
                                                 </button>
                                             ) : null;
                                         })()}
-                                        <button onClick={()=>setIsBindingMode(true)} className="w-full flex items-center justify-center gap-2 bg-tan/10 text-tan border border-tan/30 border-dashed py-3 rounded-lg text-sm font-bold hover:bg-tan hover:text-white transition-all"><Plus size={18}/> Place Shelf Block</button>
+                                        <button onClick={()=>setIsBindingMode(true)} className="w-full flex items-center justify-center gap-2 bg-tan/10 text-tan border border-tan/30 border-dashed py-3 rounded-lg text-sm font-bold hover:bg-tan hover:text-white transition-all"><Plus size={18}/> Place Location</button>
                                         <button onClick={addRoom} className="w-full flex items-center justify-center gap-2 bg-charcoal/5 border py-3 rounded-lg text-sm font-bold hover:bg-charcoal hover:text-white transition-all"><BoxSelect size={18}/> New Structural Room</button>
                                         
                                         {/* Single/Merged Room Editor */}
