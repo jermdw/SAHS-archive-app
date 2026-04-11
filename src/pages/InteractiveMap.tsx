@@ -1339,14 +1339,17 @@ export function InteractiveMap() {
                                             className="w-full h-full relative" 
                                             style={{ transform: `rotate(${c.rotation || 0}deg)` }}
                                         >
+                                            {/* Bulletproof drag overlay to intercept all mouse events correctly */}
+                                            <div className="absolute inset-0 z-10 select-none cursor-move" draggable={false} onDragStart={e => e.preventDefault()} />
+                                            
                                             {c.display_type === 'pin' ? (
-                                                <div className="flex flex-col items-center pointer-events-none mt-2">
-                                                    <MapPin size={48} className="text-red-500 drop-shadow-md pointer-events-none" fill="white"/>
-                                                    <span className="text-[10px] font-bold bg-white/90 border border-tan/20 px-1.5 rounded shadow-sm pointer-events-none">{loc.name}</span>
+                                                <div className="flex flex-col items-center justify-center w-full h-full select-none" draggable={false}>
+                                                    <MapPin size={48} className="text-red-500 drop-shadow-md mb-0.5" fill="white" />
+                                                    <span className="text-[10px] font-bold bg-white/90 border border-tan/20 px-1.5 py-0.5 rounded shadow-sm select-none" draggable={false}>{loc.name}</span>
                                                 </div>
                                             ) : (
-                                                <div className="w-full h-full border-2 border-tan bg-white/90 flex items-center justify-center p-1 text-center pointer-events-none">
-                                                    <span className="font-serif font-bold text-charcoal text-[9px] uppercase leading-tight pointer-events-none">{loc.name}</span>
+                                                <div className="w-full h-full border-2 border-tan bg-white/90 flex items-center justify-center p-1 text-center select-none" draggable={false}>
+                                                    <span className="font-serif font-bold text-charcoal text-[9px] uppercase leading-tight select-none" draggable={false}>{loc.name}</span>
                                                 </div>
                                             )}
                                             {isEditMode && (
