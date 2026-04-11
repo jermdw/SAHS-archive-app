@@ -1183,7 +1183,7 @@ export function InteractiveMap() {
                                         style={{ 
                                             backgroundColor: (hoveredBlock?.roomId === room.docId && hoveredBlock.index === index) 
                                                 ? 'rgba(59, 130, 246, 0.4)' 
-                                                : isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.5)',
+                                                : isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(210, 180, 140, 0.25)',
                                             zIndex: isSelected ? 40 : 5,
                                             boxShadow: (hoveredBlock?.roomId === room.docId && hoveredBlock.index === index) 
                                                 ? '0 0 15px rgba(59, 130, 246, 0.5)' 
