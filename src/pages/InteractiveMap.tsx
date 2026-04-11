@@ -903,7 +903,6 @@ export function InteractiveMap() {
                                             const overlapY_Start = Math.max(g1.y, g2.y);
                                             const overlapY_End = Math.min(g1.y + g1.height, g2.y + g2.height);
                                             if (overlapY_Start < overlapY_End) {
-                                                const x = Math.min(g1.x, g2.x) + (Math.abs(g1.x - g2.x) < 5 ? 0 : Math.min(g1.width, g2.width)); // Rough midpoint x
                                                 internalMidpoints.push({ x: (g1.x + g1.width + g2.x) / 2, y: (overlapY_Start + overlapY_End) / 2 });
                                             }
                                         }
@@ -1092,7 +1091,6 @@ export function InteractiveMap() {
                                             markDirty(loc.id);
                                             setLocalCoords(prev => ({ ...prev, [loc.id]: { ...prev[loc.id], x: pos.x, y: pos.y, width: parseInt(ref.style.width, 10), height: parseInt(ref.style.height, 10) }}));
                                         }}
-                                        onClickCapture={(e: any) => handleItemSelection(loc.id, e)}
                                         style={{ zIndex: isSelected ? 50 : (c.z_index || 10) }}
                                     >
                                         <div 
