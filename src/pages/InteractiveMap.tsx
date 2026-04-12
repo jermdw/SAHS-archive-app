@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 
 type LayoutHistoryState = {
     rooms: Room[];
-    localCoords: Record<string, {x: number, y: number, width: number, height: number, rotation?: number, z_index?: number, display_type?: 'box' | 'pin'}>;
+    localCoords: Record<string, {x: number, y: number, width: number, height: number, rotation?: number, z_index?: number, display_type?: 'box' | 'pin', scale?: number}>;
     compassRose?: { x: number, y: number, rotation: number };
 };
 
@@ -66,7 +66,7 @@ export function InteractiveMap() {
     const [isSaving, setIsSaving] = useState(false);
     
     // Track changes locally before saving
-    const [localCoords, setLocalCoords] = useState<Record<string, {x: number, y: number, width: number, height: number, rotation?: number, z_index?: number, display_type?: 'box' | 'pin'}>>({});
+    const [localCoords, setLocalCoords] = useState<Record<string, {x: number, y: number, width: number, height: number, rotation?: number, z_index?: number, display_type?: 'box' | 'pin', scale?: number}>>({});
 
     // For binding unmapped locations
     const [selectedLocationForBinding, setSelectedLocationForBinding] = useState<string>('');
@@ -993,7 +993,7 @@ export function InteractiveMap() {
         setSelectionTick(t => t + 1); // Finally sync selection UI
     };
 
-    const handleUpdateLocationProperty = (id: string, property: 'width' | 'height' | 'x' | 'y' | 'rotation', value: string | number) => {
+    const handleUpdateLocationProperty = (id: string, property: 'width' | 'height' | 'x' | 'y' | 'rotation' | 'scale', value: string | number) => {
         saveSnapshot();
         markDirty(id);
         
@@ -1001,7 +1001,8 @@ export function InteractiveMap() {
         if (isNaN(val)) return;
 
         // Units conversion: feet to pixels for spatial properties
-        const pixels = (property === 'rotation') ? val : absoluteSnap(val * PIXELS_PER_FOOT);
+        // NEW: 'scale' is a raw multiplier, rotation is raw degrees
+        const pixels = (property === 'rotation' || property === 'scale') ? val : absoluteSnap(val * PIXELS_PER_FOOT);
 
         setLocalCoords(prev => {
             const c = prev[id];
@@ -1382,6 +1383,24 @@ export function InteractiveMap() {
                                                                     />
                                                                 </div>
                                                             </div>
+
+                                                            {locCoords.display_type === 'pin' && (
+                                                                <div className="pt-2">
+                                                                    <div className="flex justify-between items-center mb-1">
+                                                                        <label className="text-[9px] font-bold text-charcoal/30 uppercase block">Pin Scale</label>
+                                                                        <span className="text-[10px] font-mono font-bold text-tan">{Math.round((locCoords.scale || 1) * 100)}%</span>
+                                                                    </div>
+                                                                    <input 
+                                                                        type="range"
+                                                                        min="0.5"
+                                                                        max="1.5"
+                                                                        step="0.05"
+                                                                        value={locCoords.scale || 1}
+                                                                        onChange={(e) => handleUpdateLocationProperty(id, 'scale', e.target.value)}
+                                                                        className="w-full accent-tan h-1.5 bg-tan/10 rounded-lg appearance-none cursor-pointer"
+                                                                    />
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 );
@@ -1688,8 +1707,13 @@ export function InteractiveMap() {
                                         >
                                             {c.display_type === 'pin' ? (
                                                 <div className="flex flex-col items-center">
-                                                    <MapPin size={48} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
-                                                    <span className={`text-[9.5px] font-serif font-black ${isSelected ? 'bg-blue-50' : 'bg-white/95'} border border-charcoal/10 px-2 py-1 rounded shadow-lg transition-colors whitespace-normal text-center text-charcoal tracking-tight max-w-[80px] leading-tight break-words`}>{loc.name}</span>
+                                                    <MapPin size={48 * (c.scale || 1.0)} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
+                                                    <span 
+                                                        className={`font-serif font-black ${isSelected ? 'bg-blue-50' : 'bg-white/95'} border border-charcoal/10 px-2 py-1 rounded shadow-lg transition-colors whitespace-normal text-center text-charcoal tracking-tight max-w-[80px] leading-tight break-words`}
+                                                        style={{ fontSize: `${9.5 * (c.scale || 1.0)}px` }}
+                                                    >
+                                                        {loc.name}
+                                                    </span>
                                                 </div>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center p-0.5 text-center">
