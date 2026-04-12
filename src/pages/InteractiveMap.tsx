@@ -1698,20 +1698,18 @@ export function InteractiveMap() {
                                                         style={{ 
                                                             position: 'absolute',
                                                             transform: `rotate(${-(c.rotation || 0)}deg)`,
-                                                            // Provide a minimum width so text doesn't squeeze too hard on vertical shelves
-                                                            minWidth: Math.max(c.width, c.height, 80),
-                                                            height: Math.max(c.width, c.height),
+                                                            // Keep label width exactly matching the shelf's physical width for a snug fit
+                                                            width: c.width, 
                                                             zIndex: 10
                                                         }}
                                                     >
                                                         <span 
-                                                            className={`font-serif font-black text-charcoal uppercase leading-[0.9] block px-1`}
+                                                            className={`font-serif font-black text-charcoal uppercase leading-[0.9] block px-0.5`}
                                                             style={{ 
-                                                                fontSize: '9px', // Standardized readable size
-                                                                wordBreak: 'normal',
-                                                                overflowWrap: 'normal',
-                                                                whiteSpace: 'normal',
-                                                                // Stronger white glow for legibility over any background
+                                                                fontSize: '9px',
+                                                                wordBreak: 'normal', // Never break words
+                                                                overflowWrap: 'normal', // Allow overflow if a word is literally wider than the shelf
+                                                                whiteSpace: 'normal', // Allow multiline
                                                                 textShadow: '0 0 8px white, 0 0 8px white, 0 0 4px white, 0 0 2px white',
                                                                 filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
                                                             }}
