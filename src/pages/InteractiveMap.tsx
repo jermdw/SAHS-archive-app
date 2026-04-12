@@ -1699,12 +1699,22 @@ export function InteractiveMap() {
                                                 </div>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center p-0.5 text-center overflow-hidden">
-                                                    <div className="flex items-center justify-center w-full h-full">
+                                                    <div 
+                                                        className="flex items-center justify-center w-full h-full transition-transform duration-300"
+                                                        style={{ 
+                                                            transform: `rotate(${-(c.rotation || 0)}deg)`,
+                                                            // For very thin blocks, ensure the label container can overflow the rotated parent if needed, 
+                                                            // but for now we'll keep it contained and use font scaling.
+                                                            width: (c.rotation % 180 === 0) ? '100%' : c.height,
+                                                            height: (c.rotation % 180 === 0) ? '100%' : c.width,
+                                                        }}
+                                                    >
                                                         <span 
-                                                            className={`font-serif font-bold text-charcoal uppercase leading-[0.9] break-words block w-full`}
+                                                            className={`font-serif font-black text-charcoal uppercase leading-[0.85] break-words block w-full px-0.5`}
                                                             style={{ 
                                                                 fontSize: c.width < 20 ? '7px' : c.width < 32 ? '8px' : '9px',
-                                                                wordBreak: 'break-word'
+                                                                wordBreak: 'break-word',
+                                                                textShadow: '0 0 4px rgba(255,255,255,0.8)'
                                                             }}
                                                         >
                                                             {loc.name}

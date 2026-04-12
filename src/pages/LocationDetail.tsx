@@ -150,13 +150,32 @@ export function LocationDetail() {
         // 1. Check for conflicts if not already resolving
         if (!forceResolution) {
             const conflicts: ArchiveItem[] = [];
+            const isMeaningful = (val: string | undefined | null) => {
+                if (!val) return false;
+                const trimmed = val.trim();
+                return trimmed.length > 0 && 
+                       trimmed.toLowerCase() !== 'unassigned' && 
+                       trimmed.toLowerCase() !== 'none' &&
+                       trimmed.toLowerCase() !== 'undefined' &&
+                       trimmed.toLowerCase() !== 'null' &&
+                       trimmed !== '""';
+            };
+
             selectedItems.forEach(item => {
-                // Check if item has ANY location data elsewhere
-                const hasExisting = (item.museum_location_id && item.museum_location_id !== id) || 
-                                   (item.museum_location_ids && item.museum_location_ids.length > 0 && !item.museum_location_ids.includes(id!)) ||
-                                   (item.museum_location && !item.museum_location_ids?.includes(id!) && item.museum_location_id !== id);
+                // Focus ONLY on the formal NEW location system (IDs)
+                const currentId = id || "";
                 
-                if (hasExisting) {
+                // 1. Singular formal assignment
+                const itemFormalId = item.museum_location_id;
+                const hasSingularConflict = isMeaningful(itemFormalId) && itemFormalId !== currentId;
+                
+                // 2. Plural formal assignments
+                const hasPluralConflict = item.museum_location_ids?.some(lid => isMeaningful(lid) && lid !== currentId) || false;
+                
+                // NOTE: We deliberately ignore item.museum_location (legacy text) to avoid 
+                // "ghost" conflicts from historical data.
+                
+                if (hasSingularConflict || hasPluralConflict) {
                     conflicts.push(item);
                 }
             });
@@ -247,7 +266,7 @@ export function LocationDetail() {
                     
                     <div className="p-8">
                         <p className="text-charcoal/80 mb-6 leading-relaxed">
-                            This artifact is currently listed in <span className="font-bold text-tan">{conflictedItems[currentConflictIndex].museum_location_id || conflictedItems[currentConflictIndex].museum_location_ids?.[0]}</span>. 
+                            This artifact is currently listed in <span className="font-bold text-tan">{(conflictedItems[currentConflictIndex].museum_location_id || conflictedItems[currentConflictIndex].museum_location_ids?.[0] || conflictedItems[currentConflictIndex].museum_location)?.trim() || "an unspecified location"}</span>. 
                             How would you like to update its records?
                         </p>
                         
@@ -438,7 +457,7 @@ export function LocationDetail() {
                                                         <span className="bg-tan/10 text-tan px-1.5 py-0.5 rounded">ID: {result.artifact_id || 'NO-ID'}</span>
                                                         <span>&bull;</span>
                                                         <span>{result.item_type}</span>
-                                                        {result.museum_location_id && (
+                                                        {result.museum_location_id?.trim() && (
                                                             <>
                                                                 <span className="text-red-400">&bull; Currently at: {result.museum_location_id}</span>
                                                             </>
