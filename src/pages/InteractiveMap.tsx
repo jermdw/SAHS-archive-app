@@ -1659,7 +1659,7 @@ export function InteractiveMap() {
                                     <Rnd
                                         key={loc.id}
                                         id={`rnd-node-${loc.id}`}
-                                        className={`absolute group ${isEditMode ? 'cursor-move' : (c.display_type === 'pin' ? 'cursor-pointer' : 'pointer-events-none')}`}
+                                        className={`absolute group ${isEditMode ? 'cursor-move' : 'cursor-pointer'}`}
                                         onMouseDownCapture={(e: any) => {
                                             if (isEditMode && e.shiftKey) handleItemSelection(loc.id, e);
                                         }}
