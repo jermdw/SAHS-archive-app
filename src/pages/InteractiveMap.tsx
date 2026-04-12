@@ -85,7 +85,7 @@ export function InteractiveMap() {
     const dirtyIdsRef = useRef<Set<string>>(new Set());
     const dragStartPosRef = useRef<Record<string, {x: number, y: number}>>({});
     const [, setSelectionTick] = useState(0); // For triggering UI buttons reacting to ref changes
-    const [sidebarPos, setSidebarPos] = useState({ x: 32, y: 96 });
+    const [sidebarPos, setSidebarPos] = useState({ x: 16, y: 16 });
     const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
     const [hoveredBlock, setHoveredBlock] = useState<{ roomId: string, index: number } | null>(null);
     const [resizingRoomId, setResizingRoomId] = useState<string | null>(null);
@@ -137,8 +137,9 @@ export function InteractiveMap() {
             if (e.key === 'Backspace' || e.key === 'Delete') {
                 if (selectedIdsRef.current.size === 0) return;
                 
-                // Don't delete if we are typing in an input
-                if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+                // Don't delete if we are typing in an input, textarea, or contenteditable
+                const target = e.target as HTMLElement;
+                if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
                 
                 e.preventDefault();
                 const idsToDelete = Array.from(selectedIdsRef.current);
@@ -1135,7 +1136,7 @@ export function InteractiveMap() {
                     disableDragging={false}
                     enableResizing={!isSidebarMinimized}
                     bounds="parent"
-                    className="z-30"
+                    className="z-[300]"
                 >
                     <div className={`bg-white rounded-xl shadow-2xl border-2 border-tan overflow-hidden flex flex-col h-full ${isSidebarMinimized ? 'opacity-90' : ''}`}>
                         <div className="bg-tan/5 border-b border-tan-light/30 px-4 py-3 flex justify-between items-center cursor-move shrink-0">
