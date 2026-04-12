@@ -132,6 +132,48 @@ export function InteractiveMap() {
                     return next;
                 });
             }
+            
+            // Delete/Backspace to remove selected items
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                if (selectedIdsRef.current.size === 0) return;
+                
+                // Don't delete if we are typing in an input
+                if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+                
+                e.preventDefault();
+                const idsToDelete = Array.from(selectedIdsRef.current);
+                
+                const hasRooms = idsToDelete.some(id => rooms.some(r => r.id === id || r.docId === id));
+                const confirmMsg = idsToDelete.length > 1 
+                    ? `Remove ${idsToDelete.length} selected items from the map?` 
+                    : "Remove selected item from the map?";
+                
+                if (window.confirm(confirmMsg)) {
+                    saveSnapshot();
+                    setLocalCoords(prev => {
+                        const next = { ...prev };
+                        idsToDelete.forEach(id => {
+                            if (next[id]) {
+                                markDirty(id);
+                                delete next[id];
+                            }
+                        });
+                        return next;
+                    });
+                    
+                    setRooms(prev => prev.map(r => {
+                        const rid = r.docId || r.id;
+                        if (idsToDelete.includes(rid)) {
+                            markDirty(rid);
+                            return { ...r, map_coordinates: null, geometries: undefined };
+                        }
+                        return r;
+                    }));
+                    
+                    selectedIdsRef.current.clear();
+                    setSelectionTick(t => t + 1);
+                }
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
@@ -268,6 +310,7 @@ export function InteractiveMap() {
                             await updateDoc(doc(db, 'locations', loc.docId), { 
                                 map_coordinates: stripUndefined({
                                     ...lCoords,
+                                    rotation: lCoords.rotation ?? 0,
                                     display_type: lCoords.display_type || loc.display_type || (loc.map_coordinates?.display_type)
                                 })
                             });
@@ -658,7 +701,6 @@ export function InteractiveMap() {
     const rotateItem = (id: string, type: 'room' | 'location', currentRotation: number, e: React.MouseEvent) => {
         e.stopPropagation();
         
-        // Simple click increments by 90, Alt/Shift allows manual
         let deg = (currentRotation + 90) % 360;
         if (e.altKey || e.shiftKey) {
             const res = window.prompt("Enter rotation degrees:", currentRotation.toString());
@@ -670,14 +712,66 @@ export function InteractiveMap() {
 
         saveSnapshot();
         markDirty(id);
+
+        const is90Step = (deg % 90 === 0 && currentRotation % 90 === 0);
+        const isSwapping = is90Step && (deg % 180 !== currentRotation % 180);
+
         if (type === 'room') {
-            setRooms(prev => prev.map(r => (r.id === id || r.docId === id) ? { 
-                ...r, 
-                map_coordinates: r.map_coordinates ? { ...r.map_coordinates, rotation: deg } : null,
-                geometries: r.geometries ? r.geometries.map(g => ({ ...g, rotation: deg })) : undefined
-            } : r));
+            setRooms(prev => prev.map(r => {
+                const rid = r.docId || r.id;
+                if (rid === id) {
+                    const updateCoords = (c: any) => {
+                        if (!c) return null;
+                        if (!isSwapping) return { ...c, rotation: deg };
+                        
+                        // Center-aware dimensional swap
+                        const centerX = c.x + c.width / 2;
+                        const centerY = c.y + c.height / 2;
+                        const newW = c.height;
+                        const newH = c.width;
+                        
+                        return {
+                            ...c,
+                            width: newW,
+                            height: newH,
+                            x: absoluteSnap(centerX - newW / 2),
+                            y: absoluteSnap(centerY - newH / 2),
+                            rotation: 0 // Dimensions are now vertical/horizontal correctly
+                        };
+                    };
+
+                    return {
+                        ...r,
+                        map_coordinates: updateCoords(r.map_coordinates),
+                        geometries: r.geometries ? r.geometries.map(updateCoords) : undefined
+                    };
+                }
+                return r;
+            }));
         } else {
-            setLocalCoords(prev => ({ ...prev, [id]: { ...prev[id], rotation: deg } }));
+            setLocalCoords(prev => {
+                const c = prev[id];
+                if (!c) return prev;
+                
+                if (!isSwapping) return { ...prev, [id]: { ...c, rotation: deg } };
+
+                const centerX = c.x + c.width / 2;
+                const centerY = c.y + c.height / 2;
+                const newW = c.height;
+                const newH = c.width;
+
+                return {
+                    ...prev,
+                    [id]: {
+                        ...c,
+                        width: newW,
+                        height: newH,
+                        x: absoluteSnap(centerX - newW / 2),
+                        y: absoluteSnap(centerY - newH / 2),
+                        rotation: 0
+                    }
+                };
+            });
         }
     };
 
@@ -899,6 +993,47 @@ export function InteractiveMap() {
         setSelectionTick(t => t + 1); // Finally sync selection UI
     };
 
+    const handleUpdateLocationProperty = (id: string, property: 'width' | 'height' | 'x' | 'y' | 'rotation', value: string | number) => {
+        saveSnapshot();
+        markDirty(id);
+        
+        // Allow empty string for better typing experience
+        if (value === "") return; 
+        
+        const val = typeof value === 'string' ? parseFloat(value) : value;
+        if (isNaN(val)) return;
+
+        // Units conversion: feet to pixels for spatial properties
+        const pixels = (property === 'rotation') ? val : absoluteSnap(val * PIXELS_PER_FOOT);
+
+        setLocalCoords(prev => {
+            const c = prev[id];
+            if (!c) return prev;
+
+            // If rotation makes it vertical/horizontal, swap dimensions to match the physical box
+            if (property === 'rotation' && val % 180 !== (c.rotation || 0) % 180 && val % 90 === 0) {
+                const centerX = c.x + c.width / 2;
+                const centerY = c.y + c.height / 2;
+                return {
+                    ...prev,
+                    [id]: {
+                        ...c,
+                        width: c.height,
+                        height: c.width,
+                        x: absoluteSnap(centerX - c.height / 2),
+                        y: absoluteSnap(centerY - c.width / 2),
+                        rotation: 0
+                    }
+                };
+            }
+
+            return {
+                ...prev,
+                [id]: { ...c, [property]: pixels }
+            };
+        });
+    };
+
     const handleUpdateRoomProperty = (id: string, property: 'name' | 'width' | 'height' | 'x' | 'y' | 'rotation', value: string | number, index?: number) => {
         // If it's a name update, don't snapshot every keystroke to avoid spam
         if (property !== 'name') saveSnapshot();
@@ -917,6 +1052,28 @@ export function InteractiveMap() {
 
                 // Units conversion: feet to pixels for spatial properties
                 const pixels = (property === 'rotation') ? val : absoluteSnap(val * PIXELS_PER_FOOT);
+
+                // If rotation makes it vertical/horizontal, swap dimensions to match the physical box
+                if (property === 'rotation' && val % 180 !== (r.geometries?.[index || 0]?.rotation || r.map_coordinates?.rotation || 0) % 180 && val % 90 === 0) {
+                    const updateCoords = (c: any, i: number) => {
+                        if (index !== undefined && i !== index) return c;
+                        const centerX = c.x + c.width / 2;
+                        const centerY = c.y + c.height / 2;
+                        return {
+                            ...c,
+                            width: c.height,
+                            height: c.width,
+                            x: absoluteSnap(centerX - c.height / 2),
+                            y: absoluteSnap(centerY - c.width / 2),
+                            rotation: 0
+                        };
+                    };
+                    return {
+                        ...r,
+                        map_coordinates: r.map_coordinates ? updateCoords(r.map_coordinates, 0) : null,
+                        geometries: r.geometries ? r.geometries.map(updateCoords) : undefined
+                    };
+                }
 
                 if (r.geometries && r.geometries.length > 0) {
                     const targetIndex = index ?? 0;
@@ -1069,104 +1226,174 @@ export function InteractiveMap() {
                                         <button onClick={()=>setIsBindingMode(true)} className="w-full flex items-center justify-center gap-2 bg-tan/10 text-tan border border-tan/30 border-dashed py-3 rounded-lg text-sm font-bold hover:bg-tan hover:text-white transition-all"><Plus size={18}/> Place Location</button>
                                         <button onClick={addRoom} className="w-full flex items-center justify-center gap-2 bg-charcoal/5 border py-3 rounded-lg text-sm font-bold hover:bg-charcoal hover:text-white transition-all"><BoxSelect size={18}/> New Structural Room</button>
                                         
-                                        {/* Single/Merged Room Editor */}
+                                        {/* Single/Merged Room Editor or Location Editor */}
                                         {(() => {
                                             const selectedArr = Array.from(selectedIdsRef.current);
                                             if (selectedArr.length !== 1) return null;
                                             
                                             const id = selectedArr[0];
                                             const room = rooms.find(r => r.docId === id || r.id === id);
-                                            if (!room) return null;
-                                            
-                                            const geometries = room.geometries || (room.map_coordinates ? [room.map_coordinates] : []);
+                                            const location = !room ? locations.find(l => l.id === id || l.docId === id) : null;
+                                            const locCoords = !room ? localCoords[id] : null;
 
-                                            return (
-                                                <div className="mt-6 pt-6 border-t border-tan-light/50 animate-in slide-in-from-bottom-2">
-                                                    <h4 className="text-[10px] font-black uppercase text-tan/80 tracking-[0.2em] mb-4">Edit Room Properties</h4>
-                                                    <div className="space-y-6">
-                                                        <div>
-                                                            <label className="text-[10px] font-bold text-charcoal/40 uppercase mb-1 block">Room Identity</label>
-                                                            <input 
-                                                                type="text" 
-                                                                value={room.name} 
-                                                                onChange={(e) => handleUpdateRoomProperty(id, 'name', e.target.value)}
-                                                                className="w-full bg-cream/50 border border-tan/20 rounded-lg px-3 py-2 text-sm font-serif font-bold text-charcoal focus:ring-2 focus:ring-tan/50 outline-none"
-                                                            />
-                                                        </div>
+                                            if (room) {
+                                                const geometries = room.geometries || (room.map_coordinates ? [room.map_coordinates] : []);
+                                                return (
+                                                    <div className="mt-6 pt-6 border-t border-tan-light/50 animate-in slide-in-from-bottom-2">
+                                                        <h4 className="text-[10px] font-black uppercase text-tan/80 tracking-[0.2em] mb-4">Edit Room Properties</h4>
+                                                        <div className="space-y-6">
+                                                            <div>
+                                                                <label className="text-[10px] font-bold text-charcoal/40 uppercase mb-1 block">Room Identity</label>
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={room.name} 
+                                                                    onChange={(e) => handleUpdateRoomProperty(id, 'name', e.target.value)}
+                                                                    className="w-full bg-cream/50 border border-tan/20 rounded-lg px-3 py-2 text-sm font-serif font-bold text-charcoal focus:ring-2 focus:ring-tan/50 outline-none"
+                                                                />
+                                                            </div>
 
-                                                        <div className="space-y-3 pb-4">
-                                                            <label className="text-[10px] font-bold text-charcoal/40 uppercase block">Spatial Blocks</label>
-                                                            {geometries.map((geom, idx) => (
-                                                                <div 
-                                                                    key={idx} 
-                                                                    className={`p-3 rounded-lg border transition-all ${hoveredBlock?.roomId === id && hoveredBlock.index === idx ? 'bg-tan/10 border-tan/40 shadow-sm' : 'bg-tan/5 border-tan/10'}`}
-                                                                    onMouseEnter={() => setHoveredBlock({ roomId: id, index: idx })}
-                                                                    onMouseLeave={() => setHoveredBlock(null)}
-                                                                >
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <span className="text-[10px] font-black text-tan/60 uppercase">Section {idx + 1}</span>
-                                                                        {geometries.length > 1 && <span className="text-[9px] font-mono text-tan/40">{(geom.width * geom.height / (PIXELS_PER_FOOT**2)).toFixed(1)} sq.ft.</span>}
+                                                            <div className="space-y-3 pb-4">
+                                                                <label className="text-[10px] font-bold text-charcoal/40 uppercase block">Spatial Blocks</label>
+                                                                {geometries.map((geom, idx) => (
+                                                                    <div 
+                                                                        key={idx} 
+                                                                        className={`p-3 rounded-lg border transition-all ${hoveredBlock?.roomId === id && hoveredBlock.index === idx ? 'bg-tan/10 border-tan/40 shadow-sm' : 'bg-tan/5 border-tan/10'}`}
+                                                                        onMouseEnter={() => setHoveredBlock({ roomId: id, index: idx })}
+                                                                        onMouseLeave={() => setHoveredBlock(null)}
+                                                                    >
+                                                                        <div className="flex justify-between items-center mb-2">
+                                                                            <span className="text-[10px] font-black text-tan/60 uppercase">Section {idx + 1}</span>
+                                                                            {geometries.length > 1 && <span className="text-[9px] font-mono text-tan/40">{(geom.width * geom.height / (PIXELS_PER_FOOT**2)).toFixed(1)} sq.ft.</span>}
+                                                                        </div>
+                                                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                                                            <div>
+                                                                                <label className="text-[9px] font-bold text-charcoal/30 uppercase mb-0.5 block">Width (ft)</label>
+                                                                                <input 
+                                                                                    type="number" 
+                                                                                    step="0.5"
+                                                                                    value={geom.width / PIXELS_PER_FOOT} 
+                                                                                    onChange={(e) => handleUpdateRoomProperty(id, 'width', e.target.value, idx)}
+                                                                                    className="w-full bg-white border border-tan/10 rounded px-2 py-1 text-xs font-mono font-bold text-charcoal outline-none focus:border-tan"
+                                                                                />
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="text-[9px] font-bold text-charcoal/30 uppercase mb-0.5 block">Height (ft)</label>
+                                                                                <input 
+                                                                                    type="number" 
+                                                                                    step="0.5"
+                                                                                    value={geom.height / PIXELS_PER_FOOT} 
+                                                                                    onChange={(e) => handleUpdateRoomProperty(id, 'height', e.target.value, idx)}
+                                                                                    className="w-full bg-white border border-tan/10 rounded px-2 py-1 text-xs font-mono font-bold text-charcoal outline-none focus:border-tan"
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="grid grid-cols-3 gap-2">
+                                                                            <div>
+                                                                                <label className="text-[8px] font-bold text-charcoal/30 uppercase mb-0.5 block">X Pos (ft)</label>
+                                                                                <input 
+                                                                                    type="number" 
+                                                                                    step="0.5"
+                                                                                    value={geom.x / PIXELS_PER_FOOT} 
+                                                                                    onChange={(e) => handleUpdateRoomProperty(id, 'x', e.target.value, idx)}
+                                                                                    className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
+                                                                                />
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="text-[8px] font-bold text-charcoal/30 uppercase mb-0.5 block">Y Pos (ft)</label>
+                                                                                <input 
+                                                                                    type="number" 
+                                                                                    step="0.5"
+                                                                                    value={geom.y / PIXELS_PER_FOOT} 
+                                                                                    onChange={(e) => handleUpdateRoomProperty(id, 'y', e.target.value, idx)}
+                                                                                    className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
+                                                                                />
+                                                                            </div>
+                                                                            <div>
+                                                                                <label className="text-[8px] font-bold text-charcoal/30 uppercase mb-0.5 block">Rot (deg)</label>
+                                                                                <input 
+                                                                                    type="number" 
+                                                                                    step="90"
+                                                                                    value={geom.rotation || 0} 
+                                                                                    onChange={(e) => handleUpdateRoomProperty(id, 'rotation', e.target.value, idx)}
+                                                                                    className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
+                                                                                />
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="grid grid-cols-2 gap-3 mb-3">
-                                                                        <div>
-                                                                            <label className="text-[9px] font-bold text-charcoal/30 uppercase mb-0.5 block">Width (ft)</label>
-                                                                            <input 
-                                                                                type="number" 
-                                                                                step="0.5"
-                                                                                value={geom.width / PIXELS_PER_FOOT} 
-                                                                                onChange={(e) => handleUpdateRoomProperty(id, 'width', e.target.value, idx)}
-                                                                                className="w-full bg-white border border-tan/10 rounded px-2 py-1 text-xs font-mono font-bold text-charcoal outline-none focus:border-tan"
-                                                                            />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="text-[9px] font-bold text-charcoal/30 uppercase mb-0.5 block">Height (ft)</label>
-                                                                            <input 
-                                                                                type="number" 
-                                                                                step="0.5"
-                                                                                value={geom.height / PIXELS_PER_FOOT} 
-                                                                                onChange={(e) => handleUpdateRoomProperty(id, 'height', e.target.value, idx)}
-                                                                                className="w-full bg-white border border-tan/10 rounded px-2 py-1 text-xs font-mono font-bold text-charcoal outline-none focus:border-tan"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="grid grid-cols-3 gap-2">
-                                                                        <div>
-                                                                            <label className="text-[8px] font-bold text-charcoal/30 uppercase mb-0.5 block">X Pos (ft)</label>
-                                                                            <input 
-                                                                                type="number" 
-                                                                                step="0.5"
-                                                                                value={geom.x / PIXELS_PER_FOOT} 
-                                                                                onChange={(e) => handleUpdateRoomProperty(id, 'x', e.target.value, idx)}
-                                                                                className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
-                                                                            />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="text-[8px] font-bold text-charcoal/30 uppercase mb-0.5 block">Y Pos (ft)</label>
-                                                                            <input 
-                                                                                type="number" 
-                                                                                step="0.5"
-                                                                                value={geom.y / PIXELS_PER_FOOT} 
-                                                                                onChange={(e) => handleUpdateRoomProperty(id, 'y', e.target.value, idx)}
-                                                                                className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
-                                                                            />
-                                                                        </div>
-                                                                        <div>
-                                                                            <label className="text-[8px] font-bold text-charcoal/30 uppercase mb-0.5 block">Rot (deg)</label>
-                                                                            <input 
-                                                                                type="number" 
-                                                                                step="90"
-                                                                                value={geom.rotation || 0} 
-                                                                                onChange={(e) => handleUpdateRoomProperty(id, 'rotation', e.target.value, idx)}
-                                                                                className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
+                                                );
+                                            }
+
+                                            if (location && locCoords) {
+                                                return (
+                                                    <div className="mt-6 pt-6 border-t border-tan-light/50 animate-in slide-in-from-bottom-2">
+                                                        <h4 className="text-[10px] font-black uppercase text-tan/80 tracking-[0.2em] mb-4">Edit Location: {location.name}</h4>
+                                                        <div className="space-y-4">
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div>
+                                                                    <label className="text-[9px] font-bold text-charcoal/30 uppercase mb-0.5 block">Width (ft)</label>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="0.5"
+                                                                        disabled={locCoords.display_type === 'pin'}
+                                                                        value={locCoords.width / PIXELS_PER_FOOT} 
+                                                                        onChange={(e) => handleUpdateLocationProperty(id, 'width', e.target.value)}
+                                                                        className="w-full bg-white border border-tan/10 rounded px-2 py-1 text-xs font-mono font-bold text-charcoal outline-none focus:border-tan disabled:opacity-50"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[9px] font-bold text-charcoal/30 uppercase mb-0.5 block">Height (ft)</label>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="0.5"
+                                                                        disabled={locCoords.display_type === 'pin'}
+                                                                        value={locCoords.height / PIXELS_PER_FOOT} 
+                                                                        onChange={(e) => handleUpdateLocationProperty(id, 'height', e.target.value)}
+                                                                        className="w-full bg-white border border-tan/10 rounded px-2 py-1 text-xs font-mono font-bold text-charcoal outline-none focus:border-tan disabled:opacity-50"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                <div>
+                                                                    <label className="text-[8px] font-bold text-charcoal/30 uppercase mb-0.5 block">X Pos (ft)</label>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="0.5"
+                                                                        value={locCoords.x / PIXELS_PER_FOOT} 
+                                                                        onChange={(e) => handleUpdateLocationProperty(id, 'x', e.target.value)}
+                                                                        className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[8px] font-bold text-charcoal/30 uppercase mb-0.5 block">Y Pos (ft)</label>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="0.5"
+                                                                        value={locCoords.y / PIXELS_PER_FOOT} 
+                                                                        onChange={(e) => handleUpdateLocationProperty(id, 'y', e.target.value)}
+                                                                        className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[8px] font-bold text-charcoal/30 uppercase mb-0.5 block">Rot (deg)</label>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        step="90"
+                                                                        value={locCoords.rotation || 0} 
+                                                                        onChange={(e) => handleUpdateLocationProperty(id, 'rotation', e.target.value)}
+                                                                        className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+
+                                            return null;
                                         })()}
 
                                         <div className="mt-4 pt-4 border-t border-tan-light/50">
@@ -1471,8 +1698,19 @@ export function InteractiveMap() {
                                                     <span className={`text-[10px] font-bold ${isSelected ? 'bg-blue-50' : 'bg-white/90'} border px-1 rounded shadow-sm transition-colors`}>{loc.name}</span>
                                                 </div>
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center p-1 text-center">
-                                                    <span className="font-serif font-bold text-charcoal text-[9px] uppercase leading-tight">{loc.name}</span>
+                                                <div className="w-full h-full flex items-center justify-center p-1 text-center overflow-hidden">
+                                                    {/* Smart Rotation: If block is vertical, rotate text to fit length-wise */}
+                                                    <div 
+                                                        className="flex items-center justify-center w-full h-full"
+                                                        style={{ 
+                                                            transform: `rotate(${c.height > c.width ? 90 : 0}deg)`,
+                                                            minWidth: c.height > c.width ? c.height : '100%'
+                                                        }}
+                                                    >
+                                                        <span className="font-serif font-bold text-charcoal text-[9px] uppercase leading-tight truncate px-1 max-w-full">
+                                                            {loc.name}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             )}
                                             {isEditMode && (
