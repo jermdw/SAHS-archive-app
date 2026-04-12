@@ -1689,42 +1689,36 @@ export function InteractiveMap() {
                                             {c.display_type === 'pin' ? (
                                                 <div className="flex flex-col items-center">
                                                     <MapPin size={48} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
-                                                    <span className={`text-[9px] font-serif font-bold ${isSelected ? 'bg-blue-50' : 'bg-white/90'} border px-1 rounded shadow-sm transition-colors whitespace-normal text-center leading-tight max-w-[120px]`}>{loc.name}</span>
+                                                    <span className={`text-[9.5px] font-serif font-black ${isSelected ? 'bg-blue-50' : 'bg-white/95'} border border-charcoal/10 px-1.5 py-0.5 rounded shadow-lg transition-colors whitespace-nowrap text-center text-charcoal tracking-tight`}>{loc.name}</span>
                                                 </div>
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center p-0.5 text-center overflow-hidden">
-                                                    {(() => {
-                                                        const isVertical = c.height > c.width * 1.5;
-                                                        const labelRotation = isVertical ? 90 - (c.rotation || 0) : -(c.rotation || 0);
-                                                        const labelWidth = isVertical ? c.height : (((c.rotation || 0) % 180 === 0) ? '100%' : c.height);
-                                                        const labelHeight = isVertical ? c.width : (((c.rotation || 0) % 180 === 0) ? '100%' : c.width);
-
-                                                        return (
-                                                            <div 
-                                                                className="flex items-center justify-center transition-transform duration-300 pointer-events-none"
-                                                                style={{ 
-                                                                    transform: `rotate(${labelRotation}deg)`,
-                                                                    width: labelWidth,
-                                                                    height: labelHeight,
-                                                                    // Ensure the container is big enough to hold the rotated text
-                                                                    minWidth: isVertical ? c.height : 'auto'
-                                                                }}
-                                                            >
-                                                                <span 
-                                                                    className={`font-serif font-black text-charcoal uppercase leading-[0.8] block w-full px-0.5`}
-                                                                    style={{ 
-                                                                        fontSize: (isVertical ? 8 : (c.width < 24 ? 6 : c.width < 48 ? 7 : 8)),
-                                                                        wordBreak: 'normal',
-                                                                        overflowWrap: 'break-word',
-                                                                        textShadow: '0 0 5px rgba(255,255,255,0.9)',
-                                                                        maxWidth: isVertical ? c.height * 0.9 : 'none'
-                                                                    }}
-                                                                >
-                                                                    {loc.name}
-                                                                </span>
-                                                            </div>
-                                                        );
-                                                    })()}
+                                                <div className="w-full h-full flex items-center justify-center p-0.5 text-center">
+                                                    <div 
+                                                        className="flex items-center justify-center transition-transform duration-300 pointer-events-none"
+                                                        style={{ 
+                                                            position: 'absolute',
+                                                            transform: `rotate(${-(c.rotation || 0)}deg)`,
+                                                            // Provide a minimum width so text doesn't squeeze too hard on vertical shelves
+                                                            minWidth: Math.max(c.width, c.height, 80),
+                                                            height: Math.max(c.width, c.height),
+                                                            zIndex: 10
+                                                        }}
+                                                    >
+                                                        <span 
+                                                            className={`font-serif font-black text-charcoal uppercase leading-[0.9] block px-1`}
+                                                            style={{ 
+                                                                fontSize: '9px', // Standardized readable size
+                                                                wordBreak: 'normal',
+                                                                overflowWrap: 'normal',
+                                                                whiteSpace: 'normal',
+                                                                // Stronger white glow for legibility over any background
+                                                                textShadow: '0 0 8px white, 0 0 8px white, 0 0 4px white, 0 0 2px white',
+                                                                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+                                                            }}
+                                                        >
+                                                            {loc.name}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             )}
                                             {isEditMode && (
