@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { db } from '../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { DocumentCard } from '../components/DocumentCard';
 import { Search, Loader2, Check, Box, Plus, MapPin, Printer, ChevronLeft, Tag, X, AlertCircle } from 'lucide-react';
@@ -232,6 +232,54 @@ export function LocationDetail() {
             alert("Failed to link items. Please check permissions.");
         } finally {
             setIsLinking(false);
+        }
+    };
+
+    const handleRemoveItemFromLocation = async (e: React.MouseEvent, item: ArchiveItem) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!id || !isSAHSUser) return;
+        
+        const confirmMsg = `Remove "${item.title}" from this location? \n\n(The artifact will remain in the archive and can be reassigned later)`;
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            const itemRef = doc(db, 'archive_items', item.id!);
+            const now = new Date().toISOString();
+            const adminEmail = user?.email || 'Admin';
+
+            // 1. Filter out the current location from IDs array
+            const currentIds = item.museum_location_ids || [];
+            const newIds = currentIds.filter(lid => lid !== id);
+
+            // 2. Prepare update object
+            const updates: any = {
+                museum_location_ids: newIds,
+                last_tagged_at: now,
+                last_tagged_by: adminEmail
+            };
+
+            // 3. If legacy ID matches this one, clear it
+            if (item.museum_location_id === id) {
+                updates.museum_location_id = null;
+            }
+
+            // 4. Update stage to 'Unassigned' if this was the last location? 
+            // Or maybe just leave it 'Housed' if it has other locations.
+            if (newIds.length === 0) {
+                updates.stage = 'Unassigned';
+            }
+
+            await updateDoc(itemRef, updates);
+
+            // 5. Optimistic local update
+            setItems(prev => prev.filter(i => i.id !== item.id));
+            
+            // Optional: Alert or subtle notification
+        } catch (error) {
+            console.error("Error removing item from location:", error);
+            alert("Failed to remove item. Please check permissions.");
         }
     };
 
@@ -537,7 +585,12 @@ export function LocationDetail() {
                 {items.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">
                         {items.map(item => (
-                            <DocumentCard key={item.id} item={item} galleryIds={items.map(i => i.id || '')} />
+                            <DocumentCard 
+                                key={item.id} 
+                                item={item} 
+                                galleryIds={items.map(i => i.id || '')} 
+                                onRemove={(e) => handleRemoveItemFromLocation(e, item)}
+                            />
                         ))}
                     </div>
                 ) : (

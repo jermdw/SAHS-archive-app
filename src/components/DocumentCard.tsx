@@ -1,9 +1,17 @@
 import { Link } from 'react-router-dom';
-import { Lock } from 'lucide-react';
+import { Lock, X } from 'lucide-react';
 import type { ArchiveItem } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 
-export function DocumentCard({ item, galleryIds }: { item: ArchiveItem, galleryIds?: string[] }) {
+export function DocumentCard({ 
+    item, 
+    galleryIds, 
+    onRemove 
+}: { 
+    item: ArchiveItem, 
+    galleryIds?: string[],
+    onRemove?: (e: React.MouseEvent) => void
+}) {
     const { isEditingMode, isSAHSUser } = useAuth();
     const imageUrl = item.featured_image_url || (item.file_urls && item.file_urls.length > 0 ? item.file_urls[0] : null);
     const totalImages = item.file_urls ? item.file_urls.length : 0;
@@ -29,15 +37,24 @@ export function DocumentCard({ item, galleryIds }: { item: ArchiveItem, galleryI
                     </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                {totalImages > 1 && (
-                    <span className="absolute top-3 right-3 bg-charcoal/80 text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest z-10">
-                        {totalImages} Images
-                    </span>
-                )}
                 {item.is_private && isSAHSUser && (
                     <span className="absolute top-3 left-3 bg-amber-500 text-white text-[10px] px-2 py-1 rounded font-black uppercase tracking-widest flex items-center gap-1 z-10 shadow-sm">
                         <Lock size={10} /> Private
                     </span>
+                )}
+                {totalImages > 1 && (
+                    <span className={`absolute top-3 ${onRemove && isSAHSUser ? 'right-12' : 'right-3'} bg-charcoal/80 text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest z-10 transition-all`}>
+                        {totalImages} Images
+                    </span>
+                )}
+                {onRemove && isSAHSUser && (
+                    <button
+                        onClick={onRemove}
+                        title="Remove from this location"
+                        className="absolute top-3 right-3 p-1.5 bg-white/90 text-charcoal/40 hover:text-red-500 hover:bg-white rounded-lg transition-all z-20 shadow-md group/btn"
+                    >
+                        <X size={16} />
+                    </button>
                 )}
             </div>
             <div className="p-6 flex-1 flex flex-col bg-white z-10 relative">
