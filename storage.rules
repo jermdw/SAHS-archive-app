@@ -4,13 +4,13 @@ service firebase.storage {
 
     // Helper function for admin/curator roles
     function isSAHSUser() {
-      let email = request.auth.token.email.lower();
-      return request.auth != null && (
-        email.endsWith('@senoiahistory.com') || 
-        email == 'catnolan@senoiahistory.com' || 
-        email == 'jeremywarren@senoiahistory.com' ||
-        (firestore.exists(/databases/(default)/documents/user_roles/$(email)) && 
-         firestore.get(/databases/(default)/documents/user_roles/$(email)).data.role in ['admin', 'curator'])
+      return request.auth != null && 
+        request.auth.token.email != null && (
+        request.auth.token.email.lower().endsWith('@senoiahistory.com') || 
+        request.auth.token.email.lower() == 'catnolan@senoiahistory.com' || 
+        request.auth.token.email.lower() == 'jeremywarren@senoiahistory.com' ||
+        (firestore.exists(/databases/sahs-archives/documents/user_roles/$(request.auth.token.email.lower())) && 
+         firestore.get(/databases/sahs-archives/documents/user_roles/$(request.auth.token.email.lower())).data.role in ['admin', 'curator'])
       );
     }
 
