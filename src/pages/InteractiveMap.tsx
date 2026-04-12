@@ -1698,9 +1698,15 @@ export function InteractiveMap() {
                                                     <span className={`text-[10px] font-bold ${isSelected ? 'bg-blue-50' : 'bg-white/90'} border px-1 rounded shadow-sm transition-colors`}>{loc.name}</span>
                                                 </div>
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center p-1 text-center overflow-hidden">
+                                                <div className="w-full h-full flex items-center justify-center p-0.5 text-center overflow-hidden">
                                                     <div className="flex items-center justify-center w-full h-full">
-                                                        <span className="font-serif font-bold text-charcoal text-[9px] uppercase leading-tight truncate px-1 max-w-full">
+                                                        <span 
+                                                            className={`font-serif font-bold text-charcoal uppercase leading-[0.9] break-words block w-full`}
+                                                            style={{ 
+                                                                fontSize: c.width < 20 ? '7px' : c.width < 32 ? '8px' : '9px',
+                                                                wordBreak: 'break-word'
+                                                            }}
+                                                        >
                                                             {loc.name}
                                                         </span>
                                                     </div>
