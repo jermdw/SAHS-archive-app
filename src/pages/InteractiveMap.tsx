@@ -1689,7 +1689,7 @@ export function InteractiveMap() {
                                             {c.display_type === 'pin' ? (
                                                 <div className="flex flex-col items-center">
                                                     <MapPin size={48} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
-                                                    <span className={`text-[9.5px] font-serif font-black ${isSelected ? 'bg-blue-50' : 'bg-white/95'} border border-charcoal/10 px-1.5 py-0.5 rounded shadow-lg transition-colors whitespace-nowrap text-center text-charcoal tracking-tight`}>{loc.name}</span>
+                                                    <span className={`text-[9.5px] font-serif font-black ${isSelected ? 'bg-blue-50' : 'bg-white/95'} border border-charcoal/10 px-2 py-1 rounded shadow-lg transition-colors whitespace-normal text-center text-charcoal tracking-tight max-w-[80px] leading-tight break-words`}>{loc.name}</span>
                                                 </div>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center p-0.5 text-center">
