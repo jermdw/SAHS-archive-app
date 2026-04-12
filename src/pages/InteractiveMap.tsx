@@ -997,10 +997,7 @@ export function InteractiveMap() {
         saveSnapshot();
         markDirty(id);
         
-        // Allow empty string for better typing experience
-        if (value === "") return; 
-        
-        const val = typeof value === 'string' ? parseFloat(value) : value;
+        const val = typeof value === 'string' && value !== "" ? parseFloat(value) : (typeof value === 'number' ? value : 0);
         if (isNaN(val)) return;
 
         // Units conversion: feet to pixels for spatial properties
@@ -1044,10 +1041,7 @@ export function InteractiveMap() {
             if (rid === id) {
                 if (property === 'name') return { ...r, name: value as string };
                 
-                // Allow empty string for better typing experience
-                if (value === "") return r; 
-                
-                const val = typeof value === 'string' ? parseFloat(value) : value;
+                const val = typeof value === 'string' && value !== "" ? parseFloat(value) : (typeof value === 'number' ? value : 0);
                 if (isNaN(val)) return r;
 
                 // Units conversion: feet to pixels for spatial properties
