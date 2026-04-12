@@ -271,28 +271,40 @@ export function InteractiveMap() {
                                     display_type: lCoords.display_type || loc.display_type || (loc.map_coordinates?.display_type)
                                 })
                             });
-                            return;
                         } else {
                             console.warn(`[SKIP] Location ${id} has invalid coordinates:`, lCoords);
                         }
+                        return; // Found and handled as location
                     }
 
                     // 2. Check Rooms
                     const room = rooms.find(r => r.docId === id || r.id === id);
                     if (room?.docId) {
+                        const hasGeoms = room.geometries && room.geometries.length > 0;
                         const c = room.map_coordinates;
-                        if (c === null) {
-                            console.log(`[COMMIT] Removing Room: ${room.name}`);
-                            await updateDoc(doc(db, 'rooms', room.docId), { map_coordinates: null });
+
+                        if (hasGeoms) {
+                            console.log(`[COMMIT] Merged Room: ${room.name} (${room.geometries?.length} blocks)`);
+                            await updateDoc(doc(db, 'rooms', room.docId), { 
+                                geometries: stripUndefined(room.geometries),
+                                map_coordinates: null, // Clear flat coords for merged rooms
+                                display_type: 'room'
+                            });
                         } else if (c && typeof c.x === 'number' && !isNaN(c.x)) {
                             console.log(`[COMMIT] Room: ${room.name} at (${c.x}, ${c.y})`);
                             await updateDoc(doc(db, 'rooms', room.docId), { 
                                 map_coordinates: stripUndefined(c), 
-                                geometries: room.geometries ? stripUndefined(room.geometries) : null,
-                                display_type: 'room' // Rooms are always room type
+                                geometries: null,
+                                display_type: 'room'
+                            });
+                        } else if (c === null) {
+                            console.log(`[COMMIT] Removing/Unplacing Room: ${room.name}`);
+                            await updateDoc(doc(db, 'rooms', room.docId), { 
+                                map_coordinates: null,
+                                geometries: null
                             });
                         } else {
-                            console.warn(`[SKIP] Room ${id} has invalid coordinates:`, c);
+                            console.warn(`[SKIP] Room ${id} has invalid coordinates or state:`, c);
                         }
                     }
                 } catch (err) {
@@ -321,6 +333,7 @@ export function InteractiveMap() {
             
             dirtyIdsRef.current.clear();
             pristineStateRef.current = null; // Clear pristine state after success
+            setDraggingId(null);
 
             setIsEditMode(false);
             alert("Layout saved successfully!");
@@ -359,6 +372,7 @@ export function InteractiveMap() {
             // Clear selection
             selectedIdsRef.current.forEach(id => setSelectionDOM(id, false));
             selectedIdsRef.current.clear();
+            setDraggingId(null);
             setSelectionTick(t => t + 1);
         }
         
@@ -735,21 +749,26 @@ export function InteractiveMap() {
         
         // Track start position for EVERY selected item (and internal room geometries)
         selectedIdsRef.current.forEach(id => {
-            const room = rooms.find(r => r.id === id || r.docId === id);
-            
+            // Priority 1: Check if it's a structural room
+            const room = rooms.find(r => r.docId === id || r.id === id);
             if (room) {
                 if (room.geometries && room.geometries.length > 0) {
                     room.geometries.forEach((g, gi) => {
                         dragStartPosRef.current[`${id}-geom-${gi}`] = { x: g.x, y: g.y };
                     });
-                    // Main ID tracks the first geometry for calculations
                     dragStartPosRef.current[id] = { x: room.geometries[0].x, y: room.geometries[0].y };
                 } else if (room.map_coordinates) {
                     dragStartPosRef.current[`${id}-geom-0`] = { x: room.map_coordinates.x, y: room.map_coordinates.y };
                     dragStartPosRef.current[id] = { x: room.map_coordinates.x, y: room.map_coordinates.y };
                 }
-            } else if (localCoords[id]) {
-                dragStartPosRef.current[id] = { x: localCoords[id].x, y: localCoords[id].y };
+                return;
+            }
+
+            // Priority 2: Check if it's a location pin/block
+            const lCoords = localCoords[id];
+            if (lCoords) {
+                dragStartPosRef.current[id] = { x: lCoords.x, y: lCoords.y };
+                dragStartPosRef.current[`${id}-geom-0`] = { x: lCoords.x, y: lCoords.y };
             }
         });
     };
@@ -805,9 +824,14 @@ export function InteractiveMap() {
         const start = draggedIndex !== undefined 
             ? dragStartPosRef.current[`${draggedId}-geom-${draggedIndex}`] 
             : dragStartPosRef.current[draggedId];
+        
         if (!start) return;
+        
         const offsetX = d.x - start.x;
         const offsetY = d.y - start.y;
+
+        // Capture snapshot of starting positions BEFORE state updates to avoid race conditions
+        const snapshotPositions = { ...dragStartPosRef.current };
 
         saveSnapshot();
 
@@ -821,7 +845,7 @@ export function InteractiveMap() {
                     return {
                         ...r,
                         geometries: r.geometries.map((gc: any, gi: number) => {
-                            const gStart = dragStartPosRef.current[`${id}-geom-${gi}`] || gc;
+                            const gStart = snapshotPositions[`${id}-geom-${gi}`] || gc;
                             return {
                                 ...gc,
                                 x: absoluteSnap(gStart.x + offsetX),
@@ -831,13 +855,14 @@ export function InteractiveMap() {
                     };
                 }
                 // Legacy single-coords room
-                if (r.map_coordinates && dragStartPosRef.current[id]) {
+                const sStart = snapshotPositions[id];
+                if (r.map_coordinates && sStart) {
                     return {
                         ...r,
                         map_coordinates: {
                             ...r.map_coordinates,
-                            x: absoluteSnap(dragStartPosRef.current[id].x + offsetX),
-                            y: absoluteSnap(dragStartPosRef.current[id].y + offsetY)
+                            x: absoluteSnap(sStart.x + offsetX),
+                            y: absoluteSnap(sStart.y + offsetY)
                         }
                     };
                 }
@@ -848,13 +873,14 @@ export function InteractiveMap() {
         // Update Locations (Shelves/Pins)
         setLocalCoords(prev => {
             const next = { ...prev };
+            let hasChanges = false;
+            
             Object.keys(next).forEach(id => {
-                const sStart = dragStartPosRef.current[id];
+                const sStart = snapshotPositions[id];
                 if (selectedIdsRef.current.has(id) && sStart) {
                     const finalX = absoluteSnap(sStart.x + offsetX);
                     const finalY = absoluteSnap(sStart.y + offsetY);
                     
-                    // SAFETY: Prevent coordinate jump if math fails
                     if (!isNaN(finalX) && !isNaN(finalY)) {
                         markDirty(id);
                         next[id] = {
@@ -862,14 +888,13 @@ export function InteractiveMap() {
                             x: finalX,
                             y: finalY
                         };
+                        hasChanges = true;
                     }
                 }
             });
-            return next;
+            return hasChanges ? next : prev;
         });
         
-        // Clear drag tracking
-        dragStartPosRef.current = {};
         setDraggingId(null);
         setSelectionTick(t => t + 1); // Finally sync selection UI
     };
