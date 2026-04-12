@@ -43,14 +43,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             {/* Mobile Backdrop */}
             {isOpen && (
                 <div 
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] md:hidden transition-opacity"
                     onClick={onClose}
                     aria-hidden="true"
                 />
             )}
 
             <aside className={`
-                fixed md:sticky top-0 left-0 h-screen z-50
+                fixed md:sticky top-0 left-0 h-screen z-[9999]
                 w-64 border-r border-tan-light bg-white flex flex-col p-6 shrink-0 overflow-y-auto shadow-[2px_0_8px_rgba(0,0,0,0.02)]
                 transition-transform duration-300 ease-in-out
                 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
