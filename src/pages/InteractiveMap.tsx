@@ -1699,14 +1699,7 @@ export function InteractiveMap() {
                                                 </div>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center p-1 text-center overflow-hidden">
-                                                    {/* Smart Rotation: If block is vertical, rotate text to fit length-wise */}
-                                                    <div 
-                                                        className="flex items-center justify-center w-full h-full"
-                                                        style={{ 
-                                                            transform: `rotate(${c.height > c.width ? 90 : 0}deg)`,
-                                                            minWidth: c.height > c.width ? c.height : '100%'
-                                                        }}
-                                                    >
+                                                    <div className="flex items-center justify-center w-full h-full">
                                                         <span className="font-serif font-bold text-charcoal text-[9px] uppercase leading-tight truncate px-1 max-w-full">
                                                             {loc.name}
                                                         </span>
