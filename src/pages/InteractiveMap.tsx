@@ -143,7 +143,6 @@ export function InteractiveMap() {
                 e.preventDefault();
                 const idsToDelete = Array.from(selectedIdsRef.current);
                 
-                const hasRooms = idsToDelete.some(id => rooms.some(r => r.id === id || r.docId === id));
                 const confirmMsg = idsToDelete.length > 1 
                     ? `Remove ${idsToDelete.length} selected items from the map?` 
                     : "Remove selected item from the map?";
@@ -1511,11 +1510,11 @@ export function InteractiveMap() {
                                             if (isEditMode && !e.shiftKey) handleItemSelection(room.docId!, e);
                                         }}
                                         style={{ 
-                                            backgroundColor: (hoveredBlock?.roomId === room.docId && hoveredBlock.index === index) 
+                                            backgroundColor: (hoveredBlock && hoveredBlock.roomId === room.docId && hoveredBlock.index === index) 
                                                 ? 'rgba(59, 130, 246, 0.4)' 
                                                 : isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(210, 180, 140, 0.25)',
                                             zIndex: isSelected ? 40 : 5,
-                                            boxShadow: (hoveredBlock?.roomId === room.docId && hoveredBlock.index === index) 
+                                            boxShadow: (hoveredBlock && hoveredBlock.roomId === room.docId && hoveredBlock.index === index) 
                                                 ? '0 0 15px rgba(59, 130, 246, 0.5)' 
                                                 : 'none',
                                             border: isSelected ? '2px solid #3b82f6' : '1px solid #d2b48c',
@@ -1705,8 +1704,8 @@ export function InteractiveMap() {
                                                             transform: `rotate(${-(c.rotation || 0)}deg)`,
                                                             // For very thin blocks, ensure the label container can overflow the rotated parent if needed, 
                                                             // but for now we'll keep it contained and use font scaling.
-                                                            width: (c.rotation % 180 === 0) ? '100%' : c.height,
-                                                            height: (c.rotation % 180 === 0) ? '100%' : c.width,
+                                                            width: ((c.rotation || 0) % 180 === 0) ? '100%' : c.height,
+                                                            height: ((c.rotation || 0) % 180 === 0) ? '100%' : c.width,
                                                         }}
                                                     >
                                                         <span 

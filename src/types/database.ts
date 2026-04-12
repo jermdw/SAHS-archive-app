@@ -11,6 +11,7 @@ export interface Room {
         height: number;
         rotation?: number;
         z_index?: number;
+        display_type?: 'pin' | 'block';
     } | null;
     geometries?: Array<{
         x: number;
@@ -19,6 +20,7 @@ export interface Room {
         height: number;
         rotation?: number;
         z_index?: number;
+        display_type?: 'pin' | 'block';
     }>;
     group_id?: string;
 }
@@ -41,6 +43,7 @@ export interface MuseumLocation {
     description?: string;
     created_at: string;
     room_id?: string;
+    display_type?: 'pin' | 'block';
     map_coordinates?: {
         x: number;
         y: number;
@@ -48,6 +51,7 @@ export interface MuseumLocation {
         height: number;
         rotation?: number;
         z_index?: number;
+        display_type?: 'pin' | 'block';
     } | null;
 }
 
