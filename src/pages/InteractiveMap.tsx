@@ -1693,26 +1693,38 @@ export function InteractiveMap() {
                                                 </div>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center p-0.5 text-center overflow-hidden">
-                                                    <div 
-                                                        className="flex items-center justify-center w-full h-full transition-transform duration-300"
-                                                        style={{ 
-                                                            transform: `rotate(${-(c.rotation || 0)}deg)`,
-                                                            width: ((c.rotation || 0) % 180 === 0) ? '100%' : c.height,
-                                                            height: ((c.rotation || 0) % 180 === 0) ? '100%' : c.width,
-                                                        }}
-                                                    >
-                                                        <span 
-                                                            className={`font-serif font-black text-charcoal uppercase leading-[0.8] block w-full px-0.5`}
-                                                            style={{ 
-                                                                fontSize: c.width < 20 ? '6px' : c.width < 32 ? '7px' : '8px',
-                                                                wordBreak: 'normal',
-                                                                overflowWrap: 'break-word',
-                                                                textShadow: '0 0 4px rgba(255,255,255,0.8)'
-                                                            }}
-                                                        >
-                                                            {loc.name}
-                                                        </span>
-                                                    </div>
+                                                    {(() => {
+                                                        const isVertical = c.height > c.width * 1.5;
+                                                        const labelRotation = isVertical ? 90 - (c.rotation || 0) : -(c.rotation || 0);
+                                                        const labelWidth = isVertical ? c.height : (((c.rotation || 0) % 180 === 0) ? '100%' : c.height);
+                                                        const labelHeight = isVertical ? c.width : (((c.rotation || 0) % 180 === 0) ? '100%' : c.width);
+
+                                                        return (
+                                                            <div 
+                                                                className="flex items-center justify-center transition-transform duration-300 pointer-events-none"
+                                                                style={{ 
+                                                                    transform: `rotate(${labelRotation}deg)`,
+                                                                    width: labelWidth,
+                                                                    height: labelHeight,
+                                                                    // Ensure the container is big enough to hold the rotated text
+                                                                    minWidth: isVertical ? c.height : 'auto'
+                                                                }}
+                                                            >
+                                                                <span 
+                                                                    className={`font-serif font-black text-charcoal uppercase leading-[0.8] block w-full px-0.5`}
+                                                                    style={{ 
+                                                                        fontSize: (isVertical ? 8 : (c.width < 24 ? 6 : c.width < 48 ? 7 : 8)),
+                                                                        wordBreak: 'normal',
+                                                                        overflowWrap: 'break-word',
+                                                                        textShadow: '0 0 5px rgba(255,255,255,0.9)',
+                                                                        maxWidth: isVertical ? c.height * 0.9 : 'none'
+                                                                    }}
+                                                                >
+                                                                    {loc.name}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             )}
                                             {isEditMode && (
