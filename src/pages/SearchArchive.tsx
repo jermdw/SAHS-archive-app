@@ -217,13 +217,13 @@ export function SearchArchive() {
 
     return (
         <div className="max-w-6xl mx-auto h-full flex flex-col pb-12">
-            <div className="mb-8 md:mb-10">
-                <h1 className="text-3xl md:text-5xl font-serif font-bold mb-3 md:mb-4 text-charcoal tracking-tight flex items-center gap-4">
-                    <SlidersHorizontal className="text-tan" size={40} />
+            <div className="mb-6 md:mb-10">
+                <h1 className="text-3xl md:text-5xl font-serif font-bold mb-3 md:mb-4 text-charcoal tracking-tight flex items-center gap-3 md:gap-4">
+                    <SlidersHorizontal className="text-tan" size={32} />
                     Advanced Search
                 </h1>
-                <p className="text-charcoal-light text-lg md:text-xl">
-                    Query the entire database using specific criteria.
+                <p className="text-charcoal-light text-base md:text-xl max-w-3xl leading-relaxed">
+                    Query the entire database of documents, figures, and organizations using specific criteria.
                 </p>
             </div>
 
@@ -237,21 +237,21 @@ export function SearchArchive() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Keyword Search */}
                     <div className="lg:col-span-3 pb-6 border-b border-tan-light/50">
-                        <label className="block text-xs md:text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Keyword Search</label>
-                        <div className="flex flex-col md:flex-row gap-3">
+                        <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Keyword Search</label>
+                        <div className="flex gap-3">
                             <div className="relative flex-1">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={20} />
                                 <input
                                     type="text"
-                                    placeholder="Search by title, description, or creator..."
-                                    className="w-full bg-cream pl-12 pr-4 py-4 md:py-5 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-base md:text-lg shadow-inner"
+                                    placeholder="Search by title, description, transcriptions, or creator..."
+                                    className="w-full bg-cream pl-12 pr-4 py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
                                     value={localKeyword}
                                     onChange={(e) => setLocalKeyword(e.target.value)}
                                 />
                             </div>
                             <button
                                 type="submit"
-                                className="bg-tan text-white px-8 py-4 rounded-xl font-bold hover:bg-charcoal transition-all shadow-md"
+                                className="bg-tan text-white px-8 py-4 rounded-xl font-bold hover:bg-charcoal transition-all shadow-md hidden md:block"
                             >
                                 Search
                             </button>
@@ -260,11 +260,11 @@ export function SearchArchive() {
 
                     {/* Filter: Item Type */}
                     <div>
-                        <label className="block text-xs md:text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-1 md:mb-2">Item Type</label>
+                        <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Item Type</label>
                         <div className="relative">
                             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
                             <select
-                                className="w-full bg-cream pl-11 pr-10 py-4 md:py-3 rounded-lg border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal text-base"
+                                className="w-full bg-cream pl-11 pr-10 py-4 md:py-3 rounded-xl border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal shadow-sm"
                                 value={selectedType}
                                 onChange={(e) => updateParam('type', e.target.value, 'All Items')}
                             >
@@ -282,13 +282,13 @@ export function SearchArchive() {
 
                     {/* Filter: Date/Year */}
                     <div>
-                        <label className="block text-xs md:text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-1 md:mb-2">Year / Date</label>
+                        <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Year / Date</label>
                         <div className="relative">
                             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
                             <input
                                 type="text"
-                                placeholder="1920, 1850..."
-                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-base"
+                                placeholder="e.g. 1920, 1850-1900..."
+                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal shadow-sm"
                                 value={localYear}
                                 onChange={(e) => setLocalYear(e.target.value)}
                             />
@@ -297,27 +297,27 @@ export function SearchArchive() {
 
                     {/* Filter: Place */}
                     <div>
-                        <label className="block text-xs md:text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-1 md:mb-2">Place</label>
+                        <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Place / Location</label>
                         <div className="relative">
                             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
                             <input
                                 type="text"
-                                placeholder="Main St, Newnan..."
-                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-base"
+                                placeholder="e.g. Main Street, Newnan..."
+                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal shadow-sm"
                                 value={localPlace}
                                 onChange={(e) => setLocalPlace(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    <div className="md:col-span-1">
-                        <label className="block text-xs md:text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-1 md:mb-2">Subject Tag</label>
+                    <div className="md:col-span-2 lg:col-span-1">
+                        <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Subject Tag</label>
                         <div className="relative">
                             <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
                             <input
                                 type="text"
-                                placeholder="Search tag..."
-                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-base"
+                                placeholder="Search by tag..."
+                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal shadow-sm"
                                 value={localTag}
                                 onChange={(e) => setLocalTag(e.target.value)}
                             />
@@ -326,19 +326,19 @@ export function SearchArchive() {
 
                     {/* Filter: Sort By */}
                     <div>
-                        <label className="block text-xs md:text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-1 md:mb-2">Sort By</label>
+                        <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Sort By</label>
                         <div className="relative">
                             <SlidersHorizontal className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
                             <select
-                                className="w-full bg-cream pl-11 pr-10 py-4 md:py-3 rounded-lg border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal text-base"
+                                className="w-full bg-cream pl-11 pr-10 py-4 md:py-3 rounded-xl border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal shadow-sm"
                                 value={sortBy}
                                 onChange={(e) => updateParam('sort', e.target.value, 'newest')}
                             >
                                 <option value="newest">Newest First</option>
                                 <option value="az">A-Z (Title)</option>
                                 <option value="za">Z-A (Title)</option>
-                                <option value="id_asc">ID # Low-High</option>
-                                <option value="id_desc">ID # High-Low</option>
+                                <option value="id_asc">Numerical (ID # Low-High)</option>
+                                <option value="id_desc">Numerical (ID # High-Low)</option>
                             </select>
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                                 <ChevronDownIcon />
@@ -348,14 +348,14 @@ export function SearchArchive() {
 
                     {/* Filter: Artifact ID */}
                     {(selectedType === 'All Items' || selectedType === 'Artifact') && (
-                        <div>
-                            <label className="block text-xs md:text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-1 md:mb-2">Artifact ID #</label>
+                        <div className="md:col-span-1 border-t md:border-t-0 pt-4 md:pt-0">
+                            <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Artifact ID #</label>
                             <div className="relative">
-                                <InfoIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" />
+                                <InfoIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/30" />
                                 <input
                                     type="text"
-                                    placeholder="Enter artifact ID..."
-                                    className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-lg border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-base"
+                                    placeholder="Enter artifact ID number..."
+                                    className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal shadow-sm"
                                     value={localArtifactId}
                                     onChange={(e) => setLocalArtifactId(e.target.value)}
                                 />
@@ -363,14 +363,20 @@ export function SearchArchive() {
                         </div>
                     )}
 
-                    {/* Command Bar */}
-                    <div className="md:col-span-2 lg:col-span-3 flex justify-between items-center mt-4 pt-6 border-t border-tan-light/30">
+                    {/* Reset Button */}
+                    <div className="md:col-span-2 lg:col-span-3 flex justify-between items-center mt-4">
                         <button
                             type="button"
                             onClick={resetFilters}
-                            className="text-sm font-bold text-tan hover:text-charcoal bg-tan/5 hover:bg-tan/10 px-4 py-3 rounded-xl transition-all"
+                            className="bg-cream/50 text-charcoal-light font-bold text-xs uppercase tracking-widest px-6 py-2 rounded-lg hover:bg-tan/10 hover:text-tan transition-all shadow-sm active:scale-95"
                         >
-                            Reset All Filters
+                            Reset Filters
+                        </button>
+                        <button
+                            type="submit"
+                            className="bg-tan text-white px-8 py-3 rounded-lg font-bold hover:bg-charcoal transition-all md:hidden shadow-lg active:scale-95"
+                        >
+                            Search
                         </button>
                     </div>
                 </div>
