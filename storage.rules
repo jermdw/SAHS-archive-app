@@ -4,14 +4,13 @@ service firebase.storage {
 
     // Helper function for admin/curator roles
     function isSAHSUser() {
-      // Robust check: Auth must exist and have an email
       return request.auth != null && 
              request.auth.token != null && 
              request.auth.token.email != null && (
-               request.auth.token.email.lower().endsWith('@senoiahistory.com') || 
-               request.auth.token.email.lower() == 'catnolan@senoiahistory.com' || 
-               request.auth.token.email.lower() == 'jeremywarren@senoiahistory.com' ||
-               request.auth.token.email.lower() == 'sahsintern@senoiahistory.com'
+               request.auth.token.email.matches('(?i).*@senoiahistory\\.com') || 
+               request.auth.token.email.matches('(?i)catnolan@senoiahistory\\.com') || 
+               request.auth.token.email.matches('(?i)jeremywarren@senoiahistory\\.com') ||
+               request.auth.token.email.matches('(?i)sahsintern@senoiahistory\\.com')
              );
     }
 
