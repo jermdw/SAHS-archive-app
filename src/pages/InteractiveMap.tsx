@@ -1689,7 +1689,7 @@ export function InteractiveMap() {
                                             {c.display_type === 'pin' ? (
                                                 <div className="flex flex-col items-center">
                                                     <MapPin size={48} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
-                                                    <span className={`text-[10px] font-bold ${isSelected ? 'bg-blue-50' : 'bg-white/90'} border px-1 rounded shadow-sm transition-colors`}>{loc.name}</span>
+                                                    <span className={`text-[10px] font-serif font-bold ${isSelected ? 'bg-blue-50' : 'bg-white/90'} border px-1 rounded shadow-sm transition-colors whitespace-normal text-center break-words`}>{loc.name}</span>
                                                 </div>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center p-0.5 text-center overflow-hidden">
@@ -1697,17 +1697,16 @@ export function InteractiveMap() {
                                                         className="flex items-center justify-center w-full h-full transition-transform duration-300"
                                                         style={{ 
                                                             transform: `rotate(${-(c.rotation || 0)}deg)`,
-                                                            // For very thin blocks, ensure the label container can overflow the rotated parent if needed, 
-                                                            // but for now we'll keep it contained and use font scaling.
                                                             width: ((c.rotation || 0) % 180 === 0) ? '100%' : c.height,
                                                             height: ((c.rotation || 0) % 180 === 0) ? '100%' : c.width,
                                                         }}
                                                     >
                                                         <span 
-                                                            className={`font-serif font-black text-charcoal uppercase leading-[0.85] break-words block w-full px-0.5`}
+                                                            className={`font-serif font-black text-charcoal uppercase leading-[0.85] block w-full px-0.5`}
                                                             style={{ 
                                                                 fontSize: c.width < 20 ? '7px' : c.width < 32 ? '8px' : '9px',
-                                                                wordBreak: 'break-word',
+                                                                wordBreak: 'normal',
+                                                                overflowWrap: 'break-word',
                                                                 textShadow: '0 0 4px rgba(255,255,255,0.8)'
                                                             }}
                                                         >
