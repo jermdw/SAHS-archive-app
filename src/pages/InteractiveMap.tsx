@@ -434,8 +434,10 @@ export function InteractiveMap() {
         }
 
         const isPin = displayStyle === 'pin';
-        const startX = Math.round((CANVAS_WIDTH / 2 - (isPin ? 24 : 50)) / 12) * 12;
-        const startY = Math.round((CANVAS_HEIGHT / 2 - (isPin ? 24 : 50)) / 12) * 12;
+        // For pins, we center them so the 'tip' starts at the map center
+        // Using the new 120px wide (60px offset) hit box
+        const startX = Math.round((CANVAS_WIDTH / 2) / 12) * 12;
+        const startY = Math.round((CANVAS_HEIGHT / 2) / 12) * 12;
         
         markDirty(selectedLocationForBinding);
         setLocalCoords(prev => ({
@@ -443,7 +445,7 @@ export function InteractiveMap() {
             [selectedLocationForBinding]: {
                 x: startX,
                 y: startY,
-                width: isPin ? 60 : 150,
+                width: isPin ? 120 : 150,
                 height: isPin ? 80 : 100,
                 display_type: displayStyle
             }
@@ -1705,11 +1707,25 @@ export function InteractiveMap() {
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode && c.display_type !== 'pin'}
-                                        position={draggingId === loc.id ? undefined : { x: c.x, y: c.y }}
-                                        size={{ width: c.width, height: c.height }}
+                                        position={draggingId === loc.id ? undefined : { 
+                                            x: c.display_type === 'pin' ? c.x - 60 : c.x, 
+                                            y: c.display_type === 'pin' ? c.y - 48 : c.y 
+                                        }}
+                                        size={{ 
+                                            width: c.display_type === 'pin' ? 120 : c.width, 
+                                            height: c.display_type === 'pin' ? 80 : c.height 
+                                        }}
                                         onDragStart={(e: any) => handleGroupDragStart(loc.id, 0, e)}
-                                        onDrag={(_e: any, d: any) => handleGroupDrag(loc.id, 0, d)}
-                                        onDragStop={(_e: any, d: any) => handleGroupDragStopStateSync(loc.id, 0, d)}
+                                        onDrag={(_e: any, d: any) => {
+                                            const updatedX = c.display_type === 'pin' ? d.x + 60 : d.x;
+                                            const updatedY = c.display_type === 'pin' ? d.y + 48 : d.y;
+                                            handleGroupDrag(loc.id, 0, { x: updatedX, y: updatedY });
+                                        }}
+                                        onDragStop={(_e: any, d: any) => {
+                                            const updatedX = c.display_type === 'pin' ? d.x + 60 : d.x;
+                                            const updatedY = c.display_type === 'pin' ? d.y + 48 : d.y;
+                                            handleGroupDragStopStateSync(loc.id, 0, { x: updatedX, y: updatedY });
+                                        }}
                                         onResizeStart={() => {
                                             setResizingRoomId(`${loc.id}-0`);
                                             setActiveDimensions({ width: c.width, height: c.height });
@@ -1736,14 +1752,16 @@ export function InteractiveMap() {
                                             style={{ transform: `rotate(${c.rotation || 0}deg)` }}
                                         >
                                             {c.display_type === 'pin' ? (
-                                                <div className="flex flex-col items-center">
-                                                    <MapPin size={48 * (c.scale || 1.0)} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
-                                                    <span 
-                                                        className={`font-serif font-black ${isSelected ? 'bg-blue-50' : 'bg-white/95'} border border-charcoal/10 px-2 py-1 rounded shadow-lg transition-colors whitespace-normal text-center text-charcoal tracking-tight max-w-[80px] leading-tight break-words`}
-                                                        style={{ fontSize: `${9.5 * (c.scale || 1.0)}px` }}
-                                                    >
-                                                        {loc.name}
-                                                    </span>
+                                                <div className="flex flex-col items-center w-full">
+                                                    <MapPin size={48} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
+                                                    <div className="mt-1 flex justify-center w-full px-2">
+                                                        <span 
+                                                            className={`font-serif font-black ${isSelected ? 'bg-blue-50' : 'bg-white/95'} border border-charcoal/10 px-2 py-1 rounded shadow-lg transition-colors whitespace-normal text-center text-charcoal tracking-tight max-w-full leading-tight break-words`}
+                                                            style={{ fontSize: '9.5px' }}
+                                                        >
+                                                            {loc.name}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center p-0.5 text-center">
