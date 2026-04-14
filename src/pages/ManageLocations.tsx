@@ -125,7 +125,7 @@ export function ManageLocations() {
                 docId: doc.id,
                 ...doc.data()
             })) as MuseumLocation[];
-            setLocations(locData.sort((a, b) => a.name.localeCompare(b.name)));
+            setLocations(locData.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })));
 
             const roomData = roomSnapshot.docs.map(doc => ({
                 docId: doc.id,
@@ -153,12 +153,12 @@ export function ManageLocations() {
                     });
                     
                     await batch.commit();
-                    setRooms(migratedRooms.sort((a, b) => a.name.localeCompare(b.name)));
+                    setRooms(migratedRooms.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })));
                 } else {
                     setRooms([]);
                 }
             } else {
-                setRooms(roomData);
+                setRooms(roomData.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })));
             }
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -380,6 +380,12 @@ export function ManageLocations() {
                                     placeholder="Details..."
                                     value={newDesc}
                                     onChange={(e) => setNewDesc(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSave(e as any);
+                                        }
+                                    }}
                                     rows={3}
                                     className="w-full bg-cream px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan outline-none transition-all font-sans text-charcoal resize-none"
                                 />

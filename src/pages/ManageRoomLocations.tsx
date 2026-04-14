@@ -93,6 +93,7 @@ export function ManageRoomLocations() {
     const [editingLoc, setEditingLoc] = useState<MuseumLocation | null>(null);
     const [newName, setNewName] = useState('');
     const [newId, setNewId] = useState('');
+    const [newDesc, setNewDesc] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -110,7 +111,8 @@ export function ManageRoomLocations() {
                 // Fetch Locations for this room
                 const locQ = query(collection(db, 'locations'), where('room_id', '==', roomId));
                 const locSnap = await getDocs(locQ);
-                setLocations(locSnap.docs.map(d => ({ docId: d.id, ...d.data() } as MuseumLocation)));
+                const locData = locSnap.docs.map(d => ({ docId: d.id, ...d.data() } as MuseumLocation));
+                setLocations(locData.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })));
             } catch (err) {
                 console.error(err);
             } finally {
@@ -130,16 +132,21 @@ export function ManageRoomLocations() {
                 const newLoc = {
                     id: newId.toLowerCase().replace(/\s+/g, '-'),
                     name: newName,
+                    description: newDesc,
                     room_id: roomId,
                     created_at: new Date().toISOString()
                 };
                 const docRef = await addDoc(collection(db, 'locations'), newLoc);
                 setLocations(prev => [...prev, { docId: docRef.id, ...newLoc } as MuseumLocation]);
             } else if (editingLoc?.docId) {
-                await updateDoc(doc(db, 'locations', editingLoc.docId), { name: newName });
-                setLocations(prev => prev.map(l => l.docId === editingLoc.docId ? { ...l, name: newName } : l));
+                await updateDoc(doc(db, 'locations', editingLoc.docId), { 
+                    name: newName,
+                    description: newDesc 
+                });
+                setLocations(prev => prev.map(l => l.docId === editingLoc.docId ? { ...l, name: newName, description: newDesc } : l));
             }
             setNewName('');
+            setNewDesc('');
             setNewId('');
             setMode('add');
             setEditingLoc(null);
@@ -164,6 +171,7 @@ export function ManageRoomLocations() {
         setMode('edit');
         setEditingLoc(loc);
         setNewName(loc.name);
+        setNewDesc(loc.description || '');
         setNewId(loc.id);
     };
 
@@ -228,12 +236,25 @@ export function ManageRoomLocations() {
                                     required
                                 />
                             )}
+                            <textarea 
+                                className="w-full bg-cream px-4 py-3 rounded-xl border-none outline-none focus:ring-2 focus:ring-tan/30 transition-all font-sans text-sm resize-none"
+                                placeholder="Description (Optional)"
+                                value={newDesc}
+                                onChange={e=>setNewDesc(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSave(e as any);
+                                    }
+                                }}
+                                rows={3}
+                            />
                             <div className="flex gap-2 pt-2">
                                 <button type="submit" disabled={isSubmitting} className="flex-1 bg-tan text-white py-3 rounded-xl font-bold shadow-lg shadow-tan/20 hover:bg-charcoal transition-all">
                                     {isSubmitting ? '...' : mode === 'add' ? 'Create' : 'Save'}
                                 </button>
                                 {mode === 'edit' && (
-                                    <button onClick={()=>{setMode('add');setNewName('');setNewId('');}} className="p-3 bg-cream text-charcoal/40 rounded-xl hover:text-red-500">
+                                    <button onClick={()=>{setMode('add');setNewName('');setNewDesc('');setNewId('');}} className="p-3 bg-cream text-charcoal/40 rounded-xl hover:text-red-500">
                                         <X size={20}/>
                                     </button>
                                 )}

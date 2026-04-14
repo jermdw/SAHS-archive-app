@@ -1243,6 +1243,11 @@ export function InteractiveMap() {
                                                                     type="text" 
                                                                     value={room.name} 
                                                                     onChange={(e) => handleUpdateRoomProperty(id, 'name', e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            (e.target as HTMLInputElement).blur();
+                                                                        }
+                                                                    }}
                                                                     className="w-full bg-cream/50 border border-tan/20 rounded-lg px-3 py-2 text-sm font-serif font-bold text-charcoal focus:ring-2 focus:ring-tan/50 outline-none"
                                                                 />
                                                             </div>
@@ -1336,6 +1341,11 @@ export function InteractiveMap() {
                                                                         disabled={locCoords.display_type === 'pin'}
                                                                         value={locCoords.width / PIXELS_PER_FOOT} 
                                                                         onChange={(e) => handleUpdateLocationProperty(id, 'width', e.target.value)}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                (e.target as HTMLInputElement).blur();
+                                                                            }
+                                                                        }}
                                                                         className="w-full bg-white border border-tan/10 rounded px-2 py-1 text-xs font-mono font-bold text-charcoal outline-none focus:border-tan disabled:opacity-50"
                                                                     />
                                                                 </div>
@@ -1347,6 +1357,11 @@ export function InteractiveMap() {
                                                                         disabled={locCoords.display_type === 'pin'}
                                                                         value={locCoords.height / PIXELS_PER_FOOT} 
                                                                         onChange={(e) => handleUpdateLocationProperty(id, 'height', e.target.value)}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                (e.target as HTMLInputElement).blur();
+                                                                            }
+                                                                        }}
                                                                         className="w-full bg-white border border-tan/10 rounded px-2 py-1 text-xs font-mono font-bold text-charcoal outline-none focus:border-tan disabled:opacity-50"
                                                                     />
                                                                 </div>
@@ -1359,6 +1374,11 @@ export function InteractiveMap() {
                                                                         step="0.5"
                                                                         value={locCoords.x / PIXELS_PER_FOOT} 
                                                                         onChange={(e) => handleUpdateLocationProperty(id, 'x', e.target.value)}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                (e.target as HTMLInputElement).blur();
+                                                                            }
+                                                                        }}
                                                                         className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
                                                                     />
                                                                 </div>
@@ -1369,6 +1389,11 @@ export function InteractiveMap() {
                                                                         step="0.5"
                                                                         value={locCoords.y / PIXELS_PER_FOOT} 
                                                                         onChange={(e) => handleUpdateLocationProperty(id, 'y', e.target.value)}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                (e.target as HTMLInputElement).blur();
+                                                                            }
+                                                                        }}
                                                                         className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
                                                                     />
                                                                 </div>
@@ -1379,6 +1404,11 @@ export function InteractiveMap() {
                                                                         step="90"
                                                                         value={locCoords.rotation || 0} 
                                                                         onChange={(e) => handleUpdateLocationProperty(id, 'rotation', e.target.value)}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                (e.target as HTMLInputElement).blur();
+                                                                            }
+                                                                        }}
                                                                         className="w-full bg-tan/5 border border-tan/10 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-charcoal outline-none focus:border-tan"
                                                                     />
                                                                 </div>
@@ -1424,7 +1454,7 @@ export function InteractiveMap() {
                                                 r.name?.toLowerCase() !== 'compass rose' && 
                                                 !r.map_coordinates && 
                                                 (!r.geometries || r.geometries.length === 0)
-                                            ).map(r => (
+                                            ).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })).map(r => (
                                                 <button key={r.docId} onClick={()=>placeExistingRoom(r.docId!)} className="w-full text-left text-xs bg-cream p-2 rounded mb-1 flex justify-between items-center hover:bg-tan/10 group font-bold">
                                                     {r.name} <Plus size={12} className="opacity-0 group-hover:opacity-100"/>
                                                 </button>

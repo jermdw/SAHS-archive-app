@@ -32,7 +32,7 @@ export function RoomDetail() {
                     ...doc.data()
                 })) as MuseumLocation[];
                 
-                setLocations(locData.sort((a, b) => a.name.localeCompare(b.name)));
+                setLocations(locData.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })));
             } catch (error) {
                 console.error("Error fetching room details:", error);
             } finally {
