@@ -193,30 +193,30 @@ export function ManageRoomLocations() {
     return (
         <div className="flex flex-col h-full bg-cream min-h-screen px-6 py-8 animate-in fade-in duration-500">
             <div className="max-w-7xl mx-auto w-full">
-                <Link to="/manage-locations" className="flex items-center gap-2 text-tan font-bold uppercase tracking-widest text-xs mb-8 hover:text-charcoal transition-colors group">
+                <Link to="/manage-locations" className="flex items-center gap-2 text-tan font-bold uppercase tracking-widest text-[10px] mb-4 hover:text-charcoal transition-colors group">
                     <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
                 </Link>
 
-                <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-16">
+                <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-10">
                     <div className="flex-1">
-                        <div className="inline-flex items-center gap-3 bg-tan/10 text-tan px-5 py-2 rounded-2xl mb-6">
-                            <Folder size={20} />
+                        <div className="inline-flex items-center gap-3 bg-tan/10 text-tan px-4 py-1.5 rounded-2xl mb-4">
+                            <Folder size={18} />
                             <span className="text-[10px] font-black uppercase tracking-[0.3em]">Curator Management</span>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-serif font-bold text-charcoal mb-4 tracking-tight">
+                        <h1 className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold text-charcoal mb-3 tracking-tight">
                             {room.name}
                         </h1>
-                        <p className="text-charcoal/50 text-xl font-serif italic max-w-2xl leading-relaxed">
+                        <p className="text-charcoal/50 text-base md:text-lg font-serif italic max-w-2xl leading-relaxed">
                             Organizing the sub-locations and display areas within this wing.
                         </p>
                     </div>
 
-                    <div className="w-full md:w-[400px] bg-white rounded-[40px] p-10 shadow-2xl shadow-tan/5 border border-tan-light/20 relative overflow-hidden group">
+                    <div className="w-full md:w-[380px] bg-white rounded-[32px] p-8 shadow-2xl shadow-tan/5 border border-tan-light/20 relative overflow-hidden group">
                         {/* Decorative Corner */}
                         <div className="absolute top-0 right-0 w-24 h-24 bg-tan/5 rounded-bl-[60px] -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-1000" />
                         
-                        <h2 className="text-xl font-serif font-bold text-charcoal mb-8 flex items-center gap-3 relative z-10">
-                            <Plus size={24} className="text-tan" />
+                        <h2 className="text-lg font-serif font-bold text-charcoal mb-6 flex items-center gap-2 relative z-10">
+                            <Plus size={20} className="text-tan" />
                             {mode === 'add' ? 'Add Shelf/Case' : 'Update Location'}
                         </h2>
                         <form onSubmit={handleSave} className="space-y-4">

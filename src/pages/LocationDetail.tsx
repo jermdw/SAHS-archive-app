@@ -372,26 +372,26 @@ export function LocationDetail() {
                 <ChevronLeft size={14} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Museum Wings
             </Link>
 
-            <div className="bg-white rounded-[60px] border border-tan-light/20 overflow-hidden shadow-2xl shadow-tan/5 mb-20 flex flex-col lg:flex-row relative">
+            <div className="bg-white rounded-[32px] md:rounded-[48px] border border-tan-light/20 overflow-hidden shadow-2xl shadow-tan/5 mb-10 md:mb-16 flex flex-col lg:flex-row relative">
                 {/* Decorative Element */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-tan/5 rounded-bl-[200px] -mr-20 -mt-20 pointer-events-none" />
                 
-                <div className="lg:w-1/4 bg-tan-light/5 p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-tan-light/10">
+                <div className="lg:w-1/4 bg-tan-light/5 p-8 md:p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-tan-light/10">
                     <div className="relative group/icon">
                         <div className="absolute inset-0 bg-tan/20 blur-3xl rounded-full scale-0 group-hover/icon:scale-100 transition-transform duration-1000 opacity-30" />
-                        <MapPin size={120} className="text-tan/10 relative z-10" fill="currentColor" />
-                        <Tag size={40} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-tan relative z-20 transition-transform duration-500 group-hover/icon:scale-110" />
+                        <MapPin size={80} className="text-tan/10 relative z-10" fill="currentColor" />
+                        <Tag size={32} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-tan relative z-20 transition-transform duration-500 group-hover/icon:scale-110" />
                     </div>
                 </div>
-                <div className="p-12 md:p-16 lg:p-20 flex-1 flex flex-col justify-center relative z-10">
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="h-px w-10 bg-tan/30" />
+                <div className="p-8 md:p-12 lg:p-16 flex-1 flex flex-col justify-center relative z-10">
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="h-px w-8 bg-tan/30" />
                         <span className="text-[10px] font-black text-tan uppercase tracking-[0.4em]">Display Location #{locationData.id}</span>
                     </div>
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold mb-6 text-charcoal tracking-tight leading-[0.95]">
+                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold mb-4 text-charcoal tracking-tight leading-[0.95]">
                         {locationData.name}
                     </h1>
-                    <p className="text-charcoal/60 text-xl font-serif italic mb-10 max-w-3xl leading-relaxed">
+                    <p className="text-charcoal/60 text-lg md:text-xl font-serif italic mb-6 max-w-3xl leading-relaxed">
                         {locationData.description || "A dedicated archive space within the museum wings."}
                     </p>
                     <div className="flex items-center gap-8">
@@ -434,7 +434,7 @@ export function LocationDetail() {
 
             {/* Add Items Interface */}
             {isSelectMode && (
-                <div className="bg-white border border-tan-light/20 rounded-[48px] p-12 mb-20 animate-in slide-in-from-top-8 duration-500 shadow-2xl shadow-tan/5">
+                <div className="bg-white border border-tan-light/20 rounded-[32px] md:rounded-[48px] p-8 md:p-12 mb-12 md:mb-20 animate-in slide-in-from-top-8 duration-500 shadow-2xl shadow-tan/5">
                     <div className="flex flex-col md:flex-row gap-6">
                         <div className="flex-1">
                              <h3 className="text-xl font-serif font-bold text-charcoal mb-4 flex items-center gap-2">
@@ -583,7 +583,7 @@ export function LocationDetail() {
 
             <div className="flex-1">
                 {items.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-max">
                         {items.map(item => (
                             <DocumentCard 
                                 key={item.id} 
