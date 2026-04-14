@@ -197,7 +197,7 @@ export function ManageRoomLocations() {
                     <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Back to Dashboard
                 </Link>
 
-                <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-10">
+                <div className="flex flex-col xl:flex-row justify-between items-start gap-8 mb-10">
                     <div className="flex-1">
                         <div className="inline-flex items-center gap-3 bg-tan/10 text-tan px-4 py-1.5 rounded-2xl mb-4">
                             <Folder size={18} />
@@ -211,7 +211,7 @@ export function ManageRoomLocations() {
                         </p>
                     </div>
 
-                    <div className="w-full md:w-[380px] bg-white rounded-[32px] p-8 shadow-2xl shadow-tan/5 border border-tan-light/20 relative overflow-hidden group">
+                    <div className="w-full xl:w-[380px] bg-white rounded-[32px] p-8 shadow-2xl shadow-tan/5 border border-tan-light/20 relative overflow-hidden group">
                         {/* Decorative Corner */}
                         <div className="absolute top-0 right-0 w-24 h-24 bg-tan/5 rounded-bl-[60px] -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-1000" />
                         
