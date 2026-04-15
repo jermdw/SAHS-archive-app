@@ -3,7 +3,7 @@ import { Image as ImageIcon, CheckCircle, ChevronDown, ChevronUp, X, Maximize2, 
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
@@ -102,6 +102,8 @@ export default function EditItem() {
     const { isSAHSUser, isAdmin, lastSearchPath, user } = useAuth();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const fromAudit = searchParams.get('from') === 'audit';
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -806,7 +808,14 @@ export default function EditItem() {
                     >
                         View Item
                     </button>
-                    {lastSearchPath && (
+                    {fromAudit ? (
+                        <button
+                            onClick={() => navigate('/audit')}
+                            className="bg-charcoal text-white px-6 py-3 rounded-lg font-bold hover:bg-charcoal/80 transition-colors flex items-center gap-2"
+                        >
+                            <ArrowLeft size={18} /> Return to Audit
+                        </button>
+                    ) : lastSearchPath && (
                         <button
                             onClick={() => navigate(lastSearchPath)}
                             className="bg-charcoal text-white px-6 py-3 rounded-lg font-bold hover:bg-charcoal/80 transition-colors flex items-center gap-2"
@@ -864,7 +873,14 @@ export default function EditItem() {
                 </div>
                 <div className="flex items-center gap-6">
                     <button onClick={() => navigate(-1)} className="text-sm font-medium text-charcoal/60 hover:text-charcoal">Cancel</button>
-                    {lastSearchPath && (
+                    {fromAudit ? (
+                        <button 
+                            onClick={() => navigate('/audit')}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-tan text-white rounded-lg text-sm font-bold hover:bg-charcoal transition-all shadow-md active:scale-95"
+                        >
+                            <ArrowLeft size={16} /> Back to Audit
+                        </button>
+                    ) : lastSearchPath && (
                         <button 
                             onClick={() => navigate(lastSearchPath)}
                             className="flex items-center gap-2 px-6 py-2.5 bg-charcoal text-white rounded-lg text-sm font-bold hover:bg-charcoal/80 transition-all shadow-md active:scale-95"

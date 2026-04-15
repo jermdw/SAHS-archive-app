@@ -19,6 +19,7 @@ import { TaggingHub } from './pages/TaggingHub';
 import { LocationDetail } from './pages/LocationDetail';
 import { RoomDetail } from './pages/RoomDetail';
 import { InteractiveMap } from './pages/InteractiveMap';
+import { AuditDashboard } from './pages/AuditDashboard';
 
 function PageWrapper() {
   return (
@@ -84,6 +85,7 @@ function App() {
               <Route path="rooms/:id" element={<ProtectedRoute><RoomDetail /></ProtectedRoute>} />
               <Route path="locations/:id" element={<ProtectedRoute><LocationDetail /></ProtectedRoute>} />
               <Route path="interactive-map" element={<ProtectedRoute><InteractiveMap /></ProtectedRoute>} />
+              <Route path="audit" element={<ProtectedRoute><AuditDashboard /></ProtectedRoute>} />
             </Route>
           </Route>
         </Routes>

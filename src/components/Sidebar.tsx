@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings, MessageSquare, Inbox, Camera, MapPin, Map } from 'lucide-react';
+import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings, MessageSquare, Inbox, Camera, MapPin, Map, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo2.png';
 
@@ -160,6 +160,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                     <>
                                         <NavLink to="/add-item" className={navLinkClass} onClick={handleLinkClick}>
                                             <Upload size={18} /> Add Archive Item
+                                        </NavLink>
+                                        <NavLink to="/audit" className={navLinkClass} onClick={handleLinkClick}>
+                                            <Activity size={18} /> Data Quality Audit
                                         </NavLink>
                                         <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
                                             <FolderOpen size={18} /> Collections
