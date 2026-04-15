@@ -38,7 +38,7 @@ export function Collections() {
         };
 
         fetchCollections();
-    }, []);
+    }, [isSAHSUser]);
 
     const handleDelete = async (e: React.MouseEvent, id: string, title: string) => {
         e.preventDefault(); // Stop Link navigation

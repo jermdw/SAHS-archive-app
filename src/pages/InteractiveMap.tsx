@@ -181,7 +181,7 @@ export function InteractiveMap() {
 
     useEffect(() => {
         fetchMapData();
-    }, []);
+    }, [isSAHSUser]);
 
     const handleFitToScreen = () => {
         if (!wrapperRef.current) return;

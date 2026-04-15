@@ -120,7 +120,7 @@ export function SearchArchive() {
         };
 
         fetchItems();
-    }, []);
+    }, [isSAHSUser]);
 
     const filteredItems = useMemo(() => {
         return items.filter(item => {
@@ -200,7 +200,7 @@ export function SearchArchive() {
 
             return 0;
         });
-    }, [items, localKeyword, localYear, localPlace, localTag, localArtifactId, selectedType, sortBy]);
+    }, [items, localKeyword, localYear, localPlace, localTag, localArtifactId, selectedType, sortBy, isSAHSUser, collectionPrivacyMap]);
 
     const resetFilters = () => {
         setLocalKeyword('');

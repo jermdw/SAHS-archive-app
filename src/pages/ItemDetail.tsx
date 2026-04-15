@@ -180,7 +180,7 @@ export function ItemDetail() {
             }
         };
         fetchItemAndRelated();
-    }, [id]);
+    }, [id, isSAHSUser]);
 
     const handleDelete = async () => {
         if (!id || !window.confirm('Are you sure you want to delete this resource?')) return;

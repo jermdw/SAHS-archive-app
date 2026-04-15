@@ -132,8 +132,8 @@ export function AdminSettings() {
                 </div>
                 {simulatedRole && (
                     <div className="mt-4 px-4 py-2 bg-tan/10 rounded-lg inline-flex items-center gap-2 text-tan text-xs font-bold uppercase tracking-wider">
-                        <Loader2 className="animate-spin" size={14} />
-                        Simulating {simulatedRole} View
+                        <Shield size={14} />
+                        Active: Simulating {simulatedRole} View
                     </div>
                 )}
             </div>

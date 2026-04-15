@@ -9,11 +9,11 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
-    const { isSAHSUser, realIsAdmin, logout, user, isEditingMode, setIsEditingMode } = useAuth();
+    const { isSAHSUser, isAdmin, realIsAdmin, logout, user, isEditingMode, setIsEditingMode } = useAuth();
     const navigate = useNavigate();
 
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-        `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+        `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${isActive
             ? 'bg-beige text-charcoal font-semibold shadow-sm'
             : 'text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium'
         }`;
