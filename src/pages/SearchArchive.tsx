@@ -22,6 +22,11 @@ export function SearchArchive() {
     const [localTag, setLocalTag] = useState(searchParams.get('tag') || '');
     const [localArtifactId, setLocalArtifactId] = useState(searchParams.get('id') || '');
     const [localLocId, setLocalLocId] = useState(searchParams.get('loc_id') || '');
+    
+    // Multi-Exclusion States
+    const [localExcludeKeyword, setLocalExcludeKeyword] = useState(searchParams.get('ex_q') || '');
+    const [localExcludeTag, setLocalExcludeTag] = useState(searchParams.get('ex_tag') || '');
+    const [localExcludeTypes, setLocalExcludeTypes] = useState<string[]>(searchParams.get('ex_types')?.split(',').filter(Boolean) || []);
 
     const selectedType = (searchParams.get('type') as ItemType | null) || 'All Items';
     const sortBy = (searchParams.get('sort') as any) || 'newest';
@@ -80,6 +85,34 @@ export function SearchArchive() {
         }, 300);
         return () => clearTimeout(h);
     }, [localLocId]);
+
+    // Exclusion Debounce Effects
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localExcludeKeyword) params.set('ex_q', localExcludeKeyword); else params.delete('ex_q');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localExcludeKeyword]);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localExcludeTag) params.set('ex_tag', localExcludeTag); else params.delete('ex_tag');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localExcludeTag]);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localExcludeTypes.length > 0) params.set('ex_types', localExcludeTypes.join(',')); else params.delete('ex_types');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localExcludeTypes]);
 
     const updateParam = (key: string, value: string, defaultValue: string = '') => {
         const params = new URLSearchParams(searchParams);
@@ -164,13 +197,37 @@ export function SearchArchive() {
                 item.museum_location_id === localLocId || 
                 (item.museum_location_ids && item.museum_location_ids.includes(localLocId));
 
+            // --- EXCLUSION LOGIC ---
+            
+            // 1. Exclude Keywords (checks if ANY of the excluded terms appear)
+            const exKwTerms = localExcludeKeyword.toLowerCase().split(/[\s,]+/).filter(Boolean);
+            const isExcludedByKeyword = exKwTerms.some(term => 
+                item.title?.toLowerCase().includes(term) ||
+                item.description?.toLowerCase().includes(term) ||
+                item.subject?.toLowerCase().includes(term) ||
+                item.artifact_id?.toString().toLowerCase().includes(term) ||
+                item.id?.toLowerCase().includes(term) ||
+                item.identifier?.toLowerCase().includes(term) ||
+                item.transcription?.toLowerCase().includes(term)
+            );
+
+            // 2. Exclude Tags (checks if ANY of the excluded tags appear in item tags)
+            const exTags = localExcludeTag.toLowerCase().split(/[\s,]+/).filter(Boolean);
+            const isExcludedByTag = item.tags && exTags.some(exTag => 
+                item.tags?.some(t => t.toLowerCase().includes(exTag))
+            );
+
+            // 3. Exclude Types
+            const isExcludedByType = localExcludeTypes.includes(item.item_type as string);
+
             if (!isSAHSUser) {
                 const isItemPrivate = item.is_private === true;
                 const isCollectionPrivate = item.collection_id ? collectionPrivacyMap[item.collection_id] === true : false;
                 if (isItemPrivate || isCollectionPrivate) return false;
             }
 
-            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId;
+            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId &&
+                   !isExcludedByKeyword && !isExcludedByTag && !isExcludedByType;
         }).sort((a, b) => {
             if (sortBy === 'newest') {
                 return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
@@ -208,6 +265,9 @@ export function SearchArchive() {
         setLocalPlace('');
         setLocalTag('');
         setLocalArtifactId('');
+        setLocalExcludeKeyword('');
+        setLocalExcludeTag('');
+        setLocalExcludeTypes([]);
         setSearchParams(new URLSearchParams(), { replace: true });
     };
 
@@ -353,6 +413,77 @@ export function SearchArchive() {
                             </div>
                         </div>
                     )}
+
+                    {/* --- EXCLUSION SECTION --- */}
+                    <div className="col-span-full mt-8 pt-8 border-t border-tan-light/30">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-8 h-8 rounded-full bg-red-400/10 flex items-center justify-center">
+                                <X size={18} className="text-red-500" />
+                            </div>
+                            <h3 className="text-xl font-serif font-bold text-charcoal">Filter Exclusions <span className="text-sm font-sans font-normal text-charcoal/40 ml-2 italic">(None of these)</span></h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Exclude Keywords */}
+                            <div>
+                                <label className="block text-xs font-black text-red-500/60 uppercase tracking-widest mb-3">Omit Keywords</label>
+                                <div className="relative">
+                                    <X className="absolute left-4 top-1/2 -translate-y-1/2 text-red-400/40" size={20} />
+                                    <input 
+                                        type="text"
+                                        placeholder="Exclude terms (comma separated)..."
+                                        className="w-full bg-red-50/10 pl-12 pr-4 py-5 rounded-xl border-2 border-transparent focus:bg-white focus:border-red-200 outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
+                                        value={localExcludeKeyword}
+                                        onChange={(e) => setLocalExcludeKeyword(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Exclude Tags */}
+                            <div>
+                                <label className="block text-xs font-black text-red-500/60 uppercase tracking-widest mb-3">Omit Tags</label>
+                                <div className="relative">
+                                    <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-red-400/40" size={20} />
+                                    <input 
+                                        type="text"
+                                        placeholder="Exclude tags (comma separated)..."
+                                        className="w-full bg-red-50/10 pl-12 pr-4 py-5 rounded-xl border-2 border-transparent focus:bg-white focus:border-red-200 outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
+                                        value={localExcludeTag}
+                                        onChange={(e) => setLocalExcludeTag(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Exclude Categories */}
+                            <div className="col-span-full">
+                                <label className="block text-xs font-black text-red-500/60 uppercase tracking-widest mb-4">Omit Entire Categories</label>
+                                <div className="flex flex-wrap gap-3">
+                                    {['Artifact', 'Document', 'Historic Figure', 'Historic Organization'].map((type) => {
+                                        const isExcluded = localExcludeTypes.includes(type);
+                                        return (
+                                            <button
+                                                key={type}
+                                                type="button"
+                                                onClick={() => {
+                                                    setLocalExcludeTypes(prev => 
+                                                        isExcluded ? prev.filter(t => t !== type) : [...prev, type]
+                                                    );
+                                                }}
+                                                className={`px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 border-2 ${
+                                                    isExcluded 
+                                                        ? 'bg-red-500 border-red-500 text-white shadow-md' 
+                                                        : 'bg-white border-tan-light/30 text-charcoal/40 hover:border-red-200 hover:text-red-400'
+                                                }`}
+                                            >
+                                                {isExcluded && <X size={14} />}
+                                                {type}s
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Action Button Row */}
