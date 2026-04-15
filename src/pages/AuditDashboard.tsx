@@ -9,7 +9,6 @@ import {
     MapPin, 
     ChevronRight, 
     CheckCircle2, 
-    AlertTriangle,
     Activity,
     ArrowRight,
     Search,
@@ -472,15 +471,15 @@ export function AuditDashboard() {
                     </div>
                 </div>
 
-                <div className="bg-charcoal border border-white/10 rounded-[2rem] p-8 flex gap-6 text-white relative overflow-hidden">
-                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
-                    <div className="bg-white/10 p-3 rounded-2xl h-max border border-white/20 z-10">
-                        <AlertTriangle size={28} className="text-tan" />
+                <div className="bg-tan/10 border border-tan/20 rounded-[2rem] p-8 flex gap-6 relative overflow-hidden group">
+                    <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-tan/10 rounded-full blur-3xl transition-transform group-hover:scale-120 duration-1000" />
+                    <div className="bg-tan text-white p-3 rounded-2xl h-max shadow-xl z-10">
+                        <CheckCircle2 size={28} />
                     </div>
                     <div className="z-10">
-                        <h4 className="text-xl font-serif font-bold mb-2 tracking-tight">System Notice</h4>
-                        <p className="text-white/60 leading-relaxed text-sm">
-                            The Health Score is weighted towards public accessibility. Records scoring below <strong>40%</strong> are automatically suppressed from search results for guest users to maintain collection quality standards.
+                        <h4 className="text-xl font-serif font-bold text-charcoal mb-2">Collection Integrity</h4>
+                        <p className="text-charcoal/60 leading-relaxed text-sm">
+                            The Health Score is a diagnostic tool to help curators identify items that need more research or better photography. Every item, regardless of its score, is a valuable part of the collection and remains fully accessible to the public search engine.
                         </p>
                     </div>
                 </div>
