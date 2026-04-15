@@ -5,7 +5,7 @@ import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, getDoc, writeBa
 import { Plus, MapPin, Square, ZoomIn, ZoomOut, Maximize, Edit3, X, BoxSelect, Maximize2, RotateCw, LayoutGrid, Compass } from 'lucide-react';
 import type { MuseumLocation, Room } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 type LayoutHistoryState = {
     rooms: Room[];
@@ -58,6 +58,8 @@ const getSmartBorders = (current: any, all: any[], isSelected: boolean) => {
 
 export function InteractiveMap() {
     const { isSAHSUser } = useAuth();
+    const [searchParams] = useSearchParams();
+    const highlightTargetId = searchParams.get('highlight');
     const [locations, setLocations] = useState<MuseumLocation[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -94,6 +96,8 @@ export function InteractiveMap() {
 
     // Compass Rose State (Overlay)
     const [compassRose, setCompassRose] = useState<{ x: number, y: number, rotation: number }>({ x: 32, y: 32, rotation: 0 });
+
+    const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
 
     // Pristine state for discarding changes
     const pristineStateRef = useRef<LayoutHistoryState | null>(null);
@@ -289,6 +293,53 @@ export function InteractiveMap() {
             setLoading(false);
         }
     };
+
+    // Deep Linking: Auto-scroll and highlight target from URL
+    useEffect(() => {
+        if (!loading && highlightTargetId && locations.length > 0 && wrapperRef.current) {
+            // Find the target (could be a location or a room)
+            const loc = locations.find(l => l.id === highlightTargetId || l.docId === highlightTargetId);
+            const room = !loc ? rooms.find(r => r.docId === highlightTargetId || r.id === highlightTargetId) : null;
+            
+            const target = loc || room;
+            if (!target) return;
+
+            // Get coordinates
+            let tx = 0, ty = 0;
+            if (loc) {
+                const coords = localCoords[loc.id] || loc.map_coordinates;
+                if (!coords) return;
+                tx = coords.x;
+                ty = coords.y;
+            } else if (room) {
+                const geom = room.geometries?.[0] || room.map_coordinates;
+                if (!geom) return;
+                tx = geom.x;
+                ty = geom.y;
+            }
+
+            // Apply highlight and scroll
+            setActiveHighlightId(highlightTargetId);
+            
+            // Calculate centering
+            const containerW = wrapperRef.current.clientWidth;
+            const containerH = wrapperRef.current.clientHeight;
+            
+            // Scaled coordinates
+            const sx = tx * scale;
+            const sy = ty * scale;
+            
+            wrapperRef.current.scrollTo({
+                left: sx - (containerW / 2),
+                top: sy - (containerH / 2),
+                behavior: 'smooth'
+            });
+
+            // Clear visual pulse after 5 seconds
+            const timer = setTimeout(() => setActiveHighlightId(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, highlightTargetId, locations, rooms, scale]);
 
     const handleSaveLayout = async () => {
         setIsSaving(true);
@@ -1487,6 +1538,17 @@ export function InteractiveMap() {
                         background-image: linear-gradient(to right, rgba(140,120,100,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(140,120,100,0.1) 1px, transparent 1px);
                     }
                     [data-selected="true"] { outline: 3px solid #c4a484 !important; outline-offset: 2px !important; }
+                    
+                    @keyframes map-pulse {
+                        0% { outline: 4px solid #c4a484; outline-offset: 0px; box-shadow: 0 0 0 0 rgba(196, 164, 132, 0.7); }
+                        70% { outline: 6px solid transparent; outline-offset: 15px; box-shadow: 0 0 0 10px rgba(196, 164, 132, 0); }
+                        100% { outline: 4px solid transparent; outline-offset: 20px; box-shadow: 0 0 0 0 rgba(196, 164, 132, 0); }
+                    }
+                    [data-highlighted="true"] { 
+                        animation: map-pulse 1.5s infinite ease-in-out;
+                        z-index: 200 !important;
+                        outline: 3px solid #f97316 !important;
+                    }
                 `}</style>
 
                 {!loading && (
@@ -1754,6 +1816,7 @@ export function InteractiveMap() {
                                             id={`inner-rnd-${loc.id}`} 
                                             data-selection-id={loc.id}
                                             data-selected={isSelected ? "true" : "false"}
+                                            data-highlighted={activeHighlightId === loc.id ? "true" : "false"}
                                             className="w-full h-full relative" 
                                             style={{ transform: `rotate(${c.rotation || 0}deg)` }}
                                         >
@@ -1804,6 +1867,13 @@ export function InteractiveMap() {
                                                 </div>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center p-0.5 text-center">
+                                                    {!isEditMode && (
+                                                        <Link 
+                                                            to={`/locations/${loc.id}`} 
+                                                            className="absolute inset-0 z-50 rounded hover:bg-tan/10 transition-colors"
+                                                            title={`View details for ${loc.name}`}
+                                                        />
+                                                    )}
                                                     <div 
                                                         className="flex items-center justify-center transition-transform duration-300 pointer-events-none"
                                                         style={{ 

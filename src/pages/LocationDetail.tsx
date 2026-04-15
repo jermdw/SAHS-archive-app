@@ -421,6 +421,12 @@ export function LocationDetail() {
                             {isSelectMode ? 'Close' : 'Add Artifacts'}
                         </button>
                     )}
+                    <Link 
+                        to={`/interactive-map?highlight=${id}`}
+                        className="flex items-center gap-2 bg-charcoal text-white px-5 py-3 rounded-lg font-bold hover:bg-tan transition-colors shadow-sm w-full sm:w-auto justify-center"
+                    >
+                        <MapPin size={18} /> View on Blueprint
+                    </Link>
                     {items.length > 0 && !isSelectMode && (
                         <button 
                             onClick={() => window.print()}
