@@ -80,7 +80,7 @@ export function AuditDashboard() {
     const calculateItemScore = (item: ArchiveItem) => {
         let score = 0;
         if (item.title && item.description && item.description.length > 20) score += 20;
-        if (item.featured_image_url) score += 20;
+        if (item.featured_image_url || (item.file_urls && item.file_urls.length > 0)) score += 20;
         if (item.date) score += 20;
         if (item.coordinates && item.coordinates.lat !== 0) score += 20;
         if (item.artifact_id || item.item_type === 'Historic Figure') score += 20; // Figures don't always need artifact IDs
@@ -106,7 +106,8 @@ export function AuditDashboard() {
             totalScore += score;
 
             const issues: AuditIssue[] = [];
-            if (!item.featured_image_url && item.item_type !== 'Historic Organization') { // Orgs might not have photos
+            const hasImage = item.featured_image_url || (item.file_urls && item.file_urls.length > 0);
+            if (!hasImage && item.item_type !== 'Historic Organization') { // Orgs might not have photos
                 issues.push('no-image');
                 stats.missingImages++;
             }
