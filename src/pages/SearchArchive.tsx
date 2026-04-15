@@ -234,15 +234,14 @@ export function SearchArchive() {
                 }}
                 className="bg-white p-6 md:p-8 rounded-2xl border border-tan-light shadow-sm mb-10"
             >
-                    {/* Keyword Search Section (Hero) */}
-                    <div className="col-span-full border-b border-tan-light/30 pb-10 mb-2">
-                        <label className="block text-2xl font-serif font-black text-charcoal/80 uppercase tracking-widest mb-6">Keyword Search</label>
+                    <div className="col-span-full border-b border-tan-light/30 pb-8 mb-2">
+                        <label className="block text-xl font-serif font-black text-charcoal/80 uppercase tracking-widest mb-4">Keyword Search</label>
                         <div className="relative">
-                            <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-tan" size={32} />
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-tan" size={24} />
                             <input
                                 type="text"
                                 placeholder="Search by name, object, or historical event..."
-                                className="w-full bg-cream/50 pl-24 pr-8 py-10 rounded-3xl border-2 border-tan-light/20 focus:bg-white focus:border-tan outline-none transition-all font-sans text-charcoal text-4xl shadow-xl placeholder:text-charcoal/30 placeholder:italic"
+                                className="w-full bg-cream/50 pl-16 pr-8 py-6 rounded-2xl border-2 border-tan-light/20 focus:bg-white focus:border-tan outline-none transition-all font-sans text-charcoal text-xl shadow-lg placeholder:text-charcoal/30 placeholder:italic"
                                 value={localKeyword}
                                 onChange={(e) => setLocalKeyword(e.target.value)}
                             />
@@ -367,9 +366,9 @@ export function SearchArchive() {
                         </button>
                         <button
                             type="submit"
-                            className="w-full md:w-auto bg-tan text-white px-16 py-8 rounded-3xl font-black text-3xl hover:bg-charcoal transition-all shadow-2xl flex items-center justify-center gap-4 active:scale-[0.98] order-1 md:order-2"
+                            className="w-full md:w-auto bg-tan text-white px-12 py-5 rounded-2xl font-black text-xl hover:bg-charcoal transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] order-1 md:order-2"
                         >
-                            <Search size={32} />
+                            <Search size={22} />
                             Search Archive
                         </button>
                     </div>
