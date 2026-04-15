@@ -1540,9 +1540,9 @@ export function InteractiveMap() {
                     [data-selected="true"] { outline: 3px solid #c4a484 !important; outline-offset: 2px !important; }
                     
                     @keyframes map-pulse {
-                        0% { outline: 4px solid #c4a484; outline-offset: 0px; box-shadow: 0 0 0 0 rgba(196, 164, 132, 0.7); }
-                        70% { outline: 6px solid transparent; outline-offset: 15px; box-shadow: 0 0 0 10px rgba(196, 164, 132, 0); }
-                        100% { outline: 4px solid transparent; outline-offset: 20px; box-shadow: 0 0 0 0 rgba(196, 164, 132, 0); }
+                        0% { outline: 4px solid #3b82f6; outline-offset: 0px; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+                        70% { outline: 6px solid transparent; outline-offset: 15px; box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+                        100% { outline: 4px solid transparent; outline-offset: 20px; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
                     }
                     [data-highlighted="true"] { 
                         animation: map-pulse 1.5s infinite ease-in-out;
