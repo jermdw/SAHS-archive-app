@@ -79,66 +79,88 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     </button>
                 </div>
 
-            <div className="flex-1 flex flex-col gap-8">
-                <div>
-                    <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Browse</h2>
-                    <nav className="flex flex-col gap-1">
-                        <NavLink to="/" className={navLinkClass} onClick={handleLinkClick}>
-                            <Home size={18} /> Home
-                        </NavLink>
-                        <Link to="/archive?type=Document" className={getTypeClass('Document')} onClick={handleLinkClick}>
-                            <FileText size={18} /> Documents
-                        </Link>
-                        <Link to="/archive?type=Historic Figure" className={getTypeClass('Historic Figure')} onClick={handleLinkClick}>
-                            <Users size={18} /> Historic Figures
-                        </Link>
-                        <Link to="/archive?type=Historic Organization" className={getTypeClass('Historic Organization')} onClick={handleLinkClick}>
-                            <Building size={18} /> Historic Orgs
-                        </Link>
-                        <Link to="/archive?type=Artifact" className={getTypeClass('Artifact')} onClick={handleLinkClick}>
-                            <Box size={18} /> Artifact Collection
-                        </Link>
-                        <NavLink to="/search" className={navLinkClass} onClick={handleLinkClick}>
-                            <Search size={18} /> Advanced Search
-                        </NavLink>
-                    </nav>
-                </div>
+                <div className="flex-1 flex flex-col gap-1">
+                    {/* Main Nav Section */}
+                    <div className="mb-4">
+                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Main</h2>
+                        <nav className="flex flex-col gap-1">
+                            <NavLink to="/" className={navLinkClass} onClick={handleLinkClick}>
+                                <Home size={18} /> Home
+                            </NavLink>
+                        </nav>
+                    </div>
 
-                <div>
-                    <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Support</h2>
-                    <nav className="flex flex-col gap-1">
-                        <a
-                            href="https://www.senoiahistory.com/contact-sahs"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
-                        >
-                            <LifeBuoy size={18} /> Contact Support
-                        </a>
-                        <a
-                            href="https://docs.google.com/forms/d/e/1FAIpQLSfxS94_L22fNGxOxHOememW717MDBXl_e-fqSyWr6R3AbcEcQ/viewform?usp=dialog"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
-                        >
-                            <MessageSquare size={18} /> Archive Feedback
-                        </a>
-                        <a
-                            href="https://docs.google.com/forms/d/e/1FAIpQLSdoQbNvRVS8QZKeilZJKoTC9iTwFRxDalJJv9dcfq81NytRBw/viewform?usp=header"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
-                        >
-                            <Inbox size={18} /> Suggestion Box
-                        </a>
-                    </nav>
-                </div>
+                    <div className="w-full h-px bg-tan-light/20 mb-4 mx-4" />
+
+                    {/* Archives Section */}
+                    <div className="mb-4">
+                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Digital Archives</h2>
+                        <nav className="flex flex-col gap-1">
+                            <Link to="/archive?type=Document" className={getTypeClass('Document')} onClick={handleLinkClick}>
+                                <FileText size={18} /> Documents
+                            </Link>
+                            <Link to="/archive?type=Historic Figure" className={getTypeClass('Historic Figure')} onClick={handleLinkClick}>
+                                <Users size={18} /> Historic Figures
+                            </Link>
+                            <Link to="/archive?type=Historic Organization" className={getTypeClass('Historic Organization')} onClick={handleLinkClick}>
+                                <Building size={18} /> Historic Orgs
+                            </Link>
+                            <Link to="/archive?type=Artifact" className={getTypeClass('Artifact')} onClick={handleLinkClick}>
+                                <Box size={18} /> Artifact Collection
+                            </Link>
+                        </nav>
+                    </div>
+
+                    <div className="w-full h-px bg-tan-light/20 mb-4 mx-4" />
+
+                    {/* Discovery Section */}
+                    <div className="mb-4">
+                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Discovery Tools</h2>
+                        <nav className="flex flex-col gap-1">
+                            <NavLink to="/search" className={navLinkClass} onClick={handleLinkClick}>
+                                <Search size={18} /> Advanced Search
+                            </NavLink>
+                        </nav>
+                    </div>
+
+                    <div className="w-full h-px bg-tan-light/20 mb-4 mx-4" />
+
+                    {/* Support Section */}
+                    <div className="mb-4">
+                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Community</h2>
+                        <nav className="flex flex-col gap-1">
+                            <a
+                                href="https://www.senoiahistory.com/contact-sahs"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
+                            >
+                                <LifeBuoy size={18} /> Contact Support
+                            </a>
+                            <a
+                                href="https://docs.google.com/forms/d/e/1FAIpQLSfxS94_L22fNGxOxHOememW717MDBXl_e-fqSyWr6R3AbcEcQ/viewform?usp=dialog"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
+                            >
+                                <MessageSquare size={18} /> Archive Feedback
+                            </a>
+                            <a
+                                href="https://docs.google.com/forms/d/e/1FAIpQLSdoQbNvRVS8QZKeilZJKoTC9iTwFRxDalJJv9dcfq81NytRBw/viewform?usp=header"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
+                            >
+                                <Inbox size={18} /> Suggestion Box
+                            </a>
+                        </nav>
+                    </div>
 
                 {(isSAHSUser || realIsAdmin) && (
-                    <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-0 border-t border-tan-light/30 pt-6 mt-2">
                         {isSAHSUser && (
-                            <div>
-                                <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Location</h2>
+                            <div className="mb-4">
+                                <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Workspace</h2>
                                 <nav className="flex flex-col gap-1">
                                     <NavLink to="/manage-locations" className={navLinkClass} onClick={handleLinkClick}>
                                         <MapPin size={18} /> Museum Locations
@@ -153,8 +175,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                             </div>
                         )}
 
-                        <div>
-                            <h2 className="text-xs font-bold text-charcoal-light tracking-wider uppercase mb-3 px-4">Manage</h2>
+                        <div className="mb-4">
+                            <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Curation</h2>
                             <nav className="flex flex-col gap-1">
                                 {isSAHSUser && (
                                     <>
