@@ -240,18 +240,18 @@ export function SearchArchive() {
                         <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Keyword Search</label>
                         <div className="flex gap-3">
                             <div className="relative flex-1">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={20} />
+                                <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-charcoal/40" size={20} />
                                 <input
                                     type="text"
                                     placeholder="Search by title, description, transcriptions, or creator..."
-                                    className="w-full bg-cream pl-12 pr-4 py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
+                                    className="w-full bg-cream pl-12 md:pl-18 pr-4 py-4 md:py-7 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-lg md:text-2xl shadow-inner md:placeholder:text-xl"
                                     value={localKeyword}
                                     onChange={(e) => setLocalKeyword(e.target.value)}
                                 />
                             </div>
                             <button
                                 type="submit"
-                                className="bg-tan text-white px-8 py-4 rounded-xl font-bold hover:bg-charcoal transition-all shadow-md hidden md:block"
+                                className="bg-tan text-white px-8 md:px-12 py-4 md:py-6 rounded-xl font-bold md:text-xl hover:bg-charcoal transition-all shadow-md hidden md:block"
                             >
                                 Search
                             </button>
@@ -264,7 +264,7 @@ export function SearchArchive() {
                         <div className="relative">
                             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
                             <select
-                                className="w-full bg-cream pl-11 pr-10 py-4 md:py-3 rounded-xl border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal shadow-sm"
+                                className="w-full bg-cream pl-11 pr-10 py-4 md:py-4 rounded-xl border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal md:text-lg shadow-sm"
                                 value={selectedType}
                                 onChange={(e) => updateParam('type', e.target.value, 'All Items')}
                             >
@@ -288,7 +288,7 @@ export function SearchArchive() {
                             <input
                                 type="text"
                                 placeholder="e.g. 1920, 1850-1900..."
-                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal shadow-sm"
+                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal md:text-lg shadow-sm"
                                 value={localYear}
                                 onChange={(e) => setLocalYear(e.target.value)}
                             />
@@ -303,7 +303,7 @@ export function SearchArchive() {
                             <input
                                 type="text"
                                 placeholder="e.g. Main Street, Newnan..."
-                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal shadow-sm"
+                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal md:text-lg shadow-sm"
                                 value={localPlace}
                                 onChange={(e) => setLocalPlace(e.target.value)}
                             />
@@ -317,7 +317,7 @@ export function SearchArchive() {
                             <input
                                 type="text"
                                 placeholder="Search by tag..."
-                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal shadow-sm"
+                                className="w-full bg-cream pl-11 pr-4 py-4 md:py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal md:text-lg shadow-sm"
                                 value={localTag}
                                 onChange={(e) => setLocalTag(e.target.value)}
                             />
@@ -330,7 +330,7 @@ export function SearchArchive() {
                         <div className="relative">
                             <SlidersHorizontal className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
                             <select
-                                className="w-full bg-cream pl-11 pr-10 py-4 md:py-3 rounded-xl border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal shadow-sm"
+                                className="w-full bg-cream pl-11 pr-10 py-4 md:py-4 rounded-xl border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal md:text-lg shadow-sm"
                                 value={sortBy}
                                 onChange={(e) => updateParam('sort', e.target.value, 'newest')}
                             >
@@ -355,7 +355,7 @@ export function SearchArchive() {
                                 <input
                                     type="text"
                                     placeholder="Enter artifact ID number..."
-                                    className="w-full bg-cream pl-11 pr-4 py-4 md:py-3 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal shadow-sm"
+                                    className="w-full bg-cream pl-11 pr-4 py-4 md:py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal md:text-lg shadow-sm"
                                     value={localArtifactId}
                                     onChange={(e) => setLocalArtifactId(e.target.value)}
                                 />
