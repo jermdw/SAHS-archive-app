@@ -130,20 +130,20 @@ export function SearchArchive() {
         if (localKeyword.trim()) {
             const fuse = new Fuse(results, {
                 keys: [
-                    { name: 'title', weight: 1.0 },
-                    { name: 'description', weight: 0.4 },
-                    { name: 'subject', weight: 0.7 },
-                    { name: 'artifact_id', weight: 1.0 },
-                    { name: 'identifier', weight: 1.0 },
-                    { name: 'transcription', weight: 0.1 },
-                    { name: 'creator', weight: 0.6 },
-                    { name: 'full_name', weight: 0.9 },
-                    { name: 'also_known_as', weight: 0.8 },
-                    { name: 'birthplace', weight: 0.3 },
-                    { name: 'occupation', weight: 0.5 },
-                    { name: 'org_name', weight: 0.9 },
-                    { name: 'alternative_names', weight: 0.8 },
-                    { name: 'tags', weight: 0.7 }
+                    { name: 'title', weight: 2.0 },           // Heavily prioritized
+                    { name: 'full_name', weight: 1.8 },
+                    { name: 'org_name', weight: 1.8 },
+                    { name: 'artifact_id', weight: 2.0 },
+                    { name: 'identifier', weight: 2.0 },
+                    { name: 'subject', weight: 0.5 },
+                    { name: 'tags', weight: 0.5 },
+                    { name: 'description', weight: 0.2 },
+                    { name: 'transcription', weight: 0.05 },  // Minimal priority
+                    { name: 'creator', weight: 0.3 },
+                    { name: 'also_known_as', weight: 0.7 },
+                    { name: 'birthplace', weight: 0.1 },
+                    { name: 'occupation', weight: 0.3 },
+                    { name: 'alternative_names', weight: 0.7 }
                 ],
                 threshold: 0.35,      // conservative threshold to prevent "clogging"
                 distance: 100,

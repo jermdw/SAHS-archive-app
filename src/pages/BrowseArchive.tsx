@@ -90,11 +90,11 @@ export function BrowseArchive() {
         if (searchTrimmed) {
             const fuse = new Fuse(results, {
                 keys: [
-                    { name: 'title', weight: 1.0 },
-                    { name: 'description', weight: 0.4 },
-                    { name: 'subject', weight: 0.7 },
-                    { name: 'tags', weight: 0.7 },
-                    { name: 'full_name', weight: 0.9 }
+                    { name: 'title', weight: 2.0 },
+                    { name: 'full_name', weight: 1.8 },
+                    { name: 'subject', weight: 0.5 },
+                    { name: 'tags', weight: 0.5 },
+                    { name: 'description', weight: 0.1 }
                 ],
                 threshold: 0.35,
                 distance: 100,
