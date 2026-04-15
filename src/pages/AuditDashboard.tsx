@@ -355,7 +355,7 @@ export function AuditDashboard() {
                                                         className="w-16 h-16 rounded-[1.25rem] object-cover border-2 border-tan-light shadow-md" 
                                                         alt="" 
                                                     />
-                                                    <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center ${item.featured_image_url ? 'bg-green-500' : 'bg-tan'}`}>
+                                                    <div className={`absolute -top-2 -right-2 w-6 h-6 ${item.featured_image_url ? 'bg-green-500' : 'bg-tan'} rounded-full border-4 border-white flex items-center justify-center`}>
                                                         {item.featured_image_url ? <CheckCircle2 size={10} className="text-white" /> : <Info size={10} className="text-white" />}
                                                     </div>
                                                 </div>
