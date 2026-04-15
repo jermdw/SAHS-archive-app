@@ -237,21 +237,21 @@ export function SearchArchive() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Keyword Search */}
                     <div className="lg:col-span-3 pb-6 border-b border-tan-light/50">
-                        <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Keyword Search</label>
+                        <label className="block text-xl font-serif font-black text-charcoal/80 uppercase tracking-widest mb-4">Keyword Search</label>
                         <div className="flex gap-3">
                             <div className="relative flex-1">
-                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-charcoal/40" size={20} />
+                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-charcoal/40" size={32} />
                                 <input
                                     type="text"
                                     placeholder="Search by title, description..."
-                                    className="w-full bg-cream pl-16 pr-4 py-6 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-2xl shadow-inner placeholder:text-lg"
+                                    className="w-full bg-cream pl-20 pr-6 py-8 rounded-2xl border-2 border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-3xl shadow-xl placeholder:text-xl"
                                     value={localKeyword}
                                     onChange={(e) => setLocalKeyword(e.target.value)}
                                 />
                             </div>
                             <button
                                 type="submit"
-                                className="bg-tan text-white px-12 py-5 rounded-xl font-bold text-xl hover:bg-charcoal transition-all shadow-md hidden sm:block"
+                                className="bg-tan text-white px-12 py-5 rounded-2xl font-bold text-2xl hover:bg-charcoal transition-all shadow-xl flex items-center justify-center min-w-[160px]"
                             >
                                 Search
                             </button>
@@ -262,9 +262,9 @@ export function SearchArchive() {
                     <div>
                         <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Item Type</label>
                         <div className="relative">
-                            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
+                            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={24} />
                             <select
-                                className="w-full bg-cream pl-11 pr-10 py-4 sm:py-4 rounded-xl border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal sm:text-lg shadow-sm"
+                                className="w-full bg-cream pl-12 pr-10 py-6 rounded-xl border-2 border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal text-xl shadow-sm"
                                 value={selectedType}
                                 onChange={(e) => updateParam('type', e.target.value, 'All Items')}
                             >
@@ -284,11 +284,11 @@ export function SearchArchive() {
                     <div>
                         <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Year / Date</label>
                         <div className="relative">
-                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
+                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={24} />
                             <input
                                 type="text"
                                 placeholder="e.g. 1920, 1850-1900..."
-                                className="w-full bg-cream pl-11 pr-4 py-4 sm:py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal sm:text-lg shadow-sm"
+                                className="w-full bg-cream pl-14 pr-4 py-6 rounded-xl border-2 border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-xl shadow-sm"
                                 value={localYear}
                                 onChange={(e) => setLocalYear(e.target.value)}
                             />
@@ -299,11 +299,11 @@ export function SearchArchive() {
                     <div>
                         <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Place / Location</label>
                         <div className="relative">
-                            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
+                            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={24} />
                             <input
                                 type="text"
                                 placeholder="e.g. Main Street, Newnan..."
-                                className="w-full bg-cream pl-11 pr-4 py-4 sm:py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal sm:text-lg shadow-sm"
+                                className="w-full bg-cream pl-14 pr-4 py-6 rounded-xl border-2 border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-xl shadow-sm"
                                 value={localPlace}
                                 onChange={(e) => setLocalPlace(e.target.value)}
                             />
@@ -313,11 +313,11 @@ export function SearchArchive() {
                     <div className="md:col-span-2 lg:col-span-1">
                         <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Subject Tag</label>
                         <div className="relative">
-                            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
+                            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={24} />
                             <input
                                 type="text"
                                 placeholder="Search by tag..."
-                                className="w-full bg-cream pl-11 pr-4 py-4 sm:py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal sm:text-lg shadow-sm"
+                                className="w-full bg-cream pl-14 pr-4 py-6 rounded-xl border-2 border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-xl shadow-sm"
                                 value={localTag}
                                 onChange={(e) => setLocalTag(e.target.value)}
                             />
@@ -328,9 +328,9 @@ export function SearchArchive() {
                     <div>
                         <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Sort By</label>
                         <div className="relative">
-                            <SlidersHorizontal className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={18} />
+                            <SlidersHorizontal className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={24} />
                             <select
-                                className="w-full bg-cream pl-11 pr-10 py-4 sm:py-4 rounded-xl border border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal sm:text-lg shadow-sm"
+                                className="w-full bg-cream pl-12 pr-10 py-6 rounded-xl border-2 border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal text-xl shadow-sm"
                                 value={sortBy}
                                 onChange={(e) => updateParam('sort', e.target.value, 'newest')}
                             >
@@ -351,11 +351,11 @@ export function SearchArchive() {
                         <div className="md:col-span-1 border-t md:border-t-0 pt-4 md:pt-0">
                             <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Artifact ID #</label>
                             <div className="relative">
-                                <InfoIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/30" />
+                                <InfoIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/30" size={24} />
                                 <input
                                     type="text"
-                                    placeholder="Enter artifact ID number..."
-                                    className="w-full bg-cream pl-11 pr-4 py-4 sm:py-4 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal sm:text-lg shadow-sm"
+                                    placeholder="Enter artifact ID..."
+                                    className="w-full bg-cream pl-14 pr-4 py-6 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-xl shadow-sm"
                                     value={localArtifactId}
                                     onChange={(e) => setLocalArtifactId(e.target.value)}
                                 />
