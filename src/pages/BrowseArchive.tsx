@@ -7,6 +7,7 @@ import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
+import Fuse from 'fuse.js';
 
 export function BrowseArchive() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -83,14 +84,28 @@ export function BrowseArchive() {
 
     // Unified client-side filtering - Memoized to prevent heavy re-calculations
     const filteredItems = useMemo(() => {
-        return items.filter(item => {
-            const searchLower = search.toLowerCase();
-            const matchesSearch =
-                item.title?.toLowerCase().includes(searchLower) ||
-                item.description?.toLowerCase().includes(searchLower) ||
-                item.subject?.toLowerCase().includes(searchLower) ||
-                item.tags?.some(tag => tag.toLowerCase().includes(searchLower));
+        let results = [...items];
 
+        const searchTrimmed = search.trim();
+        if (searchTrimmed) {
+            const fuse = new Fuse(results, {
+                keys: [
+                    { name: 'title', weight: 1.0 },
+                    { name: 'description', weight: 0.4 },
+                    { name: 'subject', weight: 0.7 },
+                    { name: 'tags', weight: 0.7 },
+                    { name: 'full_name', weight: 0.9 }
+                ],
+                threshold: 0.35,
+                distance: 100,
+                ignoreLocation: true,
+                includeScore: true
+            });
+
+            results = fuse.search(searchTrimmed).map(r => r.item);
+        }
+
+        return results.filter(item => {
             const matchesType = selectedType === 'All Items' || item.item_type === selectedType;
             const matchesCollection = selectedCollection === 'All Collections' || item.collection_id === selectedCollection;
 
@@ -100,7 +115,7 @@ export function BrowseArchive() {
                 if (isItemPrivate || isCollectionPrivate) return false;
             }
 
-            return matchesSearch && matchesType && matchesCollection;
+            return matchesType && matchesCollection;
         });
     }, [items, search, selectedType, selectedCollection, isSAHSUser, collectionPrivacyMap]);
 

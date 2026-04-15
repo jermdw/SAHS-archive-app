@@ -6,6 +6,7 @@ import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
+import Fuse from 'fuse.js';
 
 export function SearchArchive() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -123,27 +124,39 @@ export function SearchArchive() {
     }, [isSAHSUser]);
 
     const filteredItems = useMemo(() => {
-        return items.filter(item => {
-            // Keyword match across multiple fields
-            const kw = localKeyword.toLowerCase();
-            const matchesKeyword = !localKeyword ||
-                item.title?.toLowerCase().includes(kw) ||
-                item.description?.toLowerCase().includes(kw) ||
-                item.subject?.toLowerCase().includes(kw) ||
-                item.artifact_id?.toString().toLowerCase().includes(kw) ||
-                item.id?.toLowerCase().includes(kw) ||
-                item.identifier?.toLowerCase().includes(kw) ||
-                item.transcription?.toLowerCase().includes(kw) ||
-                item.creator?.toLowerCase().includes(kw) ||
-                item.full_name?.toLowerCase().includes(kw) ||
-                item.also_known_as?.toLowerCase().includes(kw) ||
-                item.birthplace?.toLowerCase().includes(kw) ||
-                item.occupation?.toLowerCase().includes(kw) ||
-                item.org_name?.toLowerCase().includes(kw) ||
-                item.alternative_names?.toLowerCase().includes(kw) ||
-                item.founding_date?.toLowerCase().includes(kw) ||
-                item.dissolved_date?.toLowerCase().includes(kw);
+        let results = [...items];
 
+        // 1. Keyword Fuzzy Search
+        if (localKeyword.trim()) {
+            const fuse = new Fuse(results, {
+                keys: [
+                    { name: 'title', weight: 1.0 },
+                    { name: 'description', weight: 0.4 },
+                    { name: 'subject', weight: 0.7 },
+                    { name: 'artifact_id', weight: 1.0 },
+                    { name: 'identifier', weight: 1.0 },
+                    { name: 'transcription', weight: 0.1 },
+                    { name: 'creator', weight: 0.6 },
+                    { name: 'full_name', weight: 0.9 },
+                    { name: 'also_known_as', weight: 0.8 },
+                    { name: 'birthplace', weight: 0.3 },
+                    { name: 'occupation', weight: 0.5 },
+                    { name: 'org_name', weight: 0.9 },
+                    { name: 'alternative_names', weight: 0.8 },
+                    { name: 'tags', weight: 0.7 }
+                ],
+                threshold: 0.35,      // conservative threshold to prevent "clogging"
+                distance: 100,
+                ignoreLocation: true, // check whole string
+                includeScore: true,
+                useExtendedSearch: true
+            });
+
+            results = fuse.search(localKeyword).map(r => r.item);
+        }
+
+        // 2. Faceted Filters
+        return results.filter(item => {
             // Type match
             const matchesType = selectedType === 'All Items' || item.item_type === selectedType;
 
@@ -170,7 +183,7 @@ export function SearchArchive() {
                 if (isItemPrivate || isCollectionPrivate) return false;
             }
 
-            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId;
+            return matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId;
         }).sort((a, b) => {
             if (sortBy === 'newest') {
                 return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
