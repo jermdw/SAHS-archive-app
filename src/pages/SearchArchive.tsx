@@ -257,7 +257,7 @@ export function SearchArchive() {
 
             return 0;
         });
-    }, [items, localKeyword, localYear, localPlace, localTag, localArtifactId, selectedType, sortBy, isSAHSUser, collectionPrivacyMap]);
+    }, [items, localKeyword, localYear, localPlace, localTag, localArtifactId, localLocId, localExcludeKeyword, localExcludeTag, localExcludeTypes, selectedType, sortBy, isSAHSUser, collectionPrivacyMap]);
 
     const resetFilters = () => {
         setLocalKeyword('');
