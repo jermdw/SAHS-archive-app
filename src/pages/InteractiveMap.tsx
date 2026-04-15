@@ -1547,7 +1547,7 @@ export function InteractiveMap() {
                     [data-highlighted="true"] { 
                         animation: map-pulse 1.5s infinite ease-in-out;
                         z-index: 200 !important;
-                        outline: 3px solid #f97316 !important;
+                        outline: 3px solid #3b82f6 !important;
                     }
                 `}</style>
 
