@@ -121,7 +121,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
                     {/* Support Section */}
                     <div className="mb-4">
-                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Community</h2>
+                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Help</h2>
                         <nav className="flex flex-col gap-1">
                             <a
                                 href="https://www.senoiahistory.com/contact-sahs"
