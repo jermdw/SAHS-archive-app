@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, Calendar, MapPin, Tag, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Filter, Calendar, MapPin, Tag, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -234,51 +234,43 @@ export function SearchArchive() {
                 }}
                 className="bg-white p-6 md:p-8 rounded-2xl border border-tan-light shadow-sm mb-10"
             >
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Keyword Search */}
-                    <div className="lg:col-span-3 pb-6 border-b border-tan-light/50">
-                        <label className="block text-xl font-serif font-black text-charcoal/80 uppercase tracking-widest mb-4">Keyword Search</label>
-                        <div className="flex gap-3">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-charcoal/40" size={32} />
-                                <input
-                                    type="text"
-                                    placeholder="Search by title, description..."
-                                    className="w-full bg-cream pl-20 pr-6 py-8 rounded-2xl border-2 border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-3xl shadow-xl placeholder:text-xl"
-                                    value={localKeyword}
-                                    onChange={(e) => setLocalKeyword(e.target.value)}
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                className="bg-tan text-white px-12 py-5 rounded-2xl font-bold text-2xl hover:bg-charcoal transition-all shadow-xl flex items-center justify-center min-w-[160px]"
-                            >
-                                Search
-                            </button>
+                    {/* Keyword Search Section (Hero) */}
+                    <div className="col-span-full border-b border-tan-light/30 pb-10 mb-2">
+                        <label className="block text-2xl font-serif font-black text-charcoal/80 uppercase tracking-widest mb-6">Keyword Search</label>
+                        <div className="relative">
+                            <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-tan" size={32} />
+                            <input
+                                type="text"
+                                placeholder="Search by name, object, or historical event..."
+                                className="w-full bg-cream/50 pl-24 pr-8 py-10 rounded-3xl border-2 border-tan-light/20 focus:bg-white focus:border-tan outline-none transition-all font-sans text-charcoal text-4xl shadow-xl placeholder:text-charcoal/30 placeholder:italic"
+                                value={localKeyword}
+                                onChange={(e) => setLocalKeyword(e.target.value)}
+                            />
                         </div>
                     </div>
 
-                    {/* Filter: Item Type */}
-                    <div>
-                        <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Item Type</label>
-                        <div className="relative">
-                            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/40" size={24} />
-                            <select
-                                className="w-full bg-cream pl-12 pr-10 py-6 rounded-xl border-2 border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal text-xl shadow-sm"
-                                value={selectedType}
-                                onChange={(e) => updateParam('type', e.target.value, 'All Items')}
-                            >
-                                <option value="All Items">All Types</option>
-                                <option value="Document">Documents</option>
-                                <option value="Historic Figure">Historic Figures</option>
-                                <option value="Historic Organization">Historic Organizations</option>
-                                <option value="Artifact">Artifacts</option>
-                            </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <ChevronDownIcon />
+                    {/* Secondary Filters Section */}
+                    <div className="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {/* Item Type */}
+                        <div>
+                            <label className="block text-xs font-bold text-charcoal/40 uppercase tracking-[0.2em] mb-3">Item Type</label>
+                            <div className="relative group">
+                                <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-tan transition-colors group-focus-within:text-charcoal" size={24} />
+                                <select
+                                    className="w-full bg-cream pl-14 pr-10 py-6 rounded-2xl border-2 border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan transition-all font-sans text-charcoal text-xl shadow-sm"
+                                    value={selectedType}
+                                    onChange={(e) => updateParam('type', e.target.value, 'All Items')}
+                                >
+                                    <option value="All Items">All Categories</option>
+                                    <option value="Artifact">Artifact</option>
+                                    <option value="Document">Document</option>
+                                    <option value="Historic Figure">Historic Figure</option>
+                                    <option value="Historic Organization">Historic Organization</option>
+                                </select>
+                                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-charcoal/30 pointer-events-none" size={20} />
                             </div>
                         </div>
-                    </div>
+
 
                     {/* Filter: Date/Year */}
                     <div>
@@ -362,24 +354,25 @@ export function SearchArchive() {
                             </div>
                         </div>
                     )}
+                </div>
 
-                    {/* Reset Button */}
-                    <div className="md:col-span-2 lg:col-span-3 flex justify-between items-center mt-4">
+                {/* Action Button Row */}
+                    <div className="col-span-full pt-10 flex flex-col md:flex-row gap-6 items-center justify-between border-t border-tan-light/20 mt-8">
                         <button
                             type="button"
                             onClick={resetFilters}
-                            className="bg-cream/50 text-charcoal-light font-bold text-xs uppercase tracking-widest px-6 py-2 rounded-lg hover:bg-tan/10 hover:text-tan transition-all shadow-sm active:scale-95"
+                            className="text-tan hover:text-charcoal font-black text-xs uppercase tracking-[0.2em] px-8 py-3 rounded-full hover:bg-tan/5 transition-all order-2 md:order-1"
                         >
-                            Reset Filters
+                            Reset All Filters
                         </button>
                         <button
                             type="submit"
-                            className="bg-tan text-white px-8 py-3 rounded-lg font-bold hover:bg-charcoal transition-all md:hidden shadow-lg active:scale-95"
+                            className="w-full md:w-auto bg-tan text-white px-16 py-8 rounded-3xl font-black text-3xl hover:bg-charcoal transition-all shadow-2xl flex items-center justify-center gap-4 active:scale-[0.98] order-1 md:order-2"
                         >
-                            Search
+                            <Search size={32} />
+                            Search Archive
                         </button>
                     </div>
-                </div>
             </form>
 
             <div className="flex-1">
@@ -428,9 +421,9 @@ function ChevronDownIcon() {
     );
 }
 
-function InfoIcon({ className }: { className?: string }) {
+function InfoIcon({ className, size = 18 }: { className?: string, size?: number }) {
     return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="16" x2="12" y2="12"></line>
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
