@@ -445,8 +445,8 @@ export function InteractiveMap() {
             [selectedLocationForBinding]: {
                 x: startX,
                 y: startY,
-                width: isPin ? 120 : 150,
-                height: isPin ? 80 : 100,
+                width: isPin ? 60 : 150,
+                height: isPin ? 60 : 100,
                 display_type: displayStyle
             }
         }));
@@ -454,8 +454,8 @@ export function InteractiveMap() {
         // Smart Panning: Center the map on the new item
         if (wrapperRef.current) {
             const wrapper = wrapperRef.current;
-            const targetX = (startX * scale) - (wrapper.clientWidth / 2) + (75 * scale);
-            const targetY = (startY * scale) - (wrapper.clientHeight / 2) + (50 * scale);
+            const targetX = (startX * scale) - (wrapper.clientWidth / 2) + (30 * scale);
+            const targetY = (startY * scale) - (wrapper.clientHeight / 2) + (30 * scale);
             wrapper.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
         }
 
@@ -890,7 +890,11 @@ export function InteractiveMap() {
             if (node && nodeStart) {
                 // If it's the lead item, let Rnd handle its own transform, UNLESS we are dragging a sub-geometry
                 if (!isLead || (draggedIndex !== undefined && draggedIndex !== 0)) {
-                    node.style.transform = `translate(${nodeStart.x + offsetX}px, ${nodeStart.y + offsetY}px)`;
+                    const lCoords = localCoords[id];
+                    const isPin = lCoords?.display_type === 'pin';
+                    const visualX = nodeStart.x + offsetX - (isPin ? 30 : 0);
+                    const visualY = nodeStart.y + offsetY - (isPin ? 50 : 0);
+                    node.style.transform = `translate(${visualX}px, ${visualY}px)`;
                 }
             }
 
@@ -903,6 +907,7 @@ export function InteractiveMap() {
                     const geomNode = document.getElementById(gi === 0 ? `rnd-node-${id}` : `inner-rnd-${id}-geom-${gi}`);
                     const gStart = dragStartPosRef.current[`${id}-geom-${gi}`];
                     if (geomNode && gStart) {
+                        // Interior room boxes never use pin offsets
                         geomNode.style.transform = `translate(${gStart.x + offsetX}px, ${gStart.y + offsetY}px)`;
                     }
                 });
@@ -1424,8 +1429,8 @@ export function InteractiveMap() {
                                                                     </div>
                                                                     <input 
                                                                         type="range"
-                                                                        min="0.5"
-                                                                        max="1.5"
+                                                                        min="0.3"
+                                                                        max="2.0"
                                                                         step="0.05"
                                                                         value={locCoords.scale || 1}
                                                                         onChange={(e) => handleUpdateLocationProperty(id, 'scale', e.target.value)}
@@ -1683,8 +1688,8 @@ export function InteractiveMap() {
 
                                     {/* Render Locations (Pins/Blocks) */}
                                     {locations.filter(l => l.name?.toLowerCase() !== 'compass rose').map(loc => {
-                                const c = localCoords[loc.id];
-                                if (!c) return null;
+                                const c = { ...loc, ...(localCoords[loc.id] || {}) };
+                                if (!localCoords[loc.id]) return null;
                                 const isSelected = selectedIdsRef.current.has(loc.id);
                                 
                                 return (
@@ -1699,31 +1704,32 @@ export function InteractiveMap() {
                                             if (isEditMode && !e.shiftKey) handleItemSelection(loc.id, e);
                                         }}
                                         style={{ 
-                                            backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.1)' : (c.display_type === 'pin' ? 'transparent' : 'rgba(255, 255, 255, 0.9)'),
+                                            backgroundColor: (isSelected && c.display_type !== 'pin') ? 'rgba(59, 130, 246, 0.1)' : (c.display_type === 'box' ? 'rgba(255, 255, 255, 0.9)' : 'transparent'),
                                             zIndex: isSelected ? 150 : (c.z_index || 100),
-                                            border: isSelected ? '2px solid #3b82f6' : (c.display_type === 'pin' ? 'none' : '2px solid #d2b48c'),
-                                            borderRadius: c.display_type === 'pin' ? '0' : '4px'
+                                            border: (isSelected && c.display_type !== 'pin') ? '2px solid #3b82f6' : (c.display_type === 'box' ? '2px solid #d2b48c' : 'none'),
+                                            borderRadius: c.display_type === 'box' ? '4px' : '0',
+                                            pointerEvents: c.display_type === 'pin' ? 'none' : 'auto'
                                         }}
                                         scale={scale}
                                         disableDragging={!isEditMode}
                                         enableResizing={isEditMode && c.display_type !== 'pin'}
                                         position={draggingId === loc.id ? undefined : { 
-                                            x: c.display_type === 'pin' ? c.x - 60 : c.x, 
-                                            y: c.display_type === 'pin' ? c.y - 48 : c.y 
+                                            x: c.display_type === 'pin' ? (c.x - 30) : c.x, 
+                                            y: c.display_type === 'pin' ? (c.y - 50) : c.y 
                                         }}
                                         size={{ 
-                                            width: c.display_type === 'pin' ? 120 : c.width, 
-                                            height: c.display_type === 'pin' ? 80 : c.height 
+                                            width: c.display_type === 'pin' ? 60 : c.width, 
+                                            height: c.display_type === 'pin' ? 60 : c.height 
                                         }}
                                         onDragStart={(e: any) => handleGroupDragStart(loc.id, 0, e)}
                                         onDrag={(_e: any, d: any) => {
-                                            const updatedX = c.display_type === 'pin' ? d.x + 60 : d.x;
-                                            const updatedY = c.display_type === 'pin' ? d.y + 48 : d.y;
+                                            const updatedX = c.display_type === 'pin' ? d.x + 30 : d.x;
+                                            const updatedY = c.display_type === 'pin' ? d.y + 50 : d.y;
                                             handleGroupDrag(loc.id, 0, { x: updatedX, y: updatedY });
                                         }}
                                         onDragStop={(_e: any, d: any) => {
-                                            const updatedX = c.display_type === 'pin' ? d.x + 60 : d.x;
-                                            const updatedY = c.display_type === 'pin' ? d.y + 48 : d.y;
+                                            const updatedX = c.display_type === 'pin' ? d.x + 30 : d.x;
+                                            const updatedY = c.display_type === 'pin' ? d.y + 50 : d.y;
                                             handleGroupDragStopStateSync(loc.id, 0, { x: updatedX, y: updatedY });
                                         }}
                                         onResizeStart={() => {
@@ -1752,12 +1758,45 @@ export function InteractiveMap() {
                                             style={{ transform: `rotate(${c.rotation || 0}deg)` }}
                                         >
                                             {c.display_type === 'pin' ? (
-                                                <div className="flex flex-col items-center w-full">
-                                                    <MapPin size={48} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
+                                                <div 
+                                                    className="flex flex-col items-center w-full pointer-events-auto group/pin relative"
+                                                    style={{ marginTop: `${50 - (48 * (c.scale || 1))}px` }}
+                                                >
+                                                    {!isEditMode && (
+                                                        <Link to={`/locations/${loc.id}`} className="absolute inset-x-0 top-0 bottom-[-20px] z-50 rounded hover:bg-tan/10 transition-colors flex flex-col items-center justify-center">
+                                                            <span className="text-white text-[8px] font-mono font-bold opacity-0 hover:opacity-100 bg-tan/80 px-1.5 py-0.5 rounded uppercase tracking-tighter absolute -top-4">View</span>
+                                                        </Link>
+                                                    )}
+
+                                                    {/* Pin Actions Overlay (Inside the pointer-events-auto container) */}
+                                                    {isEditMode && (
+                                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/pin:opacity-100 flex gap-1 z-[60]">
+                                                            <button 
+                                                                onClick={(e: any) => {
+                                                                    e.stopPropagation();
+                                                                    rotateItem(loc.id, 'location', c.rotation || 0, e);
+                                                                }} 
+                                                                className="bg-white border border-charcoal/20 p-1.5 rounded shadow-xl hover:bg-blue-50 transition-colors"
+                                                            >
+                                                                <RotateCw size={12} className="text-blue-600"/>
+                                                            </button>
+                                                            <button 
+                                                                onClick={(e: any) => {
+                                                                    e.stopPropagation();
+                                                                    removeBlock(loc.id, e);
+                                                                }} 
+                                                                className="bg-red-500 text-white p-1.5 rounded shadow-xl hover:bg-red-600 transition-colors border border-red-600"
+                                                            >
+                                                                <X size={12}/>
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    <MapPin size={48 * (c.scale || 1)} className={`${isSelected ? 'text-blue-500' : 'text-red-500'} drop-shadow-md transition-colors`} fill="white"/>
                                                     <div className="mt-1 flex justify-center w-full px-2">
                                                         <span 
-                                                            className={`font-serif font-black ${isSelected ? 'bg-blue-50' : 'bg-white/95'} border border-charcoal/10 px-2 py-1 rounded shadow-lg transition-colors whitespace-normal text-center text-charcoal tracking-tight max-w-full leading-tight break-words`}
-                                                            style={{ fontSize: '9.5px' }}
+                                                            className={`font-serif font-black ${isSelected ? 'bg-blue-50' : 'bg-white/95'} border border-charcoal/10 px-2 py-1 rounded shadow-lg transition-colors whitespace-normal text-center text-charcoal tracking-tight w-max max-w-[150px] leading-tight break-normal`}
+                                                            style={{ fontSize: `${9.5 * (c.scale || 1)}px` }}
                                                         >
                                                             {loc.name}
                                                         </span>
@@ -1791,16 +1830,11 @@ export function InteractiveMap() {
                                                     </div>
                                                 </div>
                                             )}
-                                            {isEditMode && (
-                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 flex gap-1">
+                                            {isEditMode && c.display_type !== 'pin' && (
+                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 flex gap-1 pointer-events-auto">
                                                     <button onClick={(e: any) => rotateItem(loc.id, 'location', c.rotation || 0, e)} className="bg-white border p-1 rounded"><RotateCw size={10}/></button>
                                                     <button onClick={(e: any) => removeBlock(loc.id, e)} className="bg-red-400 text-white p-1 rounded"><X size={10}/></button>
                                                 </div>
-                                            )}
-                                            {!isEditMode && (
-                                                <Link to={`/locations/${loc.id}`} className="absolute inset-0 z-50 rounded bg-tan/0 hover:bg-tan/80 flex items-center justify-center transition-all">
-                                                    <span className="text-white text-[10px] font-bold opacity-0 hover:opacity-100 uppercase tracking-widest">View Shelf</span>
-                                                </Link>
                                             )}
                                         </div>
                                     </Rnd>
