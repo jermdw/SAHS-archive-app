@@ -90,8 +90,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         </nav>
                     </div>
 
-                    <div className="w-full h-px bg-tan-light/20 mb-4 mx-4" />
-
                     {/* Archives Section */}
                     <div className="mb-4">
                         <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Digital Archives</h2>
@@ -111,8 +109,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         </nav>
                     </div>
 
-                    <div className="w-full h-px bg-tan-light/20 mb-4 mx-4" />
-
                     {/* Discovery Section */}
                     <div className="mb-4">
                         <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Discovery Tools</h2>
@@ -122,8 +118,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                             </NavLink>
                         </nav>
                     </div>
-
-                    <div className="w-full h-px bg-tan-light/20 mb-4 mx-4" />
 
                     {/* Support Section */}
                     <div className="mb-4">
