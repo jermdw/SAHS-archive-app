@@ -161,9 +161,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                         <NavLink to="/add-item" className={navLinkClass} onClick={handleLinkClick}>
                                             <Upload size={18} /> Add Archive Item
                                         </NavLink>
-                                        <NavLink to="/audit" className={navLinkClass} onClick={handleLinkClick}>
-                                            <Activity size={18} /> Data Quality Audit
-                                        </NavLink>
+                                        {(isSAHSUser || realIsAdmin) && (
+                                            <NavLink to="/audit" className={navLinkClass} onClick={handleLinkClick}>
+                                                <Activity size={18} /> Data Quality Audit
+                                            </NavLink>
+                                        )}
                                         <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
                                             <FolderOpen size={18} /> Collections
                                         </NavLink>

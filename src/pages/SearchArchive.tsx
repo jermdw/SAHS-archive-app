@@ -240,18 +240,18 @@ export function SearchArchive() {
                         <label className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Keyword Search</label>
                         <div className="flex gap-3">
                             <div className="relative flex-1">
-                                <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-charcoal/40" size={20} />
+                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-charcoal/40" size={20} />
                                 <input
                                     type="text"
                                     placeholder="Search by title, description..."
-                                    className="w-full bg-cream pl-12 sm:pl-16 pr-4 py-4 sm:py-6 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-lg sm:text-2xl shadow-inner sm:placeholder:text-lg"
+                                    className="w-full bg-cream pl-16 pr-4 py-6 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-2xl shadow-inner placeholder:text-lg"
                                     value={localKeyword}
                                     onChange={(e) => setLocalKeyword(e.target.value)}
                                 />
                             </div>
                             <button
                                 type="submit"
-                                className="bg-tan text-white px-8 sm:px-12 py-4 sm:py-5 rounded-xl font-bold sm:text-xl hover:bg-charcoal transition-all shadow-md hidden sm:block"
+                                className="bg-tan text-white px-12 py-5 rounded-xl font-bold text-xl hover:bg-charcoal transition-all shadow-md hidden sm:block"
                             >
                                 Search
                             </button>
