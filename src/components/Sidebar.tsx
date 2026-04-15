@@ -9,7 +9,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
-    const { isSAHSUser, isAdmin, realIsAdmin, logout, user, isEditingMode, setIsEditingMode } = useAuth();
+    const { isSAHSUser, realIsAdmin, logout, user, isEditingMode, setIsEditingMode } = useAuth();
     const navigate = useNavigate();
 
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
