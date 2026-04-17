@@ -890,69 +890,72 @@ export function AddItem() {
 
                         <div className="space-y-6">
                             {/* NEW: Supplemental Media & Documentation */}
-                            <div className="bg-white/50 border border-tan-light/30 rounded-2xl p-6 space-y-6">
-                                <div>
-                                    <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                        <FileText size={14} /> Accessioning Paperwork
-                                        <span className="ml-auto text-[9px] text-charcoal/40 bg-cream/50 px-2 py-0.5 rounded-full lowercase tracking-normal font-bold flex items-center gap-1">
-                                            <Lock size={10} /> Admin & Curators Only
-                                        </span>
-                                    </label>
-                                    <div 
-                                        onClick={() => document.getElementById('accession-upload')?.click()}
-                                        className="border-2 border-dashed border-tan-light/40 bg-white/50 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-tan-light/10 transition-all min-h-[6rem] group"
-                                    >
-                                        <input 
-                                            id="accession-upload"
-                                            type="file" 
-                                            multiple 
-                                            className="hidden" 
-                                            accept="image/*,application/pdf"
-                                            onChange={(e) => {
-                                                if (e.target.files) processAccessionFiles(e.target.files);
-                                                e.target.value = '';
-                                            }}
-                                        />
-                                        {isConvertingAccessionPdf && (
-                                            <div className="flex flex-col items-center justify-center p-4">
-                                                <div className="w-full bg-tan/10 h-1 rounded-full overflow-hidden mb-2">
-                                                    <div 
-                                                        className="bg-tan h-full transition-all duration-300" 
-                                                        style={{ width: `${accessionPdfProgress}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-[9px] font-bold text-tan uppercase tracking-widest animate-pulse">Converting Paperwork... {accessionPdfProgress}%</span>
-                                            </div>
-                                        )}
-                                        {!isConvertingAccessionPdf && accessionFiles.length > 0 ? (
-                                            <div className="flex flex-wrap gap-2 justify-center">
-                                                {accessionFiles.map((f, i) => (
-                                                    <div key={i} className="relative group/file">
-                                                        <div className="bg-tan/10 text-tan p-2 rounded-lg border border-tan-light/30 flex items-center gap-2 pr-8">
-                                                            <FileText size={14} />
-                                                            <span className="text-[10px] font-bold max-w-[80px] truncate">{f.name}</span>
-                                                        </div>
-                                                        <button 
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setAccessionFiles(prev => prev.filter((_, idx) => idx !== i));
-                                                            }}
-                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm opacity-0 group-hover/file:opacity-100 transition-opacity"
-                                                        >
-                                                            <X size={10} />
-                                                        </button>
+                            {!['Historic Figure', 'Historic Organization'].includes(itemType.trim()) && (
+                                <div className="bg-white/50 border border-tan-light/30 rounded-2xl p-6 space-y-6">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                            <FileText size={14} /> Accessioning Paperwork
+                                            <span className="ml-auto text-[9px] text-charcoal/40 bg-cream/50 px-2 py-0.5 rounded-full lowercase tracking-normal font-bold flex items-center gap-1">
+                                                <Lock size={10} /> Admin & Curators Only
+                                            </span>
+                                        </label>
+                                        <div 
+                                            onClick={() => document.getElementById('accession-upload')?.click()}
+                                            className="border-2 border-dashed border-tan-light/40 bg-white/50 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-tan-light/10 transition-all min-h-[6rem] group"
+                                        >
+                                            <input 
+                                                id="accession-upload"
+                                                type="file" 
+                                                multiple 
+                                                className="hidden" 
+                                                accept="image/*,application/pdf"
+                                                onChange={(e) => {
+                                                    if (e.target.files) processAccessionFiles(e.target.files);
+                                                    e.target.value = '';
+                                                }}
+                                            />
+                                            {isConvertingAccessionPdf && (
+                                                <div className="flex flex-col items-center justify-center p-4">
+                                                    <div className="w-full bg-tan/10 h-1 rounded-full overflow-hidden mb-2">
+                                                        <div 
+                                                            className="bg-tan h-full transition-all duration-300" 
+                                                            style={{ width: `${accessionPdfProgress}%` }}
+                                                        />
                                                     </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center">
-                                                <Upload size={18} className="text-tan/40 mb-1 group-hover:scale-110 transition-transform" />
-                                                <span className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest">Upload Scans</span>
-                                            </div>
-                                        )}
+                                                    <span className="text-[9px] font-bold text-tan uppercase tracking-widest animate-pulse">Converting Paperwork... {accessionPdfProgress}%</span>
+                                                </div>
+                                            )}
+                                            {!isConvertingAccessionPdf && accessionFiles.length > 0 ? (
+                                                <div className="flex flex-wrap gap-2 justify-center">
+                                                    {accessionFiles.map((f, i) => (
+                                                        <div key={i} className="relative group/file">
+                                                            <div className="bg-tan/10 text-tan p-2 rounded-lg border border-tan-light/30 flex items-center gap-2 pr-8">
+                                                                <FileText size={14} />
+                                                                <span className="text-[10px] font-bold max-w-[80px] truncate">{f.name}</span>
+                                                            </div>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setAccessionFiles(prev => prev.filter((_, idx) => idx !== i));
+                                                                }}
+                                                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm opacity-0 group-hover/file:opacity-100 transition-opacity"
+                                                            >
+                                                                <X size={10} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center">
+                                                    <Upload size={18} className="text-tan/40 mb-1 group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest">Add Paperwork</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
+                            )}
 
                                 <div>
                                     <label className="block text-[10px] font-black text-tan uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
@@ -998,12 +1001,11 @@ export function AddItem() {
                                         ) : (
                                             <div className="flex flex-col items-center">
                                                 <Upload size={18} className="text-indigo-300/40 mb-1 group-hover:scale-110 transition-transform" />
-                                                <span className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest">Upload Media</span>
+                                                                <span className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest">Upload Media</span>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                            </div>
                             <div>
                                 <label htmlFor="title" className="block text-sm font-bold text-charcoal/70 uppercase tracking-wider mb-2">Display Title / Name *</label>
                                 <input required type="text" name="title" id="title" placeholder={itemType === 'Historic Figure' ? "e.g. John Doe" : itemType === 'Historic Organization' ? "e.g. Senoia General Store" : itemType === 'Artifact' ? "e.g. Civil War Bayonet" : "Descriptive title for the archive"} className="w-full bg-white border border-tan-light/50 px-4 py-4 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-sans text-lg font-medium" />
@@ -1047,13 +1049,13 @@ export function AddItem() {
                                         <label htmlFor="historical_address" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Historical Physical Address (For Map View)</label>
                                         <input type="text" name="historical_address" id="historical_address" placeholder="e.g. 123 Main St, Senoia, GA" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
                                     </div>
-                                    {itemType !== 'Historic Organization' && (
+                                    {!['Historic Figure', 'Historic Organization'].includes(itemType) && (
                                         <div>
                                             <label htmlFor="date" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Date (e.g. 1920, c. 1905)</label>
                                             <input type="text" name="date" id="date" placeholder="Approximate or Exact Date" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
                                         </div>
                                     )}
-                                    {itemType !== 'Historic Organization' && itemType !== 'Artifact' && (
+                                    {itemType !== 'Historic Organization' && itemType !== 'Artifact' && itemType !== 'Historic Figure' && (
                                         <div>
                                             <label htmlFor="category" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Category</label>
                                             <div className="relative">
@@ -1064,7 +1066,7 @@ export function AddItem() {
                                             </div>
                                         </div>
                                     )}
-                                    {itemType !== 'Historic Organization' && (
+                                    {!['Historic Figure', 'Historic Organization'].includes(itemType) && (
                                         <div>
                                             <label htmlFor="condition" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Condition</label>
                                             <div className="relative">
@@ -1075,7 +1077,7 @@ export function AddItem() {
                                             </div>
                                         </div>
                                     )}
-                                    {itemType !== 'Historic Organization' && (
+                                    {itemType !== 'Historic Organization' && itemType !== 'Historic Figure' && (
                                         <div>
                                             <label htmlFor="collection_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Collection</label>
                                             <div className="relative">
@@ -1141,22 +1143,26 @@ export function AddItem() {
                                                 </div>
                                             </div>
                                         )}
-                                        <div>
-                                            <label htmlFor="physical_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Filing Location</label>
-                                            <div className="relative">
-                                                <select name="physical_location" id="physical_location" value={physicalLocationValue} onChange={(e) => setPhysicalLocationValue(e.target.value)} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
-                                                    <option value="SAHS (Physical Archive)">SAHS (Physical Archive)</option>
-                                                    <option value="Digital Archive">Digital Archive</option>
-                                                </select>
-                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
-                                            </div>
-                                            {physicalLocationValue === 'SAHS (Physical Archive)' && (
-                                                <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                                                    <label htmlFor="archive_specific_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Specific Location in Archive</label>
-                                                    <input type="text" name="archive_specific_location" id="archive_specific_location" placeholder="e.g. Filing Cabinet 3, Drawer B, Folder 12" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                        {!['Historic Figure', 'Historic Organization'].includes(itemType) && (
+                                            <>
+                                                <div>
+                                                    <label htmlFor="physical_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Filing Location</label>
+                                                    <div className="relative">
+                                                        <select name="physical_location" id="physical_location" value={physicalLocationValue} onChange={(e) => setPhysicalLocationValue(e.target.value)} className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 appearance-none text-sm transition-all">
+                                                            <option value="SAHS (Physical Archive)">SAHS (Physical Archive)</option>
+                                                            <option value="Digital Archive">Digital Archive</option>
+                                                        </select>
+                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" size={16} />
+                                                    </div>
+                                                    {physicalLocationValue === 'SAHS (Physical Archive)' && (
+                                                        <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                            <label htmlFor="archive_specific_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Specific Location in Archive</label>
+                                                            <input type="text" name="archive_specific_location" id="archive_specific_location" placeholder="e.g. Filing Cabinet 3, Drawer B, Folder 12" className="w-full bg-white border border-tan-light/50 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-tan/20 text-sm transition-all" />
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -1177,11 +1183,11 @@ export function AddItem() {
                                 </div>
                             )}
                         </div>
-                    </div >
-                </div >
+                    </div>
+                </div>
 
                 {/* Section 2: Extended Details & Relationships */}
-                < div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10" >
+                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="space-y-6">
                         <h3 className="text-lg font-serif font-bold text-charcoal flex flex-col border-b border-tan-light/50 pb-3 mb-2">
                             <div className="flex items-center gap-2 mb-1">
@@ -1194,30 +1200,32 @@ export function AddItem() {
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <label htmlFor="artifact_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider">Artifact ID #</label>
-                                    {suggestedId && (
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setArtifactId(suggestedId)}
-                                            className="text-[10px] font-bold text-tan hover:text-charcoal transition-colors uppercase tracking-widest flex items-center gap-1"
-                                        >
-                                            <Sparkles size={10} /> Suggest: {suggestedId}
-                                        </button>
-                                    )}
+                            {itemType !== 'Document' && (
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label htmlFor="artifact_id" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider">Artifact ID #</label>
+                                        {suggestedId && (
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setArtifactId(suggestedId)}
+                                                className="text-[10px] font-bold text-tan hover:text-charcoal transition-colors uppercase tracking-widest flex items-center gap-1"
+                                            >
+                                                <Sparkles size={10} /> Suggest: {suggestedId}
+                                            </button>
+                                        )}
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        name="artifact_id" 
+                                        id="artifact_id" 
+                                        value={artifactId}
+                                        onChange={(e) => setArtifactId(e.target.value)}
+                                        placeholder="e.g. 2024.01.05" 
+                                        className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" 
+                                    />
                                 </div>
-                                <input 
-                                    type="text" 
-                                    name="artifact_id" 
-                                    id="artifact_id" 
-                                    value={artifactId}
-                                    onChange={(e) => setArtifactId(e.target.value)}
-                                    placeholder="e.g. 2024.01.05" 
-                                    className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" 
-                                />
-                            </div>
-                            {itemType !== 'Artifact' && (
+                            )}
+                            {(itemType === 'Document' || itemType === 'Artifact') && (
                                 <>
                                     <div>
                                         <label htmlFor="archive_reference" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Filing Code</label>
@@ -1229,10 +1237,12 @@ export function AddItem() {
                                     </div>
                                 </>
                             )}
-                            <div>
-                                <label htmlFor="location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Origin Location</label>
-                                <input type="text" name="location" id="location" placeholder="e.g. Senoia, Main St." className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
-                            </div>
+                            {(itemType !== 'Historic Figure' && itemType !== 'Historic Organization') && (
+                                <div>
+                                    <label htmlFor="location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Origin Location</label>
+                                    <input type="text" name="location" id="location" placeholder="e.g. Senoia, Main St." className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
+                                </div>
+                            )}
                             <div>
                                 <label htmlFor="creator" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Original Creator</label>
                                 <input type="text" name="creator" id="creator" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
@@ -1241,10 +1251,12 @@ export function AddItem() {
                                 <label htmlFor="donor" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Original Donor</label>
                                 <input type="text" name="donor" id="donor" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
                             </div>
-                            <div className="md:col-span-2">
-                                <label htmlFor="museum_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Museum Location (Specific Shelf/Box)</label>
-                                <input type="text" name="museum_location" id="museum_location" placeholder="e.g. Shelf 4, Drawer B, Box 12" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
-                            </div>
+                            {(itemType !== 'Historic Figure' && itemType !== 'Historic Organization') && (
+                                <div className="md:col-span-2">
+                                    <label htmlFor="museum_location" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Museum Location (Specific Shelf/Box)</label>
+                                    <input type="text" name="museum_location" id="museum_location" placeholder="e.g. Shelf 4, Drawer B, Box 12" className="w-full bg-cream/30 border border-tan-light/50 px-4 py-2.5 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-tan/20 transition-all text-sm" />
+                                </div>
+                            )}
                             {(itemType === 'Historic Figure' || itemType === 'Historic Organization') && (
                                 <div className="md:col-span-2">
                                     <label htmlFor="source_institution" className="block text-xs font-bold text-charcoal/70 uppercase tracking-wider mb-2">Source Institution / Media Acknowledgement</label>
@@ -1483,10 +1495,10 @@ export function AddItem() {
                             <textarea id="transcription" name="transcription" placeholder="Exact word-for-word record of the document contents..." className="w-full min-h-[160px] bg-white border border-tan-light/50 px-4 py-3 rounded-xl outline-none focus:ring-4 focus:ring-tan/10 focus:border-tan transition-all font-mono text-sm resize-none leading-relaxed"></textarea>
                         </div>
                     </div>
-                </div >
+                </div>
 
                 {/* Section 3: Extended Metadata Accordion */}
-                < div className="px-8 pb-8" >
+                <div className="px-8 pb-8">
                     <div className="border border-tan-light/50 rounded-2xl overflow-hidden shadow-inner bg-cream/5">
                         <button
                             type="button"
@@ -1508,7 +1520,7 @@ export function AddItem() {
                             </div>
                         )}
                     </div>
-                </div >
+                </div>
 
                 <div className="p-8 bg-cream border-t border-tan-light/50 flex flex-col sm:flex-row items-center justify-between gap-6">
                     <div className="flex-1 w-full">
@@ -1536,7 +1548,7 @@ export function AddItem() {
                     </button>
                 </div>
 
-            </form >
-        </div >
+            </form>
+        </div>
     );
 }

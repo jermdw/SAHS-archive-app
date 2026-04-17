@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, Calendar, MapPin, Tag, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
+import { Search, Filter, Calendar, MapPin, Tag, SlidersHorizontal, X, ChevronDown, Info } from 'lucide-react';
 import { DocumentCard } from '../components/DocumentCard';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -22,6 +22,7 @@ export function SearchArchive() {
     const [localTag, setLocalTag] = useState(searchParams.get('tag') || '');
     const [localArtifactId, setLocalArtifactId] = useState(searchParams.get('id') || '');
     const [localLocId, setLocalLocId] = useState(searchParams.get('loc_id') || '');
+    const [localStage, setLocalStage] = useState(searchParams.get('stage') || '');
     
     // Multi-Exclusion States
     const [localExcludeKeyword, setLocalExcludeKeyword] = useState(searchParams.get('ex_q') || '');
@@ -85,6 +86,15 @@ export function SearchArchive() {
         }, 300);
         return () => clearTimeout(h);
     }, [localLocId]);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localStage) params.set('stage', localStage); else params.delete('stage');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localStage]);
 
     // Exclusion Debounce Effects
     useEffect(() => {
@@ -197,6 +207,9 @@ export function SearchArchive() {
                 item.museum_location_id === localLocId || 
                 (item.museum_location_ids && item.museum_location_ids.includes(localLocId));
 
+            // Stage match
+            const matchesStage = !localStage || item.stage === localStage;
+
             // --- EXCLUSION LOGIC ---
             
             // 1. Exclude Keywords (checks if ANY of the excluded terms appear)
@@ -226,7 +239,7 @@ export function SearchArchive() {
                 if (isItemPrivate || isCollectionPrivate) return false;
             }
 
-            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId &&
+            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId && matchesStage &&
                    !isExcludedByKeyword && !isExcludedByTag && !isExcludedByType;
         }).sort((a, b) => {
             if (sortBy === 'newest') {
@@ -265,6 +278,8 @@ export function SearchArchive() {
         setLocalPlace('');
         setLocalTag('');
         setLocalArtifactId('');
+        setLocalLocId('');
+        setLocalStage('');
         setLocalExcludeKeyword('');
         setLocalExcludeTag('');
         setLocalExcludeTypes([]);
@@ -391,9 +406,7 @@ export function SearchArchive() {
                                 <option value="id_asc">Numerical (ID # Low-High)</option>
                                 <option value="id_desc">Numerical (ID # High-Low)</option>
                             </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <ChevronDownIcon />
-                            </div>
+                            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-charcoal/30 pointer-events-none" size={20} />
                         </div>
                     </div>
 
@@ -402,7 +415,7 @@ export function SearchArchive() {
                         <div className="md:col-span-1 border-t md:border-t-0 pt-4 md:pt-0">
                             <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Artifact ID #</label>
                             <div className="relative">
-                                <InfoIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/30" size={24} />
+                                <Info className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/30 transition-colors group-focus-within:text-charcoal" size={24} />
                                 <input
                                     type="text"
                                     placeholder="Enter artifact ID..."
@@ -413,6 +426,25 @@ export function SearchArchive() {
                             </div>
                         </div>
                     )}
+
+                    {/* Filter: Processing Stage */}
+                    <div>
+                        <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Processing Stage</label>
+                        <div className="relative group">
+                            <Tag className="absolute left-5 top-1/2 -translate-y-1/2 text-tan transition-colors group-focus-within:text-charcoal" size={24} />
+                            <select
+                                className="w-full bg-cream pl-14 pr-10 py-6 rounded-xl border-2 border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal text-xl shadow-sm"
+                                value={localStage}
+                                onChange={(e) => setLocalStage(e.target.value)}
+                            >
+                                <option value="">All Stages</option>
+                                <option value="Housed">Housed (On Map)</option>
+                                <option value="Staged">Staged (In Transit)</option>
+                                <option value="In Processing">In Processing</option>
+                            </select>
+                            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-charcoal/30 pointer-events-none" size={20} />
+                        </div>
+                    </div>
 
                     {/* --- EXCLUSION SECTION --- */}
                     <div className="col-span-full mt-8 pt-8 border-t border-tan-light/30">
@@ -540,23 +572,5 @@ export function SearchArchive() {
                 )}
             </div>
         </div>
-    );
-}
-
-function ChevronDownIcon() {
-    return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-charcoal-light">
-            <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-    );
-}
-
-function InfoIcon({ className, size = 18 }: { className?: string, size?: number }) {
-    return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
     );
 }

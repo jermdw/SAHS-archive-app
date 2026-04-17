@@ -78,11 +78,30 @@ export function AuditDashboard() {
 
     const calculateItemScore = (item: ArchiveItem) => {
         let score = 0;
-        if (item.title && item.description && item.description.length > 20) score += 20;
-        if (item.featured_image_url || (item.file_urls && item.file_urls.length > 0)) score += 20;
-        if (item.date) score += 20;
+        
+        // 1. Title/Identity (Support type-specific names)
+        const hasTitle = item.title || item.full_name || item.org_name;
+        if (hasTitle && item.description && item.description.length > 20) score += 20;
+        
+        // 2. Visual Representation
+        if (item.featured_image_url || (item.file_urls && item.file_urls.length > 0)) {
+            score += 20;
+        } else if (item.item_type === 'Historic Organization') {
+            score += 10; // Organizations get partial credit without photos
+        }
+
+        // 3. Temporal Data (Support type-specific dates)
+        const hasDate = item.date || item.founding_date || item.birth_date;
+        if (hasDate) score += 20;
+
+        // 4. Geographic Data
         if (item.coordinates && item.coordinates.lat !== 0) score += 20;
-        if (item.artifact_id || item.item_type === 'Historic Figure') score += 20; // Figures don't always need artifact IDs
+
+        // 5. Inventory/Artifact ID (Support Archive Reference for Documents)
+        if (item.artifact_id || (item.item_type === 'Document' && item.archive_reference) || item.item_type === 'Historic Figure') {
+            score += 20; 
+        }
+
         return Math.min(score, 100);
     };
 
@@ -106,22 +125,28 @@ export function AuditDashboard() {
 
             const issues: AuditIssue[] = [];
             const hasImage = item.featured_image_url || (item.file_urls && item.file_urls.length > 0);
-            if (!hasImage && item.item_type !== 'Historic Organization') { // Orgs might not have photos
+            if (!hasImage && item.item_type !== 'Historic Organization') { 
                 issues.push('no-image');
                 stats.missingImages++;
             }
-            if (!item.date && item.item_type !== 'Historic Figure') { // Figures use birth/death instead
+            
+            const hasTemporal = item.date || item.founding_date || item.birth_date;
+            if (!hasTemporal && item.item_type !== 'Historic Figure' && item.item_type !== 'Historic Organization') {
                 issues.push('no-date');
                 stats.missingDates++;
             }
+            
             if (!item.coordinates || item.coordinates.lat === 0) {
                 issues.push('no-geo');
                 stats.missingGeo++;
             }
-            if (!item.artifact_id && (item.item_type === 'Artifact' || item.item_type === 'Document')) {
+
+            const hasId = item.artifact_id || (item.item_type === 'Document' && item.archive_reference);
+            if (!hasId && (item.item_type === 'Artifact' || item.item_type === 'Document')) {
                 issues.push('no-id');
                 stats.missingIds++;
             }
+            
             if (!item.description || item.description.length < 10) {
                 issues.push('no-desc');
             }

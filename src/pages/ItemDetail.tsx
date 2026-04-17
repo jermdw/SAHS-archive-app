@@ -482,48 +482,6 @@ export function ItemDetail() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-10 gap-x-12">
                             {/* Personal / Type Facts */}
                             <div className="space-y-6">
-                                <div>
-                                    <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Category</p>
-                                    <p className="text-lg font-serif text-charcoal">{item.item_type}</p>
-                                    {item.category && item.item_type !== 'Artifact' && (
-                                        <span className="inline-block bg-tan/10 text-tan px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-tan/20 mt-2 capitalize font-sans">
-                                            {item.category}
-                                        </span>
-                                    )}
-                                </div>
-                                {collectionName && item.collection_id && (
-                                    <div>
-                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Part of Collection</p>
-                                        <Link to={`/collections/${item.collection_id}`} className="text-lg font-serif text-tan hover:underline inline-flex items-center gap-1.5 align-top">
-                                            <BookOpen size={16} />
-                                            {collectionName}
-                                        </Link>
-                                    </div>
-                                )}
-                                {item.condition && (
-                                    <div>
-                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Condition</p>
-                                        <span className="inline-block bg-tan-light/10 text-charcoal/80 px-2.5 py-0.5 rounded-full text-[12px] font-bold border border-tan-light/30 mt-1 font-sans">
-                                            {item.condition}
-                                        </span>
-                                    </div>
-                                )}
-                                {item.date && (
-                                    <div>
-                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Origin Date</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.date}</p>
-                                    </div>
-                                )}
-                                {item.creator && (
-                                    <div>
-                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Creator / Author</p>
-                                        <p className="text-lg font-serif text-charcoal">{item.creator}</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Figure / Org Specific Timeline */}
-                            <div className="space-y-6">
                                 {item.item_type === 'Historic Figure' && (
                                     <>
                                         {item.full_name && (
@@ -532,28 +490,23 @@ export function ItemDetail() {
                                                 <p className="text-lg font-serif text-charcoal">{item.full_name}</p>
                                             </div>
                                         )}
-                                        {item.birthplace && (
+                                        {(item.birth_date || item.death_date) && (
                                             <div>
-                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Birthplace</p>
-                                                <p className="text-lg font-serif text-charcoal">{item.birthplace}</p>
-                                            </div>
-                                        )}
-                                        {item.birth_date && (
-                                            <div>
-                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Date of Birth</p>
-                                                <p className="text-lg font-serif text-charcoal">{item.birth_date}</p>
-                                            </div>
-                                        )}
-                                        {item.death_date && (
-                                            <div>
-                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Date of Death</p>
-                                                <p className="text-lg font-serif text-charcoal">{item.death_date}</p>
-                                            </div>
-                                        )}
-                                        {item.occupation && (
-                                            <div>
-                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Primary Occupation</p>
-                                                <p className="text-lg font-serif text-charcoal">{item.occupation}</p>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Dates of Life</p>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {item.birth_date && (
+                                                        <div>
+                                                            <span className="text-[10px] font-bold text-tan uppercase tracking-widest block mb-0.5">Birth</span>
+                                                            <p className="text-lg font-serif text-charcoal">{item.birth_date}</p>
+                                                        </div>
+                                                    )}
+                                                    {item.death_date && (
+                                                        <div className={item.birth_date ? "border-l border-tan/20 pl-4" : ""}>
+                                                            <span className="text-[10px] font-bold text-tan uppercase tracking-widest block mb-0.5">Death</span>
+                                                            <p className="text-lg font-serif text-charcoal">{item.death_date}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         )}
                                     </>
@@ -566,12 +519,6 @@ export function ItemDetail() {
                                                 <p className="text-lg font-serif text-charcoal">{item.org_name}</p>
                                             </div>
                                         )}
-                                        {item.alternative_names && (
-                                            <div>
-                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Alternative / Former Names</p>
-                                                <p className="text-lg font-serif text-charcoal">{item.alternative_names}</p>
-                                            </div>
-                                        )}
                                         {(item.founding_date || item.dissolved_date) && (
                                             <div>
                                                 <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Organization Lifespan</p>
@@ -580,22 +527,135 @@ export function ItemDetail() {
                                                 </p>
                                             </div>
                                         )}
+                                        {item.alternative_names && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Alternative / Former Names</p>
+                                                <p className="text-lg font-serif text-charcoal">{item.alternative_names}</p>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                                {!['Historic Figure', 'Historic Organization'].includes(item.item_type.trim()) && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Category</p>
+                                        <p className="text-lg font-serif text-charcoal">{item.item_type}</p>
+                                        {item.category && item.item_type !== 'Artifact' && (
+                                            <span className="inline-block bg-tan/10 text-tan px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-tan/20 mt-2 capitalize font-sans">
+                                                {item.category}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                                    {collectionName && item.collection_id && !['Historic Figure', 'Historic Organization'].includes(item.item_type.trim()) && (
+                                        <div>
+                                            <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Part of Collection</p>
+                                            <Link to={`/collections/${item.collection_id}`} className="text-lg font-serif text-tan hover:underline inline-flex items-center gap-1.5 align-top">
+                                                <BookOpen size={16} />
+                                                {collectionName}
+                                            </Link>
+                                        </div>
+                                    )}
+                                {item.condition && item.item_type !== 'Historic Figure' && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Condition</p>
+                                        <span className="inline-block bg-tan-light/10 text-charcoal/80 px-2.5 py-0.5 rounded-full text-[12px] font-bold border border-tan-light/30 mt-1 font-sans">
+                                            {item.condition}
+                                        </span>
+                                    </div>
+                                )}
+                                {item.date && item.item_type !== 'Historic Figure' && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Origin Date</p>
+                                        <p className="text-lg font-serif text-charcoal">{item.date}</p>
+                                    </div>
+                                )}
+                                {item.creator && item.item_type !== 'Historic Organization' && (
+                                    <div>
+                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Creator / Author</p>
+                                        <p className="text-lg font-serif text-charcoal">{item.creator}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Column 2: Secondary Context / Bio Details */}
+                            <div className="space-y-6">
+                                {item.item_type === 'Historic Organization' && (
+                                    <>
+                                        {collectionName && item.collection_id && !['Historic Figure', 'Historic Organization'].includes(item.item_type.trim()) && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Part of Collection</p>
+                                                <Link to={`/collections/${item.collection_id}`} className="text-lg font-serif text-tan hover:underline inline-flex items-center gap-1.5 align-top">
+                                                    <BookOpen size={16} />
+                                                    {collectionName}
+                                                </Link>
+                                            </div>
+                                        )}
+                                        {item.creator && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Media / Data Contributor</p>
+                                                <p className="text-lg font-serif text-charcoal">{item.creator}</p>
+                                            </div>
+                                        )}
+                                        {item.historical_address && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans flex items-center gap-1.5 align-top">
+                                                    <MapPin size={12} className="text-tan" /> Historical Address
+                                                </p>
+                                                <p className="text-lg font-serif text-charcoal leading-snug">{item.historical_address}</p>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                                {item.item_type === 'Historic Figure' && (
+                                    <>
+                                        {item.occupation && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Primary Occupation</p>
+                                                <p className="text-lg font-serif text-charcoal">{item.occupation}</p>
+                                            </div>
+                                        )}
+                                        {item.birthplace && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Birthplace</p>
+                                                <p className="text-lg font-serif text-charcoal">{item.birthplace}</p>
+                                            </div>
+                                        )}
+                                        {item.historical_address && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans flex items-center gap-1.5 align-top">
+                                                    <MapPin size={12} className="text-tan" /> Historical Address
+                                                </p>
+                                                <p className="text-lg font-serif text-charcoal leading-snug">{item.historical_address}</p>
+                                            </div>
+                                        )}
                                     </>
                                 )}
                                 {item.item_type === 'Artifact' && (
                                     <>
-                                        {item.artifact_type && (
-                                            <div>
-                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Artifact Class</p>
-                                                <span className="inline-block bg-tan/10 text-tan px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-tan/20 mt-1 capitalize font-sans">
-                                                    {item.artifact_type}
-                                                </span>
-                                            </div>
-                                        )}
                                         {item.donor && (
                                             <div>
                                                 <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Original Donor</p>
                                                 <p className="text-lg font-serif text-charcoal">{item.donor}</p>
+                                            </div>
+                                        )}
+                                        {/* Shifted Archival Meta for Figures/Orgs */}
+                                        {(item.item_type === 'Historic Figure' || item.item_type === 'Historic Organization') && (
+                                            <div className="pt-4 space-y-6 border-t border-tan-light/20">
+                                                {item.artifact_id && (
+                                                    <div>
+                                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans text-tan">Catalog ID #</p>
+                                                        <p className="text-lg font-serif font-bold text-tan">{item.artifact_id}</p>
+                                                    </div>
+                                                )}
+                                                {(item.archive_reference || item.identifier) && (
+                                                    <div>
+                                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Archival References</p>
+                                                        <p className="text-sm font-sans text-charcoal/80 leading-relaxed font-medium">
+                                                            {item.archive_reference}
+                                                            {item.identifier && <span className="block italic opacity-60 mt-0.5">{item.identifier}</span>}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </>
@@ -604,13 +664,13 @@ export function ItemDetail() {
 
                             {/* Archival Tracking */}
                             <div className="space-y-6">
-                                {item.artifact_id && (
+                                {item.artifact_id && item.item_type !== 'Historic Figure' && item.item_type !== 'Historic Organization' && (
                                     <div>
                                         <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans text-tan">Catalog ID #</p>
                                         <p className="text-lg font-serif font-bold text-tan">{item.artifact_id}</p>
                                     </div>
                                 )}
-                                {(item.archive_reference || item.identifier) && (
+                                {(item.archive_reference || item.identifier) && item.item_type !== 'Historic Figure' && item.item_type !== 'Historic Organization' && (
                                     <div>
                                         <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Archival References</p>
                                         <p className="text-sm font-sans text-charcoal/80 leading-relaxed font-medium">
@@ -619,7 +679,7 @@ export function ItemDetail() {
                                         </p>
                                     </div>
                                 )}
-                                {item.physical_location && (
+                                {item.physical_location && item.item_type !== 'Historic Figure' && item.item_type !== 'Historic Organization' && (
                                     <div>
                                         <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans flex items-center gap-1.5 align-top">
                                             <MapPin size={12} className="text-tan" /> Origin / Location
@@ -627,7 +687,7 @@ export function ItemDetail() {
                                         <p className="text-[15px] font-sans text-charcoal leading-snug">{item.physical_location}</p>
                                     </div>
                                 )}
-                                {item.historical_address && (
+                                {item.historical_address && !['Historic Figure', 'Historic Organization'].includes(item.item_type.trim()) && (
                                     <div>
                                         <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans flex items-center gap-1.5 align-top">
                                             <MapPin size={12} className="text-tan" /> Historical Address
@@ -635,7 +695,7 @@ export function ItemDetail() {
                                         <p className="text-[15px] font-sans text-charcoal leading-snug">{item.historical_address}</p>
                                     </div>
                                 )}
-                                {(item.museum_location_id || item.museum_location || isSAHSUser) && (
+                                {(item.museum_location_id || item.museum_location || isSAHSUser) && item.item_type !== 'Historic Figure' && item.item_type !== 'Historic Organization' && (
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] font-sans">Physical Museum Shelf/Box</p>
@@ -719,7 +779,7 @@ export function ItemDetail() {
                                     </div>
                                 </div>
                             )}
-                            {item.source && (
+                            {item.source && !['Historic Figure', 'Historic Organization'].includes(item.item_type.trim()) && (
                                 <div className="md:text-right">
                                     <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Collection Source</p>
                                     <p className="text-[13px] italic text-charcoal/60 font-serif leading-relaxed">
@@ -969,7 +1029,7 @@ export function ItemDetail() {
                 )}
 
                 {/* Accessioning Paperwork - Admin/Curator ONLY */}
-                {isSAHSUser && item.accession_paperwork_urls && item.accession_paperwork_urls.length > 0 && (
+                {isSAHSUser && !['Historic Figure', 'Historic Organization'].includes(item.item_type.trim()) && item.accession_paperwork_urls && item.accession_paperwork_urls.length > 0 && (
                     <div className="mt-16 pt-12 border-t-2 border-dashed border-tan-light/50 bg-tan/5 rounded-3xl p-8 md:p-12">
                         <div className="flex items-center justify-between mb-8">
                             <div>
