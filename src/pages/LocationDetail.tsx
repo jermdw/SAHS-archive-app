@@ -24,6 +24,10 @@ export function LocationDetail() {
     const [searchMode, setSearchMode] = useState<'keyword' | 'id'>('keyword');
     const [isLinking, setIsLinking] = useState(false);
     
+    // Catalog State for Optimized Searching
+    const [catalogItems, setCatalogItems] = useState<ArchiveItem[]>([]);
+    const [hasFetchedCatalog, setHasFetchedCatalog] = useState(false);
+    
     // Conflict State
     const [conflictedItems, setConflictedItems] = useState<ArchiveItem[]>([]);
     const [currentConflictIndex, setCurrentConflictIndex] = useState(-1);
@@ -87,51 +91,82 @@ export function LocationDetail() {
         fetchLocationAndItems();
     }, [id]);
 
-    // Search for items to add
+    // Fetch full catalog once when entering select mode
     useEffect(() => {
-        const searchItems = async () => {
+        if (isSelectMode && !hasFetchedCatalog) {
+            const fetchCatalog = async () => {
+                setIsSearching(true);
+                try {
+                    const q = query(collection(db, 'archive_items'));
+                    const snap = await getDocs(q);
+                    const catalog = snap.docs.map(d => ({ id: d.id, ...d.data() } as ArchiveItem));
+                    setCatalogItems(catalog);
+                    setHasFetchedCatalog(true);
+                } catch (err) {
+                    console.error("Error fetching catalog for search:", err);
+                } finally {
+                    setIsSearching(false);
+                }
+            };
+            fetchCatalog();
+        }
+    }, [isSelectMode, hasFetchedCatalog]);
+
+    // Search for items to add from local catalog
+    useEffect(() => {
+        const searchItems = () => {
             if (!searchQuery || searchQuery.length < 2) {
                 setSearchResults([]);
                 return;
             }
-            setIsSearching(true);
-            try {
-                const q = query(collection(db, 'archive_items'));
-                const snap = await getDocs(q);
-                const itemsData = snap.docs.map(d => ({ id: d.id, ...d.data() } as ArchiveItem));
-                
-                const filtered = itemsData.filter(item => {
-                    const kw = searchQuery.toLowerCase();
-                    const artifactIdStr = String(item.artifact_id || '').toLowerCase();
-                    const identifierStr = String(item.identifier || '').toLowerCase();
-                    const idStr = String(item.id || '').toLowerCase();
+            if (!hasFetchedCatalog) return;
 
-                    let matchesQuery = false;
-                    if (searchMode === 'keyword') {
-                        matchesQuery = item.title?.toLowerCase().includes(kw) ||
-                                       item.description?.toLowerCase().includes(kw);
-                    } else {
-                        // ID mode focuses ONLY on the numeric IDs and identifiers
-                        matchesQuery = artifactIdStr.includes(kw) ||
-                                       idStr.includes(kw) ||
-                                       identifierStr.includes(kw);
-                    }
-                    
-                    // Exclude items already here
-                    return matchesQuery && item.museum_location_id !== id;
-                }).slice(0, 15); // Slightly more for better results
+            setIsSearching(true);
+            
+            const filtered = catalogItems.filter(item => {
+                const kw = searchQuery.toLowerCase();
+                const artifactIdStr = String(item.artifact_id || '').toLowerCase();
+                const identifierStr = String(item.identifier || '').toLowerCase();
+                const idStr = String(item.id || '').toLowerCase();
+
+                let matchesQuery = false;
+                if (searchMode === 'keyword') {
+                    matchesQuery = 
+                        item.title?.toLowerCase().includes(kw) ||
+                        item.description?.toLowerCase().includes(kw) ||
+                        item.subject?.toLowerCase().includes(kw) ||
+                        item.artifact_id?.toString().toLowerCase().includes(kw) ||
+                        item.id?.toLowerCase().includes(kw) ||
+                        item.identifier?.toLowerCase().includes(kw) ||
+                        item.transcription?.toLowerCase().includes(kw) ||
+                        item.creator?.toLowerCase().includes(kw) ||
+                        item.full_name?.toLowerCase().includes(kw) ||
+                        item.also_known_as?.toLowerCase().includes(kw) ||
+                        item.birthplace?.toLowerCase().includes(kw) ||
+                        item.occupation?.toLowerCase().includes(kw) ||
+                        item.org_name?.toLowerCase().includes(kw) ||
+                        item.alternative_names?.toLowerCase().includes(kw) ||
+                        item.founding_date?.toLowerCase().includes(kw) ||
+                        item.dissolved_date?.toLowerCase().includes(kw);
+                } else {
+                    // ID mode focuses ONLY on the numeric IDs and identifiers
+                    matchesQuery = artifactIdStr.includes(kw) ||
+                                   idStr.includes(kw) ||
+                                   identifierStr.includes(kw);
+                }
                 
-                setSearchResults(filtered);
-            } catch (err) {
-                console.error("Error searching items:", err);
-            } finally {
-                setIsSearching(false);
-            }
+                // Exclude items already here
+                const isAlreadyLinked = item.museum_location_id === id || (item.museum_location_ids || []).includes(id!);
+                return matchesQuery && !isAlreadyLinked;
+            }).slice(0, 100); 
+            
+            setSearchResults(filtered);
+            setIsSearching(false);
         };
 
-        const timer = setTimeout(searchItems, 400);
+        const timer = setTimeout(searchItems, 200);
         return () => clearTimeout(timer);
-    }, [searchQuery, id]);
+    }, [searchQuery, id, searchMode, catalogItems, hasFetchedCatalog]);
 
     const toggleItemSelection = (item: ArchiveItem) => {
         setSelectedItems(prev => {
