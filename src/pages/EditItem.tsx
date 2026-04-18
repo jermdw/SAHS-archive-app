@@ -412,7 +412,7 @@ export default function EditItem() {
 
         fetchItem();
         fetchCollectionsAndLinked();
-    }, [id, item]);
+    }, [id]);
 
     useEffect(() => {
         if (item) {
