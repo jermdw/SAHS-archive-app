@@ -34,6 +34,12 @@ service cloud.firestore {
       allow write: if isSAHSUser();
     }
 
+    // site_settings collection: Anyone can read, only SAHS users can write
+    match /site_settings/{document} {
+      allow read: if true;
+      allow write: if isSAHSUser();
+    }
+
     // Default deny for everything else
     match /{document=**} {
       allow read, write: if false;
