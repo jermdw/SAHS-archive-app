@@ -131,7 +131,7 @@ export function LocationDetail() {
 
                 let matchesQuery = false;
                 if (searchMode === 'keyword') {
-                    matchesQuery = 
+                    matchesQuery = Boolean(
                         item.title?.toLowerCase().includes(kw) ||
                         item.description?.toLowerCase().includes(kw) ||
                         item.subject?.toLowerCase().includes(kw) ||
@@ -147,7 +147,8 @@ export function LocationDetail() {
                         item.org_name?.toLowerCase().includes(kw) ||
                         item.alternative_names?.toLowerCase().includes(kw) ||
                         item.founding_date?.toLowerCase().includes(kw) ||
-                        item.dissolved_date?.toLowerCase().includes(kw);
+                        item.dissolved_date?.toLowerCase().includes(kw)
+                    );
                 } else {
                     // ID mode focuses ONLY on the numeric IDs and identifiers
                     matchesQuery = artifactIdStr.includes(kw) ||

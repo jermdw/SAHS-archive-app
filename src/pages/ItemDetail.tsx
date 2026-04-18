@@ -638,27 +638,27 @@ export function ItemDetail() {
                                                 <p className="text-lg font-serif text-charcoal">{item.donor}</p>
                                             </div>
                                         )}
-                                        {/* Shifted Archival Meta for Figures/Orgs */}
-                                        {(item.item_type === 'Historic Figure' || item.item_type === 'Historic Organization') && (
-                                            <div className="pt-4 space-y-6 border-t border-tan-light/20">
-                                                {item.artifact_id && (
-                                                    <div>
-                                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans text-tan">Catalog ID #</p>
-                                                        <p className="text-lg font-serif font-bold text-tan">{item.artifact_id}</p>
-                                                    </div>
-                                                )}
-                                                {(item.archive_reference || item.identifier) && (
-                                                    <div>
-                                                        <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Archival References</p>
-                                                        <p className="text-sm font-sans text-charcoal/80 leading-relaxed font-medium">
-                                                            {item.archive_reference}
-                                                            {item.identifier && <span className="block italic opacity-60 mt-0.5">{item.identifier}</span>}
-                                                        </p>
-                                                    </div>
-                                                )}
+                                    </>
+                                )}
+                                {/* Shifted Archival Meta for Figures/Orgs */}
+                                {(item.item_type === 'Historic Figure' || item.item_type === 'Historic Organization') && (
+                                    <div className="pt-4 space-y-6 border-t border-tan-light/20">
+                                        {item.artifact_id && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans text-tan">Catalog ID #</p>
+                                                <p className="text-lg font-serif font-bold text-tan">{item.artifact_id}</p>
                                             </div>
                                         )}
-                                    </>
+                                        {(item.archive_reference || item.identifier) && (
+                                            <div>
+                                                <p className="text-xs font-black text-charcoal/40 uppercase tracking-[0.2em] mb-2 font-sans">Archival References</p>
+                                                <p className="text-sm font-sans text-charcoal/80 leading-relaxed font-medium">
+                                                    {item.archive_reference}
+                                                    {item.identifier && <span className="block italic opacity-60 mt-0.5">{item.identifier}</span>}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 
