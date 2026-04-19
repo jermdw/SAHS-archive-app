@@ -40,6 +40,12 @@ service cloud.firestore {
       allow write: if isSAHSUser();
     }
 
+    // settings collection: Anyone can read, only SAHS users can write
+    match /settings/{document} {
+      allow read: if true;
+      allow write: if isSAHSUser();
+    }
+
     // rooms collection for interactive map: Anyone can read, only SAHS users can write
     match /rooms/{room} {
       allow read: if true;

@@ -230,7 +230,8 @@ export function InteractiveMap() {
             const needsMigration = roomData.length === 0 || roomData.some(r => !r.map_coordinates);
             if (needsMigration) {
                 console.log("Map Diagnostics: Checking legacy settings for missing room coordinates...");
-                const settingsDoc = await getDoc(doc(db, 'settings', 'interactive_map'));
+                try {
+                    const settingsDoc = await getDoc(doc(db, 'settings', 'interactive_map'));
                 
                 if (settingsDoc.exists() && settingsDoc.data().rooms) {
                     const legacyRooms = settingsDoc.data().rooms;
@@ -278,14 +279,21 @@ export function InteractiveMap() {
                 } else {
                     console.warn("Map Diagnostics: No legacy settings found in 'settings/interactive_map'.");
                 }
+                } catch (err) {
+                    console.warn("Map Diagnostics: Failed to read legacy settings (possibly insufficient permissions). Skipping legacy map data sync.", err);
+                }
             }
             
             setRooms(roomData);
 
             // Fetch Compass Rose Settings
-            const settingsDoc = await getDoc(doc(db, 'settings', 'interactive_map'));
-            if (settingsDoc.exists() && settingsDoc.data().compass_rose) {
-                setCompassRose(settingsDoc.data().compass_rose);
+            try {
+                const settingsDoc = await getDoc(doc(db, 'settings', 'interactive_map'));
+                if (settingsDoc.exists() && settingsDoc.data().compass_rose) {
+                    setCompassRose(settingsDoc.data().compass_rose);
+                }
+            } catch (err) {
+                console.warn("Map Diagnostics: Failed to fetch compass rose settings.", err);
             }
         } catch (error) {
             console.error("Error fetching map data:", error);
