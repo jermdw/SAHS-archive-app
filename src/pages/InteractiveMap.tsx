@@ -419,14 +419,16 @@ export function InteractiveMap() {
                 if (!localCoords[loc.id] && loc.docId && dirtyIdsRef.current.has(loc.id)) {
                     promises.push(updateDoc(doc(db, 'locations', loc.docId), { 
                         map_coordinates: null 
-                    }));
+                    }).catch(err => console.error(`[ERROR] Failed to remove item ${loc.id}:`, err)));
                 }
             });
             
             // Save Compass Rose to Settings
             promises.push(setDoc(doc(db, 'settings', 'interactive_map'), {
                 compass_rose: stripUndefined(compassRose)
-            }, { merge: true }));
+            }, { merge: true }).catch(err => {
+                console.warn("Map Diagnostics: Failed to save compass rose. Database is likely missing settings write permissions.", err);
+            }));
 
             await Promise.all(promises);
             
