@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Library, Users, FileText, Building, Box } from 'lucide-react';
+import { Search, Library, Users, FileText, Building, Box, Linkedin } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
+interface SpotlightConfig {
+  enabled: boolean;
+  name: string;
+  role: string;
+  bio: string;
+  linkedInUrl?: string;
+  imageUrl: string;
+}
 
 const BACKGROUND_IMAGES = [
     // Placeholder images - Please replace with the links to the images you attached!
@@ -11,11 +22,25 @@ const BACKGROUND_IMAGES = [
 
 export function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [spotlight, setSpotlight] = useState<SpotlightConfig | null>(null);
 
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
         }, 8000); // 8 seconds for a slow, non-distracting change
+
+        const fetchSpotlight = async () => {
+            try {
+                const snap = await getDoc(doc(db, 'site_settings', 'intern_spotlight'));
+                if (snap.exists()) {
+                    setSpotlight(snap.data() as SpotlightConfig);
+                }
+            } catch (e) {
+                console.error("Failed to load spotlight configuration", e);
+            }
+        };
+        fetchSpotlight();
+
         return () => clearInterval(timer);
     }, []);
 
@@ -150,6 +175,66 @@ export function Home() {
                 </div>
             </div>
 
+            {/* Spotlight Banner */}
+            {spotlight?.enabled && (
+                <div className="relative bg-charcoal text-cream overflow-hidden border-t-4 border-tan">
+                    {/* Background styling for banner feel */}
+                    <div className="absolute inset-0 z-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-charcoal via-charcoal/90 to-charcoal-light/10 z-0"></div>
+                    
+                    <div className="max-w-7xl mx-auto px-8 py-20 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20">
+                        {/* Image Side */}
+                        {spotlight.imageUrl && (
+                            <div className="w-full md:w-1/3 flex justify-center md:justify-end shrink-0">
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-tan/30 rounded-full blur-2xl transform scale-110 group-hover:scale-125 transition-transform duration-700" />
+                                    <div className="w-64 h-64 md:w-80 md:h-80 rounded-full border-[6px] border-tan/20 overflow-hidden relative z-10 shadow-2xl mx-auto transition-transform duration-500 group-hover:scale-[1.02]">
+                                        <img 
+                                            src={spotlight.imageUrl} 
+                                            alt={spotlight.name} 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <div className="absolute -bottom-2 -right-4 bg-tan text-white font-bold text-xs uppercase tracking-widest px-5 py-2 rounded-full shadow-xl z-20 transform rotate-[-5deg] group-hover:rotate-0 transition-transform">
+                                        Featured
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Text Side */}
+                        <div className={`w-full ${spotlight.imageUrl ? 'md:w-2/3 text-center md:text-left' : 'text-center'}`}>
+                            <div className={`inline-flex items-center gap-3 text-tan text-xs font-black uppercase tracking-[0.25em] mb-6 ${!spotlight.imageUrl && 'mx-auto'}`}>
+                                <span className="w-12 h-px bg-tan/50"></span>
+                                Spotlight
+                                <span className="w-12 h-px bg-tan/50"></span>
+                            </div>
+                            <h2 className="text-4xl md:text-6xl font-serif font-bold text-white mb-3 leading-tight tracking-tight drop-shadow-md">
+                                {spotlight.name}
+                            </h2>
+                            <h3 className="text-xl md:text-2xl text-cream/70 font-medium font-serif italic mb-10 pb-8 border-b border-tan/20 max-w-2xl">
+                                {spotlight.role}
+                            </h3>
+                            <p className="text-lg md:text-xl text-cream/90 leading-relaxed font-sans whitespace-pre-line border-l-4 border-tan pl-6 italic mb-8">
+                                "{spotlight.bio}"
+                            </p>
+                            {spotlight.linkedInUrl && (
+                                <div>
+                                    <a 
+                                        href={spotlight.linkedInUrl} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="inline-flex items-center gap-2 bg-tan hover:bg-white text-white hover:text-tan px-6 py-3 rounded-full font-bold transition-all shadow-sm group border border-transparent hover:border-tan"
+                                    >
+                                        <Linkedin size={20} className="transition-colors" />
+                                        Connect on LinkedIn
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Footer / Copyright Notice */}
             <footer className="bg-charcoal text-cream/70 py-16 px-8 text-center text-sm border-t-4 border-tan">
