@@ -58,8 +58,26 @@ export function DocumentCard({
                 )}
             </div>
             <div className="p-6 flex-1 flex flex-col bg-white z-10 relative">
-                <h3 className="font-bold text-xl leading-tight mb-3 font-serif text-charcoal">{item.title}</h3>
-                <p className="text-[15px] text-charcoal-light line-clamp-2 mb-6 font-sans leading-relaxed">{item.description}</p>
+                <h3 className="font-bold text-xl leading-tight mb-1 font-serif text-charcoal">{item.title}</h3>
+                {item.item_type === 'Historic Figure' && (item.also_known_as || item.occupation || item.birthplace) && (
+                    <div className="mb-3 space-y-1">
+                        {item.also_known_as && (
+                            <p className="text-sm font-serif italic text-tan line-clamp-1">"{item.also_known_as}"</p>
+                        )}
+                        {(item.occupation || item.birthplace) && (
+                            <p className="text-[12px] font-sans text-charcoal/60 font-medium uppercase tracking-wider line-clamp-1">
+                                {item.occupation}{item.occupation && item.birthplace ? ' • ' : ''}{item.birthplace}
+                            </p>
+                        )}
+                    </div>
+                )}
+                {item.item_type === 'Historic Organization' && item.alternative_names && (
+                    <p className="text-sm font-serif italic text-tan mb-3 line-clamp-1">"{item.alternative_names}"</p>
+                )}
+                <p className={`text-[15px] text-charcoal-light line-clamp-2 mb-6 font-sans leading-relaxed ${
+                    (item.item_type === 'Historic Figure' && (item.also_known_as || item.occupation || item.birthplace)) || 
+                    (item.item_type === 'Historic Organization' && item.alternative_names) 
+                    ? '' : 'mt-2'}`}>{item.description}</p>
                 <div className="flex items-center gap-3 mt-auto pt-2">
                     <span className="text-sm text-charcoal-light flex items-center gap-1.5 font-sans whitespace-nowrap">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
