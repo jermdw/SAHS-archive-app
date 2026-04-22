@@ -404,9 +404,15 @@ export function LocationDetail() {
         )}
 
         <div className="max-w-full mx-auto h-full flex flex-col animate-in fade-in duration-500 pb-16 print:hidden">
-            <Link to="/manage-locations" className="inline-flex items-center text-[10px] font-black text-tan uppercase tracking-[0.3em] mb-12 hover:text-charcoal transition-all group">
-                <ChevronLeft size={14} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Museum Wings
-            </Link>
+            {locationData.room_id ? (
+                <Link to={`/manage-locations/rooms/${locationData.room_id}`} className="inline-flex items-center text-[10px] font-black text-tan uppercase tracking-[0.3em] mb-12 hover:text-charcoal transition-all group">
+                    <ChevronLeft size={14} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Wing
+                </Link>
+            ) : (
+                <Link to="/manage-locations" className="inline-flex items-center text-[10px] font-black text-tan uppercase tracking-[0.3em] mb-12 hover:text-charcoal transition-all group">
+                    <ChevronLeft size={14} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Museum Wings
+                </Link>
+            )}
 
             <div className="bg-white rounded-[32px] md:rounded-[48px] border border-tan-light/20 overflow-hidden shadow-2xl shadow-tan/5 mb-10 md:mb-16 flex flex-col lg:flex-row relative">
                 {/* Decorative Element */}
