@@ -1156,6 +1156,42 @@ export function InteractiveMap() {
         }));
     };
 
+    const handleWheel = (e: React.WheelEvent) => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+
+        // Standard zoom increment
+        const zoomStep = 0.1;
+        const delta = e.deltaY > 0 ? -1 : 1;
+        const newScale = Math.max(0.1, Math.min(3, scale + delta * zoomStep));
+        
+        if (wrapperRef.current && newScale !== scale) {
+            const wrapper = wrapperRef.current;
+            const rect = wrapper.getBoundingClientRect();
+            
+            // Mouse position relative to the wrapper viewport
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Current scroll positions
+            const scrollX = wrapper.scrollLeft;
+            const scrollY = wrapper.scrollTop;
+            
+            // Keep the point under the cursor stationary
+            const ratio = newScale / scale;
+            const newScrollX = (scrollX + mouseX) * ratio - mouseX;
+            const newScrollY = (scrollY + mouseY) * ratio - mouseY;
+            
+            setScale(newScale);
+            
+            // Use requestAnimationFrame or a 0ms timeout to apply scroll after re-render
+            requestAnimationFrame(() => {
+                wrapper.scrollLeft = newScrollX;
+                wrapper.scrollTop = newScrollY;
+            });
+        }
+    };
+
     return (
         <div className="relative flex flex-col h-full animate-in fade-in duration-500 overflow-hidden bg-cream" onClick={handleCanvasClick}>
             <div className="bg-white border-b border-tan-light/50 p-4 md:px-8 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 z-20 shrink-0">
@@ -1541,7 +1577,11 @@ export function InteractiveMap() {
                 </Rnd>
             )}
 
-            <div ref={wrapperRef} className="workspace-wrapper flex-1 overflow-auto relative bg-[#f5f5f0] shadow-inner flex items-center justify-center p-10">
+            <div 
+                ref={wrapperRef} 
+                onWheel={handleWheel}
+                className="workspace-wrapper flex-1 overflow-auto relative bg-[#f5f5f0] shadow-inner flex items-center justify-center p-10"
+            >
                 <style>{`
                     .blueprint-grid {
                         background-size: 24px 24px;
