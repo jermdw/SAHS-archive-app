@@ -1588,7 +1588,7 @@ export function InteractiveMap() {
 
             <div 
                 ref={wrapperRef} 
-                className="workspace-wrapper flex-1 overflow-auto relative bg-[#f5f5f0] shadow-inner flex items-center justify-center p-10"
+                className="workspace-wrapper flex-1 overflow-auto relative bg-[#f5f5f0] shadow-inner flex p-20"
             >
                 <style>{`
                     .blueprint-grid {
