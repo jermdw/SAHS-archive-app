@@ -14,10 +14,10 @@ interface SpotlightConfig {
 }
 
 const BACKGROUND_IMAGES = [
-    // Placeholder images - Please replace with the links to the images you attached!
-    "/Main Street 9.jpg",
-    "/Sue Welden Williams with Main Street depot in background.jpg",
-    "/Senoia Train Depot.jpg"
+    "/home-pharmacy.jpg",
+    "/home-street-view.jpg",
+    "/home-old-main.png",
+    "/home-industrial.jpg"
 ];
 
 export function Home() {
