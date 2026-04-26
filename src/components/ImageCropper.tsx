@@ -23,7 +23,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   const [isApplying, setIsApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentAspect, setCurrentAspect] = useState<number | undefined>(undefined)
-  const [isOriginalAspect, setIsOriginalAspect] = useState(false)
+  const [isOriginalAspect, setIsOriginalAspect] = useState(true)
   const [mediaSize, setMediaSize] = useState({ width: 0, height: 0 })
 
   const onCropChange = (crop: { x: number; y: number }) => {
@@ -174,6 +174,14 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             <div className="flex items-center gap-6 mt-2 pt-4 border-t border-charcoal/5">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black uppercase text-charcoal/40 tracking-widest">Aspect Ratio:</span>
+                    {mediaSize.width > 0 && (
+                        <button 
+                            onClick={() => setIsOriginalAspect(true)} 
+                            className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${isOriginalAspect ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
+                        >
+                            Original Aspect
+                        </button>
+                    )}
                     <button 
                         onClick={() => {
                             setIsOriginalAspect(false);
@@ -192,14 +200,6 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
                     >
                         Free Form
                     </button>
-                    {mediaSize.width > 0 && (
-                        <button 
-                            onClick={() => setIsOriginalAspect(true)} 
-                            className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${isOriginalAspect ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
-                        >
-                            Original Aspect
-                        </button>
-                    )}
                 </div>
                 <button 
                     type="button"
