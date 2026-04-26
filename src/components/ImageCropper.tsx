@@ -23,6 +23,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   const [isApplying, setIsApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentAspect, setCurrentAspect] = useState<number | undefined>(undefined)
+  const [isOriginalAspect, setIsOriginalAspect] = useState(false)
   const [mediaSize, setMediaSize] = useState({ width: 0, height: 0 })
 
   const onCropChange = (crop: { x: number; y: number }) => {
@@ -42,16 +43,20 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
 
   const onMediaLoaded = (mediaSize: { width: number; height: number }) => {
     setMediaSize(mediaSize)
-    // By default, when freeform is selected, we want to try to capture the whole image
-    // Note: react-easy-crop handles initial crop area automatically, but we can nudge it
   }
+
+  // Effect to handle aspect ratio changes during rotation
+  React.useEffect(() => {
+    if (isOriginalAspect && mediaSize.width > 0) {
+      const isPortrait = (rotation / 90) % 2 !== 0;
+      setCurrentAspect(isPortrait ? mediaSize.height / mediaSize.width : mediaSize.width / mediaSize.height);
+    }
+  }, [rotation, mediaSize, isOriginalAspect]);
 
   const selectAll = () => {
     setZoom(1)
     setCrop({ x: 0, y: 0 })
-    if (mediaSize.width > 0) {
-        setCurrentAspect(mediaSize.width / mediaSize.height)
-    }
+    setIsOriginalAspect(true)
   }
 
   const handleSave = async () => {
@@ -170,21 +175,27 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black uppercase text-charcoal/40 tracking-widest">Aspect Ratio:</span>
                     <button 
-                        onClick={() => setCurrentAspect(1)} 
-                        className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${currentAspect === 1 ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
+                        onClick={() => {
+                            setIsOriginalAspect(false);
+                            setCurrentAspect(1);
+                        }} 
+                        className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${!isOriginalAspect && currentAspect === 1 ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
                     >
                         Square (1:1)
                     </button>
                     <button 
-                        onClick={() => setCurrentAspect(undefined)} 
-                        className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${currentAspect === undefined ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
+                        onClick={() => {
+                            setIsOriginalAspect(false);
+                            setCurrentAspect(undefined);
+                        }} 
+                        className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${!isOriginalAspect && currentAspect === undefined ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
                     >
                         Free Form
                     </button>
                     {mediaSize.width > 0 && (
                         <button 
-                            onClick={() => setCurrentAspect(mediaSize.width / mediaSize.height)} 
-                            className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${currentAspect === (mediaSize.width / mediaSize.height) ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
+                            onClick={() => setIsOriginalAspect(true)} 
+                            className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${isOriginalAspect ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
                         >
                             Original Aspect
                         </button>
