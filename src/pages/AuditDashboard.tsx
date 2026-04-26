@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-type AuditIssue = 'no-image' | 'no-date' | 'no-geo' | 'no-id' | 'no-desc' | 'no-location';
+type AuditIssue = 'no-image' | 'no-date' | 'no-id' | 'no-desc' | 'no-location';
 type SortOption = 'health-asc' | 'health-desc' | 'newest';
 
 interface AuditStats {
@@ -30,7 +30,6 @@ interface AuditStats {
     averageScore: number;
     missingImages: number;
     missingDates: number;
-    missingGeo: number;
     missingIds: number;
     missingLocations: number;
     criticalGaps: number;
@@ -95,15 +94,12 @@ export function AuditDashboard() {
         const hasDate = item.date || item.founding_date || item.birth_date;
         if (hasDate) score += 20;
 
-        // 4. Geographic Data
-        if (item.coordinates && item.coordinates.lat !== 0) score += 20;
-
-        // 5. Inventory/Artifact ID (Support Archive Reference for Documents)
+        // 4. Inventory/Artifact ID (Support Archive Reference for Documents)
         if (item.artifact_id || (item.item_type === 'Document' && item.archive_reference) || item.item_type === 'Historic Figure') {
-            score += 15; 
+            score += 20; 
         }
 
-        // 6. Physical Museum Location (The "Shelf" assignment)
+        // 5. Physical Museum Location (The "Shelf" assignment)
         const hasLocation = item.museum_location_id || (item.museum_location_ids && item.museum_location_ids.length > 0);
         if (hasLocation || item.item_type === 'Historic Figure' || item.item_type === 'Historic Organization') {
             score += 20;
@@ -118,7 +114,6 @@ export function AuditDashboard() {
             averageScore: 0,
             missingImages: 0,
             missingDates: 0,
-            missingGeo: 0,
             missingIds: 0,
             missingLocations: 0,
             criticalGaps: 0
@@ -144,11 +139,6 @@ export function AuditDashboard() {
                 stats.missingDates++;
             }
             
-            if (!item.coordinates || item.coordinates.lat === 0) {
-                issues.push('no-geo');
-                stats.missingGeo++;
-            }
-
             const hasId = item.artifact_id || (item.item_type === 'Document' && item.archive_reference);
             if (!hasId && (item.item_type === 'Artifact' || item.item_type === 'Document')) {
                 issues.push('no-id');
@@ -258,7 +248,6 @@ export function AuditDashboard() {
                 {[
                     { label: 'Unpictured Items', count: stats.missingImages, icon: <ImageIcon size={28} />, color: 'text-red-500', bg: 'bg-red-50', id: 'no-image' },
                     { label: 'Undated Records', count: stats.missingDates, icon: <Calendar size={28} />, color: 'text-amber-500', bg: 'bg-amber-50', id: 'no-date' },
-                    { label: 'No Geographic Origin', count: stats.missingGeo, icon: <MapPin size={28} />, color: 'text-blue-500', bg: 'bg-blue-50', id: 'no-geo' },
                     { label: 'Inventory ID Gaps', count: stats.missingIds, icon: <Tag size={28} />, color: 'text-purple-500', bg: 'bg-purple-50', id: 'no-id' },
                     { label: 'Unplaced Artifacts', count: stats.missingLocations, icon: <MapPin size={28} />, color: 'text-rose-500', bg: 'bg-rose-50', id: 'no-location' }
                 ].map((stat, i) => (
@@ -444,14 +433,12 @@ export function AuditDashboard() {
                                                 <span key={issue} className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-bold tracking-tight transition-transform hover:-translate-y-0.5 shadow-sm border ${
                                                     issue === 'no-image' ? 'bg-red-50 text-red-600 border-red-100' :
                                                     issue === 'no-date' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                    issue === 'no-geo' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                                                     issue === 'no-id' ? 'bg-purple-50 text-purple-600 border-purple-100' :
                                                     issue === 'no-location' ? 'bg-rose-50 text-rose-600 border-rose-100' :
                                                     'bg-charcoal/5 text-charcoal/60 border-charcoal/10'
                                                 }`}>
                                                     {issue === 'no-image' && <ImageIcon size={10} />}
                                                     {issue === 'no-date' && <Calendar size={10} />}
-                                                    {issue === 'no-geo' && <MapPin size={10} />}
                                                     {issue === 'no-id' && <Tag size={10} />}
                                                     {issue === 'no-location' && <MapPin size={10} />}
                                                     {issue.replace('no-', 'missing ')}
@@ -505,10 +492,10 @@ export function AuditDashboard() {
                         <Info size={28} />
                     </div>
                     <div className="z-10">
-                        <h4 className="text-xl font-serif font-bold text-charcoal mb-2">Preservation Strategy</h4>
+                        <h4 className="text-xl font-serif font-bold text-charcoal mb-2">Inventory Strategy</h4>
                         <p className="text-charcoal/60 leading-relaxed text-sm">
-                            Focusing on <strong>Gaps in Historic Geography</strong> ensures the artifact appears correctly on our public maps. 
-                            If an item is missing its coordinates, use the <em>historical address</em> field in the editor to automatically geocode the resource.
+                            Focusing on <strong>Physical Locations</strong> ensures every artifact is accounted for in the museum's digital twin. 
+                            Use the <em>Tagging Hub</em> or the <em>Blueprint Editor</em> to quickly place these unassigned items onto their corresponding shelves and boxes.
                         </p>
                     </div>
                 </div>
