@@ -80,7 +80,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[110] bg-charcoal/90 flex flex-col items-center justify-center p-4">
+    <div className="fixed inset-0 z-[2000] bg-charcoal/90 flex flex-col items-center justify-center p-4">
       <div className="relative w-full max-w-4xl h-[70vh] bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex flex-col p-4 border-b border-charcoal/10 bg-white z-10">

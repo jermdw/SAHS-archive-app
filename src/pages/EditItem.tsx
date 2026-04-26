@@ -848,7 +848,7 @@ export default function EditItem() {
             {/* Zoom Overlay */}
             {zoomedImage && (
                 <div
-                    className="fixed inset-0 z-[100] bg-charcoal/90 flex items-center justify-center p-4 md:p-12 cursor-zoom-out"
+                    className="fixed inset-0 z-[2000] bg-charcoal/90 flex items-center justify-center p-4 md:p-12 cursor-zoom-out"
                     onClick={() => setZoomedImage(null)}
                 >
                     <div className="relative max-w-full max-h-full overflow-auto text-charcoal">

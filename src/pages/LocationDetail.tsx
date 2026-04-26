@@ -338,7 +338,7 @@ export function LocationDetail() {
         <>
         {/* Conflict Resolution Modal */}
         {currentConflictIndex >= 0 && conflictedItems[currentConflictIndex] && (
-            <div className="fixed inset-0 bg-charcoal/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-[2000] bg-charcoal/90 flex flex-col items-center justify-center p-4">
                 <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                     <div className="bg-tan/10 p-8 border-b border-tan/20 text-center">
                         <div className="w-16 h-16 bg-tan/20 rounded-full flex items-center justify-center mx-auto mb-4">
