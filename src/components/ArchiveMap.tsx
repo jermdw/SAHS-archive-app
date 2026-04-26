@@ -55,6 +55,8 @@ export function ArchiveMap({ items }: ArchiveMapProps) {
                 center={senioaCenter} 
                 zoom={15} 
                 scrollWheelZoom={true}
+                dragging={true}
+                doubleClickZoom={true}
                 className="w-full h-full"
             >
                 <TileLayer

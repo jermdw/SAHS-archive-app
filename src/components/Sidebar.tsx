@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings, MessageSquare, Inbox, Camera, MapPin, Map, Activity } from 'lucide-react';
+import { Home, Search, Upload, LogOut, LogIn, FolderOpen, FileText, Users, Building, LifeBuoy, Box, X, Settings, MessageSquare, Inbox, Camera, MapPin, Map, Activity, Instagram, Facebook, Youtube } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo2.png';
 
@@ -67,6 +67,37 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                             <p className="text-xs text-charcoal-light mt-0.5 tracking-wide">
                                 Archive Database
                             </p>
+                            
+                            {/* Top Social Media Quick Links */}
+                            <div className="flex items-center gap-2 mt-3">
+                                <a 
+                                    href="https://www.instagram.com/senoiahistory/" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="p-1.5 bg-tan/5 text-tan hover:bg-tan hover:text-white rounded-lg transition-all shadow-sm"
+                                    title="Instagram"
+                                >
+                                    <Instagram size={14} />
+                                </a>
+                                <a 
+                                    href="https://www.facebook.com/profile.php?id=100064525936225&sk=directory_contact_info" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="p-1.5 bg-tan/5 text-tan hover:bg-tan hover:text-white rounded-lg transition-all shadow-sm"
+                                    title="Facebook"
+                                >
+                                    <Facebook size={14} />
+                                </a>
+                                <a 
+                                    href="https://www.youtube.com/@SenoiaAreaHistoricalSociety" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="p-1.5 bg-tan/5 text-tan hover:bg-tan hover:text-white rounded-lg transition-all shadow-sm"
+                                    title="YouTube"
+                                >
+                                    <Youtube size={14} />
+                                </a>
+                            </div>
                         </div>
                     </div>
                     {/* Mobile Close Button */}
@@ -115,6 +146,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         <nav className="flex flex-col gap-1">
                             <NavLink to="/search" className={navLinkClass} onClick={handleLinkClick}>
                                 <Search size={20} /> Advanced Search
+                            </NavLink>
+                            <NavLink to="/map" className={navLinkClass} onClick={handleLinkClick}>
+                                <MapPin size={20} /> Map View
                             </NavLink>
                         </nav>
                     </div>
@@ -217,7 +251,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 )}
             </div>
 
-            <div className="mt-8 pt-6 border-t border-tan-light/50 flex flex-col gap-4">
+
+                <div className="mt-8 pt-6 border-t border-tan-light/50 flex flex-col gap-4">
                 {user ? (
                     <button
                         onClick={handleLogout}

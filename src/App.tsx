@@ -20,6 +20,7 @@ import { LocationDetail } from './pages/LocationDetail';
 import { RoomDetail } from './pages/RoomDetail';
 import { InteractiveMap } from './pages/InteractiveMap';
 import { AuditDashboard } from './pages/AuditDashboard';
+import { BrowseMap } from './pages/BrowseMap';
 
 function PageWrapper() {
   return (
@@ -71,6 +72,7 @@ function App() {
               <Route path="items/:id" element={<ItemDetail />} />
               <Route path="figures/:id" element={<ItemDetail />} /> {/* Legacy detail redirect handled later */}
               <Route path="search" element={<SearchArchive />} />
+              <Route path="map" element={<BrowseMap />} />
               <Route path="login" element={<Login />} />
 
               {/* Protected Curator Routes */}

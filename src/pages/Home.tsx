@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Library, Users, FileText, Building, Box, Linkedin } from 'lucide-react';
+import { Search, Library, Users, FileText, Building, Box, Linkedin, Instagram, Facebook, Youtube, Share2, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -24,7 +25,18 @@ export function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [spotlight, setSpotlight] = useState<SpotlightConfig | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [copied, setCopied] = useState(false);
     const navigate = useNavigate();
+    
+    const copyLink = async () => {
+        try {
+            await navigator.clipboard.writeText('https://sahs-archives.web.app');
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+        }
+    };
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -258,9 +270,100 @@ export function Home() {
                 </div>
             )}
 
+            {/* Share & Connect Section */}
+            <div className="bg-white py-24 px-8 border-t border-tan-light/50 overflow-hidden relative">
+                {/* Decorative Elements */}
+                <div className="absolute top-0 right-0 w-96 h-96 bg-tan/5 rounded-full blur-3xl -mr-48 -mt-48 pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-beige/10 rounded-full blur-3xl -ml-48 -mb-48 pointer-events-none"></div>
+
+                <div className="max-w-6xl mx-auto flex flex-col items-center gap-16 relative z-10 text-center">
+                    <div className="w-full">
+                        <div className="inline-flex items-center gap-2 text-tan font-black uppercase tracking-[0.25em] mb-4">
+                            <Share2 size={18} />
+                            Share the Archive
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-serif font-bold text-charcoal mb-6 leading-tight">
+                            Help Us Spread the<br />History of Senoia
+                        </h2>
+                        <p className="text-xl text-charcoal-light leading-relaxed mb-10 max-w-2xl mx-auto">
+                            Our mission is to preserve and share the rich heritage of our community. Share this archive with friends and family, or follow us on social media for daily historical insights.
+                        </p>
+
+                        <div className="flex flex-wrap justify-center gap-6">
+                            <a 
+                                href="https://www.instagram.com/senoiahistory/" 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="group flex items-center gap-3 bg-white border border-tan-light px-6 py-4 rounded-2xl text-charcoal hover:bg-tan hover:text-white hover:border-tan transition-all shadow-sm hover:shadow-md"
+                            >
+                                <Instagram size={24} className="text-tan group-hover:text-white transition-colors" />
+                                <span className="font-bold">Instagram</span>
+                            </a>
+                            <a 
+                                href="https://www.facebook.com/profile.php?id=100064525936225&sk=directory_contact_info" 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="group flex items-center gap-3 bg-white border border-tan-light px-6 py-4 rounded-2xl text-charcoal hover:bg-tan hover:text-white hover:border-tan transition-all shadow-sm hover:shadow-md"
+                            >
+                                <Facebook size={24} className="text-tan group-hover:text-white transition-colors" />
+                                <span className="font-bold">Facebook</span>
+                            </a>
+                            <a 
+                                href="https://www.youtube.com/@SenoiaAreaHistoricalSociety" 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="group flex items-center gap-3 bg-white border border-tan-light px-6 py-4 rounded-2xl text-charcoal hover:bg-tan hover:text-white hover:border-tan transition-all shadow-sm hover:shadow-md"
+                            >
+                                <Youtube size={24} className="text-tan group-hover:text-white transition-colors" />
+                                <span className="font-bold">YouTube</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div className="w-full md:w-auto shrink-0 flex justify-center mt-4">
+                        <div className="bg-cream/30 p-8 rounded-[3rem] border-2 border-tan/20 relative group max-w-sm">
+                            <div className="absolute inset-0 bg-tan/5 rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="bg-white p-8 rounded-[2rem] shadow-xl relative z-10 flex flex-col items-center">
+                                <div className="mb-6 p-4 bg-tan/5 rounded-2xl border border-tan/10">
+                                    <QRCodeSVG 
+                                        value="https://sahs-archives.web.app" 
+                                        size={200}
+                                        level="H"
+                                        includeMargin={false}
+                                    />
+                                </div>
+                                <div className="text-center w-full">
+                                    <h3 className="text-lg font-serif font-bold text-charcoal mb-1">SAHS Website</h3>
+                                    <p className="text-xs font-bold text-charcoal/40 uppercase tracking-widest mb-6">Scan to Visit Archive</p>
+                                    
+                                    <button 
+                                        onClick={copyLink}
+                                        className={`w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold text-base transition-all active:scale-95 shadow-sm hover:shadow-md ${copied ? 'bg-green-600 text-white' : 'bg-tan text-white hover:bg-tan-dark'}`}
+                                    >
+                                        <Share2 size={18} />
+                                        {copied ? 'Link Copied!' : 'Copy Link to Clipboard'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Footer / Copyright Notice */}
             <footer className="bg-charcoal text-cream/70 py-16 px-8 text-center text-sm border-t-4 border-tan">
                 <div className="max-w-4xl mx-auto flex flex-col items-center">
+                    <div className="flex items-center gap-8 mb-10">
+                        <a href="https://www.instagram.com/senoiahistory/" target="_blank" rel="noopener noreferrer" className="text-cream/40 hover:text-tan transition-colors">
+                            <Instagram size={24} />
+                        </a>
+                        <a href="https://www.facebook.com/profile.php?id=100064525936225&sk=directory_contact_info" target="_blank" rel="noopener noreferrer" className="text-cream/40 hover:text-tan transition-colors">
+                            <Facebook size={24} />
+                        </a>
+                        <a href="https://www.youtube.com/@SenoiaAreaHistoricalSociety" target="_blank" rel="noopener noreferrer" className="text-cream/40 hover:text-tan transition-colors">
+                            <Youtube size={24} />
+                        </a>
+                    </div>
                     <h4 className="text-cream font-bold mb-6 tracking-widest uppercase text-xs">Copyright & Usage Notice</h4>
                     <p className="mb-8 leading-loose max-w-3xl">
                         All information, documents, photographs, and materials provided on this website are the exclusive property of the Senoia Area Historical Society. All rights are reserved. The materials are made available for personal, educational, and non-commercial research purposes only. Any reproduction, distribution, modification, public display, or commercial use of any photographs, scans, documents, or other content found on this website is strictly prohibited without the express written permission of the Senoia Area Historical Society.
