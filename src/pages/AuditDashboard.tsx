@@ -127,31 +127,36 @@ export function AuditDashboard() {
             totalScore += score;
 
             const issues: AuditIssue[] = [];
-            const hasImage = item.featured_image_url || (item.file_urls && item.file_urls.length > 0);
-            if (!hasImage && item.item_type !== 'Historic Organization') { 
+            
+            // Normalize type for robust checks
+            const rawType = item.item_type || '';
+            const type = typeof rawType === 'string' ? rawType.trim().toLowerCase() : '';
+            
+            const hasImage = !!(item.featured_image_url || (item.file_urls && item.file_urls.length > 0));
+            if (!hasImage && type !== 'historic organization') { 
                 issues.push('no-image');
                 stats.missingImages++;
             }
             
-            const hasTemporal = item.date || item.founding_date || item.birth_date;
-            if (!hasTemporal && item.item_type !== 'Historic Figure' && item.item_type !== 'Historic Organization') {
+            const hasTemporal = !!(item.date || item.founding_date || item.birth_date);
+            if (!hasTemporal && type !== 'historic figure' && type !== 'historic organization') {
                 issues.push('no-date');
                 stats.missingDates++;
             }
             
-            const hasId = item.artifact_id || (item.item_type === 'Document' && item.archive_reference);
-            if (!hasId && (item.item_type === 'Artifact' || item.item_type === 'Document')) {
+            const hasId = !!(item.artifact_id || (type === 'document' && item.archive_reference));
+            if (!hasId && (type === 'artifact' || type === 'document')) {
                 issues.push('no-id');
                 stats.missingIds++;
             }
 
-            const hasLocation = item.museum_location_id || (item.museum_location_ids && item.museum_location_ids.length > 0);
-            if (!hasLocation && (item.item_type === 'Artifact' || item.item_type === 'Document')) {
+            const hasLocation = !!(item.museum_location_id || (item.museum_location_ids && item.museum_location_ids.length > 0));
+            if (!hasLocation && (type === 'artifact' || type === 'document')) {
                 issues.push('no-location');
                 stats.missingLocations++;
             }
             
-            if (!item.description || item.description.length < 10) {
+            if (!item.description || item.description.trim().length < 10) {
                 issues.push('no-desc');
             }
 
