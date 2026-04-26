@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Image as ImageIcon, CheckCircle, ChevronDown, ChevronUp, X, Maximize2, FileText, ArrowLeft, Lock, Camera, Upload, Edit2, BookOpen, Sparkles, AlertCircle, Users, RotateCw } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
-import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
+import { ref, getDownloadURL, uploadBytesResumable, getBlob } from 'firebase/storage';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { extractMetadataFromFile } from '../lib/gemini';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
@@ -286,8 +286,10 @@ export default function EditItem() {
     const cropExistingImage = async (url: string) => {
         setIsProcessingExistingImage(url);
         try {
-            const response = await fetch(url);
-            const blob = await response.blob();
+            // Using getBlob from Firebase SDK is more reliable for CORS than native fetch
+            const storageRef = ref(storage, url);
+            const blob = await getBlob(storageRef);
+            
             const fileName = url.split('/').pop()?.split('?')[0] || 'existing_image.jpg';
             const file = new File([blob], fileName, { type: blob.type });
             
@@ -296,7 +298,7 @@ export default function EditItem() {
             setCroppingImageIndex(newIndex);
         } catch (err) {
             console.error("Error cropping existing image:", err);
-            setError("Failed to load existing image for editing. You may need to re-upload it to rotate.");
+            setError("The archive server is currently preventing direct photo editing due to 'CORS' security settings. Please re-upload the photo to rotate it, or ask an admin to enable 'Storage CORS'.");
         } finally {
             setIsProcessingExistingImage(null);
         }
