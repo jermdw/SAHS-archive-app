@@ -12,7 +12,7 @@ interface ImageCropperProps {
 
 export const ImageCropper: React.FC<ImageCropperProps> = ({
   image,
-  aspectRatio = 1,
+  aspectRatio = undefined,
   onCropComplete,
   onCancel,
 }) => {
@@ -22,7 +22,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
   const [isApplying, setIsApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentAspect, setCurrentAspect] = useState<number | undefined>(aspectRatio)
+  const [currentAspect, setCurrentAspect] = useState<number | undefined>(undefined)
 
   const onCropChange = (crop: { x: number; y: number }) => {
     setCrop(crop)
@@ -201,7 +201,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
           </div>
         </div>
       </div>
-      <p className="mt-4 text-white/60 text-sm">Drag to move, use sliders to adjust scale and rotation.</p>
+      <p className="mt-4 text-white/60 text-sm">Drag to move, use sliders to rotate. By default, the entire image is preserved.</p>
     </div>
   )
 }

@@ -233,6 +233,9 @@ export default function EditItem() {
         } else if (croppingImageUrl) {
             fileName = croppingImageUrl.split('/').pop()?.split('?')[0] || 'existing_image.jpg';
             originalObjectURL = croppingImageUrl;
+            
+            // Remove the old URL from existing files to "replace" it
+            setExistingFileUrls(prev => prev.filter(u => u !== croppingImageUrl));
         }
 
         const croppedFile = new File([croppedBlob], fileName, { type: 'image/jpeg' });
@@ -244,7 +247,7 @@ export default function EditItem() {
             newFiles[croppingImageIndex] = croppedFile;
             setSelectedFiles(newFiles);
         } else {
-            // Adding a modified version of an existing file
+            // Adding as a new pending file (it will replace the old URL we just removed above)
             setSelectedFiles(prev => [...prev, croppedFile]);
         }
 
