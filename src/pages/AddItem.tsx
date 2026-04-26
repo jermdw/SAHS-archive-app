@@ -809,7 +809,7 @@ export function AddItem() {
                                                                     setCroppingImageIndex(idx);
                                                                 }}
                                                                 className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
-                                                                title="Crop & Center"
+                                                                title="Edit & Rotate"
                                                             >
                                                                  <RotateCw size={12} />
                                                                  Edit / Rotate

@@ -109,6 +109,7 @@ export default function EditItem() {
     const [isLoading, setIsLoading] = useState(true);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isProcessingExistingImage, setIsProcessingExistingImage] = useState<string | null>(null);
     const [item, setItem] = useState<ArchiveItem | null>(null);
     const [itemType, setItemType] = useState<ItemType>('Document');
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
@@ -283,6 +284,7 @@ export default function EditItem() {
     useClickOutside(orgRef, () => setShowOrgResults(false));
 
     const cropExistingImage = async (url: string) => {
+        setIsProcessingExistingImage(url);
         try {
             const response = await fetch(url);
             const blob = await response.blob();
@@ -294,7 +296,9 @@ export default function EditItem() {
             setCroppingImageIndex(newIndex);
         } catch (err) {
             console.error("Error cropping existing image:", err);
-            setError("Failed to load existing image for cropping. You may need to re-upload it to crop.");
+            setError("Failed to load existing image for editing. You may need to re-upload it to rotate.");
+        } finally {
+            setIsProcessingExistingImage(null);
         }
     };
 
@@ -1018,12 +1022,20 @@ export default function EditItem() {
                                                         </button>
                                                         <button
                                                             type="button"
-                                                            onClick={() => cropExistingImage(url)}
-                                                            className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
-                                                            title="Crop & Center"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                cropExistingImage(url);
+                                                            }}
+                                                            disabled={isProcessingExistingImage === url}
+                                                            className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30 disabled:opacity-50"
+                                                            title="Edit & Rotate"
                                                         >
-                                                            <RotateCw size={12} />
-                                                            Edit / Rotate
+                                                            {isProcessingExistingImage === url ? (
+                                                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                            ) : (
+                                                                <RotateCw size={12} />
+                                                            )}
+                                                            {isProcessingExistingImage === url ? 'Loading...' : 'Edit / Rotate'}
                                                         </button>
                                                 </div>
                                                 <button
