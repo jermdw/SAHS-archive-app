@@ -2,8 +2,16 @@ export const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image()
     image.addEventListener('load', () => resolve(image))
-    image.addEventListener('error', (error) => reject(error))
-    image.setAttribute('crossOrigin', 'anonymous') // needed to avoid cross-origin issues on CodeSandbox
+    image.addEventListener('error', (err) => {
+        // If direct load fails (likely CORS), try using weserv.nl proxy
+        if (!url.includes('images.weserv.nl') && (url.startsWith('http') || url.startsWith('https'))) {
+            const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=${encodeURIComponent(url)}`;
+            image.src = proxyUrl;
+        } else {
+            reject(err);
+        }
+    })
+    image.setAttribute('crossOrigin', 'anonymous')
     image.src = url
   })
 
