@@ -20,7 +20,7 @@ export function DocumentCard({
         <Link
             to={isEditingMode ? `/edit-item/${item.id}` : `/items/${item.id}`}
             state={{ galleryIds }}
-            className="bg-white border border-tan-light rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all flex flex-col group cursor-pointer"
+            className="bg-white border-2 border-tan-light/50 rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] hover:border-tan transition-all flex flex-col group cursor-pointer"
         >
             <div className="aspect-[4/3] bg-tan-light/20 flex flex-col p-4 relative overflow-hidden">
                 {imageUrl ? (
@@ -58,7 +58,7 @@ export function DocumentCard({
                 )}
             </div>
             <div className="p-6 flex-1 flex flex-col bg-white z-10 relative">
-                <h3 className="font-bold text-xl leading-tight mb-1 font-serif text-charcoal">{item.title}</h3>
+                <h3 className="font-bold text-2xl leading-tight mb-2 font-serif text-charcoal group-hover:text-tan transition-colors">{item.title}</h3>
                 {item.item_type === 'Historic Figure' && (item.also_known_as || item.occupation || item.birthplace) && (
                     <div className="mb-3 space-y-1">
                         {item.also_known_as && (
@@ -74,7 +74,7 @@ export function DocumentCard({
                 {item.item_type === 'Historic Organization' && item.alternative_names && (
                     <p className="text-sm font-serif italic text-tan mb-3 line-clamp-1">"{item.alternative_names}"</p>
                 )}
-                <p className={`text-[15px] text-charcoal-light line-clamp-2 mb-6 font-sans leading-relaxed ${
+                <p className={`text-base md:text-lg text-charcoal/80 line-clamp-3 mb-6 font-sans leading-relaxed ${
                     (item.item_type === 'Historic Figure' && (item.also_known_as || item.occupation || item.birthplace)) || 
                     (item.item_type === 'Historic Organization' && item.alternative_names) 
                     ? '' : 'mt-2'}`}>{item.description}</p>
@@ -87,9 +87,14 @@ export function DocumentCard({
                                 ? `${item.founding_date || '?'} — ${item.dissolved_date || 'Present'}`
                                 : (item.date || 'Unknown Date')}
                     </span>
-                    <span className="text-sm bg-beige text-charcoal-light px-3 py-1 rounded-full font-medium whitespace-nowrap font-sans">
+                    <span className="text-sm bg-beige/50 text-charcoal/70 px-4 py-1.5 rounded-full font-bold whitespace-nowrap font-sans border border-tan-light/20">
                         {item.artifact_type || item.type || item.item_type}
                     </span>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-tan-light/10 flex items-center justify-between text-tan opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                    <span className="text-xs font-black uppercase tracking-widest">View Details</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </div>
             </div>
         </Link>

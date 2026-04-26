@@ -13,9 +13,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     const navigate = useNavigate();
 
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-        `flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${isActive
-            ? 'bg-beige text-charcoal font-semibold shadow-sm'
-            : 'text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium'
+        `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-[15px] ${isActive
+            ? 'bg-beige text-charcoal font-bold shadow-sm'
+            : 'text-charcoal/70 hover:bg-black/5 hover:text-charcoal font-semibold'
         }`;
 
     const location = useLocation();
@@ -82,70 +82,70 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 <div className="flex-1 flex flex-col gap-1">
                     {/* Main Nav Section */}
                     <div className="mb-4">
-                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Main</h2>
+                        <h2 className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-3 px-4">Main</h2>
                         <nav className="flex flex-col gap-1">
                             <NavLink to="/" className={navLinkClass} onClick={handleLinkClick}>
-                                <Home size={18} /> Home
+                                <Home size={20} /> Home
                             </NavLink>
                         </nav>
                     </div>
 
                     {/* Archives Section */}
                     <div className="mb-4">
-                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Digital Archives</h2>
+                        <h2 className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-3 px-4">Digital Archives</h2>
                         <nav className="flex flex-col gap-1">
                             <Link to="/archive?type=Document" className={getTypeClass('Document')} onClick={handleLinkClick}>
-                                <FileText size={18} /> Documents
+                                <FileText size={20} /> Documents
                             </Link>
                             <Link to="/archive?type=Historic Figure" className={getTypeClass('Historic Figure')} onClick={handleLinkClick}>
-                                <Users size={18} /> Historic Figures
+                                <Users size={20} /> Historic Figures
                             </Link>
                             <Link to="/archive?type=Historic Organization" className={getTypeClass('Historic Organization')} onClick={handleLinkClick}>
-                                <Building size={18} /> Historic Orgs
+                                <Building size={20} /> Historic Orgs
                             </Link>
                             <Link to="/archive?type=Artifact" className={getTypeClass('Artifact')} onClick={handleLinkClick}>
-                                <Box size={18} /> Artifact Collection
+                                <Box size={20} /> Artifact Collection
                             </Link>
                         </nav>
                     </div>
 
                     {/* Discovery Section */}
                     <div className="mb-4">
-                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Discovery Tools</h2>
+                        <h2 className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-3 px-4">Discovery Tools</h2>
                         <nav className="flex flex-col gap-1">
                             <NavLink to="/search" className={navLinkClass} onClick={handleLinkClick}>
-                                <Search size={18} /> Advanced Search
+                                <Search size={20} /> Advanced Search
                             </NavLink>
                         </nav>
                     </div>
 
                     {/* Support Section */}
                     <div className="mb-4">
-                        <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Help</h2>
+                        <h2 className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-3 px-4">Help</h2>
                         <nav className="flex flex-col gap-1">
                             <a
                                 href="https://www.senoiahistory.com/contact-sahs"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
+                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal/70 hover:bg-black/5 hover:text-charcoal font-semibold text-[15px]"
                             >
-                                <LifeBuoy size={18} /> Contact Support
+                                <LifeBuoy size={20} /> Contact Support
                             </a>
                             <a
                                 href="https://docs.google.com/forms/d/e/1FAIpQLSfxS94_L22fNGxOxHOememW717MDBXl_e-fqSyWr6R3AbcEcQ/viewform?usp=dialog"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
+                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal/70 hover:bg-black/5 hover:text-charcoal font-semibold text-[15px]"
                             >
-                                <MessageSquare size={18} /> Archive Feedback
+                                <MessageSquare size={20} /> Archive Feedback
                             </a>
                             <a
                                 href="https://docs.google.com/forms/d/e/1FAIpQLSdoQbNvRVS8QZKeilZJKoTC9iTwFRxDalJJv9dcfq81NytRBw/viewform?usp=header"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal-light hover:bg-black/5 hover:text-charcoal font-medium"
+                                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-charcoal/70 hover:bg-black/5 hover:text-charcoal font-semibold text-[15px]"
                             >
-                                <Inbox size={18} /> Suggestion Box
+                                <Inbox size={20} /> Suggestion Box
                             </a>
                         </nav>
                     </div>
@@ -154,42 +154,42 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     <div className="flex flex-col gap-0 border-t border-tan-light/30 pt-6 mt-2">
                         {isSAHSUser && (
                             <div className="mb-4">
-                                <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Workspace</h2>
+                                <h2 className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-3 px-4">Workspace</h2>
                                 <nav className="flex flex-col gap-1">
                                     <NavLink to="/manage-locations" className={navLinkClass} onClick={handleLinkClick}>
-                                        <MapPin size={18} /> Museum Locations
+                                        <MapPin size={20} /> Museum Locations
                                     </NavLink>
                                     <NavLink to="/tagging" className={navLinkClass} onClick={handleLinkClick}>
-                                        <Camera size={18} /> Tagging Hub
+                                        <Camera size={20} /> Tagging Hub
                                     </NavLink>
                                     <NavLink to="/interactive-map" className={navLinkClass} onClick={handleLinkClick}>
-                                        <Map size={18} /> Interactive Map
+                                        <Map size={20} /> Interactive Map
                                     </NavLink>
                                 </nav>
                             </div>
                         )}
 
                         <div className="mb-4">
-                            <h2 className="text-[10px] font-bold text-tan uppercase tracking-[0.2em] mb-2 px-4">Curation</h2>
+                            <h2 className="text-xs font-black text-tan uppercase tracking-[0.2em] mb-3 px-4">Curation</h2>
                             <nav className="flex flex-col gap-1">
                                 {isSAHSUser && (
                                     <>
                                         <NavLink to="/add-item" className={navLinkClass} onClick={handleLinkClick}>
-                                            <Upload size={18} /> Add Archive Item
+                                            <Upload size={20} /> Add Archive Item
                                         </NavLink>
                                         {isSAHSUser && (
                                             <NavLink to="/audit" className={navLinkClass} onClick={handleLinkClick}>
-                                                <Activity size={18} /> Data Quality Audit
+                                                <Activity size={20} /> Data Quality Audit
                                             </NavLink>
                                         )}
                                         <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
-                                            <FolderOpen size={18} /> Collections
+                                            <FolderOpen size={20} /> Collections
                                         </NavLink>
                                     </>
                                 )}
                                 {realIsAdmin && (
                                     <NavLink to="/settings" className={navLinkClass} onClick={handleLinkClick}>
-                                        <Settings size={18} /> Admin Settings
+                                        <Settings size={20} /> Admin Settings
                                     </NavLink>
                                 )}
                             </nav>
@@ -206,7 +206,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                         <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isEditingMode ? 'translate-x-4' : 'translate-x-0'}`} />
                                     </button>
                                 </div>
-                                <p className="text-[10px] text-charcoal-light leading-relaxed">
+                                <p className="text-xs text-charcoal/60 leading-relaxed font-medium">
                                     {isEditingMode 
                                         ? 'Clicking items will take you directly to the editor.' 
                                         : 'Enable for high-volume editing'}

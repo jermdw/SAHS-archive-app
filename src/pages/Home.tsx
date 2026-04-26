@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Library, Users, FileText, Building, Box, Linkedin } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -23,6 +23,8 @@ const BACKGROUND_IMAGES = [
 export function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [spotlight, setSpotlight] = useState<SpotlightConfig | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -73,41 +75,61 @@ export function Home() {
                         photographs, and stories that chronicle the heritage of the Senoia area.
                     </p>
 
+                    <div className="max-w-2xl mx-auto mb-12">
+                        <form 
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                if (searchQuery.trim()) {
+                                    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                                }
+                            }}
+                            className="relative group"
+                        >
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-tan transition-colors group-focus-within:text-charcoal" size={28} />
+                            <input 
+                                type="text"
+                                placeholder="Search the archives..."
+                                className="w-full bg-cream/95 backdrop-blur-sm pl-16 pr-32 py-6 rounded-2xl border-4 border-transparent focus:border-tan outline-none transition-all font-sans text-charcoal text-2xl shadow-2xl placeholder:text-charcoal/40"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            <button 
+                                type="submit"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 bg-tan text-white px-6 py-3 rounded-xl font-bold hover:bg-tan-dark transition-colors shadow-lg"
+                            >
+                                Search
+                            </button>
+                        </form>
+                    </div>
+
                     <div className="flex flex-col sm:flex-row flex-wrap gap-6 justify-center items-center mt-8">
                         <Link
                             to="/archive?type=Document"
-                            className="flex items-center gap-3 bg-cream text-charcoal px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:scale-105 transition-all shadow-lg"
+                            className="flex items-center gap-3 bg-cream/20 backdrop-blur-md text-white border border-white/30 px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-charcoal transition-all shadow-lg"
                         >
                             <Library size={24} />
                             Browse Documents
                         </Link>
                         <Link
                             to="/archive?type=Historic Figure"
-                            className="flex items-center gap-3 bg-cream text-charcoal px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:scale-105 transition-all shadow-lg"
+                            className="flex items-center gap-3 bg-cream/20 backdrop-blur-md text-white border border-white/30 px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-charcoal transition-all shadow-lg"
                         >
                             <Users size={24} />
                             View Figures
                         </Link>
                         <Link
                             to="/archive?type=Historic Organization"
-                            className="flex items-center gap-3 bg-cream text-charcoal px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:scale-105 transition-all shadow-lg"
+                            className="flex items-center gap-3 bg-cream/20 backdrop-blur-md text-white border border-white/30 px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-charcoal transition-all shadow-lg"
                         >
                             <Building size={24} />
                             View Orgs
                         </Link>
                         <Link
                             to="/archive?type=Artifact"
-                            className="flex items-center gap-3 bg-cream text-charcoal px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:scale-105 transition-all shadow-lg"
+                            className="flex items-center gap-3 bg-cream/20 backdrop-blur-md text-white border border-white/30 px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-charcoal transition-all shadow-lg"
                         >
                             <Box size={24} />
                             View Artifacts
-                        </Link>
-                        <Link
-                            to="/search"
-                            className="flex items-center gap-3 bg-tan text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-tan-dark hover:scale-105 transition-all shadow-lg"
-                        >
-                            <Search size={24} />
-                            Search Archive
                         </Link>
                     </div>
                 </div>

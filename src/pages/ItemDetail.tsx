@@ -31,6 +31,7 @@ export function ItemDetail() {
     const [collectionName, setCollectionName] = useState<string | null>(null);
     const [isCollectionPrivate, setIsCollectionPrivate] = useState(false);
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
+    const [showLinkedItems, setShowLinkedItems] = useState(false);
 
     // Inline Location Editing State
     const [isEditingLocation, setIsEditingLocation] = useState(false);
@@ -219,14 +220,14 @@ export function ItemDetail() {
         <div className="flex flex-col h-full max-w-full mx-auto animate-in fade-in duration-500 pb-12">
             {zoomedImage && (
                 <div
-                    className="fixed inset-0 z-[100] bg-charcoal/95 flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden animate-in fade-in duration-300"
+                    className="fixed inset-0 z-[2000] bg-charcoal/95 flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden animate-in fade-in duration-300"
                     onClick={() => {
                         setZoomedImage(null);
                         setZoomScale(1);
                     }}
                 >
                     {/* Controls Overlay */}
-                    <div className="absolute top-8 right-8 flex items-center gap-4 z-[110]" onClick={e => e.stopPropagation()}>
+                    <div className="absolute top-8 right-8 flex items-center gap-4 z-[2100]" onClick={e => e.stopPropagation()}>
                         <div className="flex bg-white/10 backdrop-blur-md rounded-full border border-white/20 p-1 shadow-2xl">
                             <button 
                                 onClick={() => setZoomScale(prev => Math.max(0.5, prev - 0.25))}
@@ -257,8 +258,40 @@ export function ItemDetail() {
                         </button>
                     </div>
 
+                    {/* Full Screen Navigation Arrows */}
+                    {file_urls && file_urls.length > 1 && (
+                        <>
+                            <button 
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentImageIndex(prev => (prev === 0 ? file_urls.length - 1 : prev - 1));
+                                }}
+                                className="fixed left-6 md:left-12 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-charcoal/60 backdrop-blur-xl border-2 border-white/30 flex items-center justify-center text-white hover:bg-white hover:text-charcoal transition-all shadow-[0_0_40px_rgba(0,0,0,0.5)] z-[2100] group/nav"
+                                title="Previous Page"
+                            >
+                                <ChevronLeft size={40} strokeWidth={3} className="group-hover/nav:-translate-x-1 transition-transform" />
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentImageIndex(prev => (prev === file_urls.length - 1 ? 0 : prev + 1));
+                                }}
+                                className="fixed right-6 md:right-12 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-charcoal/60 backdrop-blur-xl border-2 border-white/30 flex items-center justify-center text-white hover:bg-white hover:text-charcoal transition-all shadow-[0_0_40px_rgba(0,0,0,0.5)] z-[2100] group/nav"
+                                title="Next Page"
+                            >
+                                <ChevronRight size={40} strokeWidth={3} className="group-hover/nav:translate-x-1 transition-transform" />
+                            </button>
+                            
+                            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-charcoal/80 backdrop-blur-xl px-8 py-3 rounded-full border border-white/20 text-white font-black tracking-[0.4em] uppercase text-sm z-[2100] shadow-2xl">
+                                Page {currentImageIndex + 1} / {file_urls.length}
+                            </div>
+                        </>
+                    )}
+
                     <div 
-                        className="relative w-full h-full overflow-auto flex items-start justify-center p-8 no-scrollbar"
+                        className="relative w-full h-full overflow-hidden flex items-center justify-center p-4 md:p-20 no-scrollbar"
                         onClick={(e) => {
                             if (e.target === e.currentTarget) {
                                 setZoomedImage(null);
@@ -267,10 +300,10 @@ export function ItemDetail() {
                         }}
                     >
                         <div 
-                            className="relative transition-transform duration-200 ease-out py-12"
+                            className="relative transition-transform duration-200 ease-out flex items-center justify-center"
                             style={{ 
                                 transform: `scale(${zoomScale})`,
-                                transformOrigin: 'top center',
+                                transformOrigin: 'center center',
                                 cursor: zoomScale > 1 ? 'grab' : 'zoom-in'
                             }}
                             onClick={(e) => {
@@ -279,13 +312,15 @@ export function ItemDetail() {
                             }}
                         >
                             <img
-                                src={zoomedImage}
+                                src={file_urls[currentImageIndex]}
                                 alt="High Resolution View"
-                                className="max-w-none shadow-2xl rounded-sm"
+                                className="shadow-2xl rounded-lg transition-all duration-300 ring-4 ring-white/5"
                                 style={{
+                                    maxWidth: 'min(75vw, 1200px)',
+                                    maxHeight: '75vh',
                                     width: 'auto',
                                     height: 'auto',
-                                    maxHeight: '85vh'
+                                    objectFit: 'contain'
                                 }}
                             />
                         </div>
@@ -391,22 +426,24 @@ export function ItemDetail() {
                                     {file_urls.length > 1 && (
                                         <>
                                             <button 
+                                                type="button"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setCurrentImageIndex(prev => (prev === 0 ? file_urls.length - 1 : prev - 1));
                                                 }}
-                                                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 shadow-lg flex items-center justify-center text-charcoal transition-all hover:bg-white hover:scale-110 z-10 border border-tan-light/50"
+                                                className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-charcoal transition-all hover:bg-tan hover:text-white hover:scale-110 z-30 border border-tan-light/50 active:scale-95"
                                             >
-                                                <ChevronLeft size={22} />
+                                                <ChevronLeft size={28} strokeWidth={3} />
                                             </button>
                                             <button 
+                                                type="button"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setCurrentImageIndex(prev => (prev === file_urls.length - 1 ? 0 : prev + 1));
                                                 }}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 shadow-lg flex items-center justify-center text-charcoal transition-all hover:bg-white hover:scale-110 z-10 border border-tan-light/50"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-charcoal transition-all hover:bg-tan hover:text-white hover:scale-110 z-30 border border-tan-light/50 active:scale-95"
                                             >
-                                                <ChevronRight size={22} />
+                                                <ChevronRight size={28} strokeWidth={3} />
                                             </button>
 
                                             {/* Page Indicator — always visible */}
@@ -892,16 +929,38 @@ export function ItemDetail() {
             <div className="flex flex-col gap-10 mt-12 pt-8 border-t border-tan-light/50">
                 {/* Linked Documents for Figures / Artifacts */}
                 {relatedDocumentItems.length > 0 && (
-                    <div className="bg-cream/30 border border-tan-light/50 rounded-xl p-6 md:p-8 shadow-sm">
-                        <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-tan-light/50 pb-3 mb-6">
-                            <BookOpen className="text-tan" size={20} />
-                            Linked Documents & Artifacts
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {relatedDocumentItems.map(doc => (
-                                <DocumentCard key={doc.id} item={doc} galleryIds={relatedDocumentItems.map(d => d.id || '')} />
-                            ))}
-                        </div>
+                    <div className="bg-cream/30 border border-tan-light/50 rounded-2xl overflow-hidden shadow-sm">
+                        <button 
+                            onClick={() => setShowLinkedItems(!showLinkedItems)}
+                            className="w-full px-6 md:px-8 py-6 flex items-center justify-between hover:bg-cream/50 transition-all group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-tan/10 flex items-center justify-center text-tan group-hover:scale-110 transition-transform">
+                                    <BookOpen size={20} />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="text-xl font-serif font-bold text-charcoal">
+                                        Linked Documents & Artifacts
+                                    </h3>
+                                    <p className="text-xs font-bold text-charcoal/40 uppercase tracking-widest mt-0.5">
+                                        {relatedDocumentItems.length} {relatedDocumentItems.length === 1 ? 'associated item' : 'associated items'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className={`w-10 h-10 rounded-full bg-white border border-tan-light/50 flex items-center justify-center text-charcoal/40 transition-all ${showLinkedItems ? 'rotate-180 bg-tan text-white border-tan' : 'group-hover:border-tan group-hover:text-tan'}`}>
+                                <ChevronDown size={20} strokeWidth={3} />
+                            </div>
+                        </button>
+                        
+                        {showLinkedItems && (
+                            <div className="p-6 md:p-8 pt-0 border-t border-tan-light/20 bg-white/50 animate-in slide-in-from-top-4 duration-300">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-6">
+                                    {relatedDocumentItems.map(doc => (
+                                        <DocumentCard key={doc.id} item={doc} galleryIds={relatedDocumentItems.map(d => d.id || '')} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

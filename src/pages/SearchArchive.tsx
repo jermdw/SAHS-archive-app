@@ -23,6 +23,7 @@ export function SearchArchive() {
     const [localArtifactId, setLocalArtifactId] = useState(searchParams.get('id') || '');
     const [localLocId, setLocalLocId] = useState(searchParams.get('loc_id') || '');
     const [localStage, setLocalStage] = useState(searchParams.get('stage') || '');
+    const [showAdvanced, setShowAdvanced] = useState(false);
     
     // Multi-Exclusion States
     const [localExcludeKeyword, setLocalExcludeKeyword] = useState(searchParams.get('ex_q') || '');
@@ -410,112 +411,128 @@ export function SearchArchive() {
                         </div>
                     </div>
 
-                    {/* Filter: Artifact ID */}
-                    {(selectedType === 'All Items' || selectedType === 'Artifact') && (
-                        <div className="md:col-span-1 border-t md:border-t-0 pt-4 md:pt-0">
-                            <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Artifact ID #</label>
-                            <div className="relative">
-                                <Info className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/30 transition-colors group-focus-within:text-charcoal" size={24} />
-                                <input
-                                    type="text"
-                                    placeholder="Enter artifact ID..."
-                                    className="w-full bg-cream pl-14 pr-4 py-6 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-xl shadow-sm"
-                                    value={localArtifactId}
-                                    onChange={(e) => setLocalArtifactId(e.target.value)}
-                                />
+                    <div className="col-span-full pt-4">
+                        <button
+                            type="button"
+                            onClick={() => setShowAdvanced(!showAdvanced)}
+                            className="flex items-center gap-2 text-tan hover:text-charcoal font-bold text-sm uppercase tracking-widest transition-all"
+                        >
+                            <SlidersHorizontal size={18} />
+                            {showAdvanced ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
+                            <ChevronDown size={18} className={`transition-transform duration-300 ${showAdvanced ? 'rotate-180' : ''}`} />
+                        </button>
+                    </div>
+
+                    {showAdvanced && (
+                        <>
+                            {/* Filter: Artifact ID */}
+                            {(selectedType === 'All Items' || selectedType === 'Artifact') && (
+                                <div className="md:col-span-1 border-t md:border-t-0 pt-4 md:pt-0">
+                                    <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Artifact ID #</label>
+                                    <div className="relative">
+                                        <Info className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal/30 transition-colors group-focus-within:text-charcoal" size={24} />
+                                        <input
+                                            type="text"
+                                            placeholder="Enter artifact ID..."
+                                            className="w-full bg-cream pl-14 pr-4 py-6 rounded-xl border border-transparent focus:bg-white focus:border-tan-light outline-none transition-all font-sans text-charcoal text-xl shadow-sm"
+                                            value={localArtifactId}
+                                            onChange={(e) => setLocalArtifactId(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Filter: Processing Stage */}
+                            <div>
+                                <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Processing Stage</label>
+                                <div className="relative group">
+                                    <Tag className="absolute left-5 top-1/2 -translate-y-1/2 text-tan transition-colors group-focus-within:text-charcoal" size={24} />
+                                    <select
+                                        className="w-full bg-cream pl-14 pr-10 py-6 rounded-xl border-2 border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal text-xl shadow-sm"
+                                        value={localStage}
+                                        onChange={(e) => setLocalStage(e.target.value)}
+                                    >
+                                        <option value="">All Stages</option>
+                                        <option value="Housed">Housed (On Map)</option>
+                                        <option value="Staged">Staged (In Transit)</option>
+                                        <option value="In Processing">In Processing</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-charcoal/30 pointer-events-none" size={20} />
+                                </div>
                             </div>
-                        </div>
+
+                            {/* --- EXCLUSION SECTION --- */}
+                            <div className="col-span-full mt-8 pt-8 border-t border-tan-light/30">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-8 h-8 rounded-full bg-red-400/10 flex items-center justify-center">
+                                        <X size={18} className="text-red-500" />
+                                    </div>
+                                    <h3 className="text-xl font-serif font-bold text-charcoal">Filter Exclusions <span className="text-sm font-sans font-normal text-charcoal/40 ml-2 italic">(None of these)</span></h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {/* Exclude Keywords */}
+                                    <div>
+                                        <label className="block text-xs font-black text-red-500/60 uppercase tracking-widest mb-3">Omit Keywords</label>
+                                        <div className="relative">
+                                            <X className="absolute left-4 top-1/2 -translate-y-1/2 text-red-400/40" size={20} />
+                                            <input 
+                                                type="text"
+                                                placeholder="Exclude terms (comma separated)..."
+                                                className="w-full bg-red-50/10 pl-12 pr-4 py-5 rounded-xl border-2 border-transparent focus:bg-white focus:border-red-200 outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
+                                                value={localExcludeKeyword}
+                                                onChange={(e) => setLocalExcludeKeyword(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Exclude Tags */}
+                                    <div>
+                                        <label className="block text-xs font-black text-red-500/60 uppercase tracking-widest mb-3">Omit Tags</label>
+                                        <div className="relative">
+                                            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-red-400/40" size={20} />
+                                            <input 
+                                                type="text"
+                                                placeholder="Exclude tags (comma separated)..."
+                                                className="w-full bg-red-50/10 pl-12 pr-4 py-5 rounded-xl border-2 border-transparent focus:bg-white focus:border-red-200 outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
+                                                value={localExcludeTag}
+                                                onChange={(e) => setLocalExcludeTag(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Exclude Categories */}
+                                    <div className="col-span-full">
+                                        <label className="block text-xs font-black text-red-500/60 uppercase tracking-widest mb-4">Omit Entire Categories</label>
+                                        <div className="flex flex-wrap gap-3">
+                                            {['Artifact', 'Document', 'Historic Figure', 'Historic Organization'].map((type) => {
+                                                const isExcluded = localExcludeTypes.includes(type);
+                                                return (
+                                                    <button
+                                                        key={type}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setLocalExcludeTypes(prev => 
+                                                                isExcluded ? prev.filter(t => t !== type) : [...prev, type]
+                                                            );
+                                                        }}
+                                                        className={`px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 border-2 ${
+                                                            isExcluded 
+                                                                ? 'bg-red-500 border-red-500 text-white shadow-md' 
+                                                                : 'bg-white border-tan-light/30 text-charcoal/40 hover:border-red-200 hover:text-red-400'
+                                                        }`}
+                                                    >
+                                                        {isExcluded && <X size={14} />}
+                                                        {type}s
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
                     )}
-
-                    {/* Filter: Processing Stage */}
-                    <div>
-                        <label className="block text-[10px] md:text-xs font-bold text-charcoal/50 uppercase tracking-[0.2em] mb-2">Processing Stage</label>
-                        <div className="relative group">
-                            <Tag className="absolute left-5 top-1/2 -translate-y-1/2 text-tan transition-colors group-focus-within:text-charcoal" size={24} />
-                            <select
-                                className="w-full bg-cream pl-14 pr-10 py-6 rounded-xl border-2 border-transparent outline-none appearance-none cursor-pointer focus:bg-white focus:border-tan-light transition-all font-sans text-charcoal text-xl shadow-sm"
-                                value={localStage}
-                                onChange={(e) => setLocalStage(e.target.value)}
-                            >
-                                <option value="">All Stages</option>
-                                <option value="Housed">Housed (On Map)</option>
-                                <option value="Staged">Staged (In Transit)</option>
-                                <option value="In Processing">In Processing</option>
-                            </select>
-                            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-charcoal/30 pointer-events-none" size={20} />
-                        </div>
-                    </div>
-
-                    {/* --- EXCLUSION SECTION --- */}
-                    <div className="col-span-full mt-8 pt-8 border-t border-tan-light/30">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-8 h-8 rounded-full bg-red-400/10 flex items-center justify-center">
-                                <X size={18} className="text-red-500" />
-                            </div>
-                            <h3 className="text-xl font-serif font-bold text-charcoal">Filter Exclusions <span className="text-sm font-sans font-normal text-charcoal/40 ml-2 italic">(None of these)</span></h3>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Exclude Keywords */}
-                            <div>
-                                <label className="block text-xs font-black text-red-500/60 uppercase tracking-widest mb-3">Omit Keywords</label>
-                                <div className="relative">
-                                    <X className="absolute left-4 top-1/2 -translate-y-1/2 text-red-400/40" size={20} />
-                                    <input 
-                                        type="text"
-                                        placeholder="Exclude terms (comma separated)..."
-                                        className="w-full bg-red-50/10 pl-12 pr-4 py-5 rounded-xl border-2 border-transparent focus:bg-white focus:border-red-200 outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
-                                        value={localExcludeKeyword}
-                                        onChange={(e) => setLocalExcludeKeyword(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Exclude Tags */}
-                            <div>
-                                <label className="block text-xs font-black text-red-500/60 uppercase tracking-widest mb-3">Omit Tags</label>
-                                <div className="relative">
-                                    <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-red-400/40" size={20} />
-                                    <input 
-                                        type="text"
-                                        placeholder="Exclude tags (comma separated)..."
-                                        className="w-full bg-red-50/10 pl-12 pr-4 py-5 rounded-xl border-2 border-transparent focus:bg-white focus:border-red-200 outline-none transition-all font-sans text-charcoal text-lg shadow-inner"
-                                        value={localExcludeTag}
-                                        onChange={(e) => setLocalExcludeTag(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Exclude Categories */}
-                            <div className="col-span-full">
-                                <label className="block text-xs font-black text-red-500/60 uppercase tracking-widest mb-4">Omit Entire Categories</label>
-                                <div className="flex flex-wrap gap-3">
-                                    {['Artifact', 'Document', 'Historic Figure', 'Historic Organization'].map((type) => {
-                                        const isExcluded = localExcludeTypes.includes(type);
-                                        return (
-                                            <button
-                                                key={type}
-                                                type="button"
-                                                onClick={() => {
-                                                    setLocalExcludeTypes(prev => 
-                                                        isExcluded ? prev.filter(t => t !== type) : [...prev, type]
-                                                    );
-                                                }}
-                                                className={`px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 border-2 ${
-                                                    isExcluded 
-                                                        ? 'bg-red-500 border-red-500 text-white shadow-md' 
-                                                        : 'bg-white border-tan-light/30 text-charcoal/40 hover:border-red-200 hover:text-red-400'
-                                                }`}
-                                            >
-                                                {isExcluded && <X size={14} />}
-                                                {type}s
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Action Button Row */}
