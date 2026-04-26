@@ -23,6 +23,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   const [isApplying, setIsApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentAspect, setCurrentAspect] = useState<number | undefined>(undefined)
+  const [mediaSize, setMediaSize] = useState({ width: 0, height: 0 })
 
   const onCropChange = (crop: { x: number; y: number }) => {
     setCrop(crop)
@@ -37,6 +38,25 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
 
   const onZoomChange = (zoom: number) => {
     setZoom(zoom)
+  }
+
+  const onMediaLoaded = (mediaSize: { width: number; height: number }) => {
+    setMediaSize(mediaSize)
+    // By default, when freeform is selected, we want to try to capture the whole image
+    // Note: react-easy-crop handles initial crop area automatically, but we can nudge it
+  }
+
+  const selectAll = () => {
+    setZoom(1)
+    setCrop({ x: 0, y: 0 })
+    if (mediaSize.width > 0) {
+        setCroppedAreaPixels({
+            x: 0,
+            y: 0,
+            width: mediaSize.width,
+            height: mediaSize.height
+        })
+    }
   }
 
   const handleSave = async () => {
@@ -95,6 +115,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             onCropChange={onCropChange}
             onCropComplete={onCropCompleteInternal}
             onZoomChange={onZoomChange}
+            onMediaLoaded={onMediaLoaded}
           />
         </div>
 
@@ -168,13 +189,10 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
                 </div>
                 <button 
                     type="button"
-                    onClick={() => {
-                        setZoom(1);
-                        setCrop({ x: 0, y: 0 });
-                    }}
+                    onClick={selectAll}
                     className="ml-auto text-[10px] font-black uppercase text-tan hover:text-charcoal tracking-widest flex items-center gap-1.5 transition-colors"
                 >
-                    <Maximize2 size={12} /> Reset Zoom / Full View
+                    <Maximize2 size={12} /> Use Entire Image (No Crop)
                 </button>
             </div>
           </div>
