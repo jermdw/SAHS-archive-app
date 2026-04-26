@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import Cropper from 'react-easy-crop'
-import { X, Check, RotateCcw, RotateCw } from 'lucide-react'
+import { X, Check, RotateCcw, RotateCw, Maximize2 } from 'lucide-react'
 import getCroppedImg from '../utils/imageUtils'
 
 interface ImageCropperProps {
@@ -20,6 +20,9 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   const [zoom, setZoom] = useState(1)
   const [rotation, setRotation] = useState(0)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+  const [isApplying, setIsApplying] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [currentAspect, setCurrentAspect] = useState<number | undefined>(aspectRatio)
 
   const onCropChange = (crop: { x: number; y: number }) => {
     setCrop(crop)
@@ -37,6 +40,8 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   }
 
   const handleSave = async () => {
+    setIsApplying(true)
+    setError(null)
     try {
       const croppedBlob = await getCroppedImg(
         image,
@@ -46,8 +51,11 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
       if (croppedBlob) {
         onCropComplete(croppedBlob)
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
+      setError("The server security (CORS) blocked the rotation. Please re-upload this photo from your computer to rotate it.")
+    } finally {
+      setIsApplying(false)
     }
   }
 
@@ -66,8 +74,14 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             </button>
           </div>
           <p className="text-sm text-charcoal/60 mt-1">
-            Drag to center the person's face. Use the zoom slider below to focus in.
+            Drag to center or use the tools below to rotate.
           </p>
+          {error && (
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded flex items-center gap-2 animate-pulse">
+              <RotateCcw size={14} />
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Cropper Container */}
@@ -77,7 +91,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             crop={crop}
             zoom={zoom}
             rotation={rotation}
-            aspect={aspectRatio}
+            aspect={currentAspect}
             onCropChange={onCropChange}
             onCropComplete={onCropCompleteInternal}
             onZoomChange={onZoomChange}
@@ -136,6 +150,33 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
                 <RotateCcw size={16} />
               </button>
             </div>
+            <div className="flex items-center gap-6 mt-2 pt-4 border-t border-charcoal/5">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase text-charcoal/40 tracking-widest">Aspect Ratio:</span>
+                    <button 
+                        onClick={() => setCurrentAspect(1)} 
+                        className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${currentAspect === 1 ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
+                    >
+                        Square (1:1)
+                    </button>
+                    <button 
+                        onClick={() => setCurrentAspect(undefined)} 
+                        className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${currentAspect === undefined ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
+                    >
+                        Free Form
+                    </button>
+                </div>
+                <button 
+                    type="button"
+                    onClick={() => {
+                        setZoom(1);
+                        setCrop({ x: 0, y: 0 });
+                    }}
+                    className="ml-auto text-[10px] font-black uppercase text-tan hover:text-charcoal tracking-widest flex items-center gap-1.5 transition-colors"
+                >
+                    <Maximize2 size={12} /> Reset Zoom / Full View
+                </button>
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 mt-6">
@@ -147,10 +188,15 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 bg-tan text-white px-6 py-2 rounded-lg font-medium hover:bg-charcoal transition-colors shadow-lg shadow-tan/20"
+              disabled={isApplying}
+              className="flex items-center gap-2 bg-tan text-white px-6 py-2 rounded-lg font-medium hover:bg-charcoal transition-colors shadow-lg shadow-tan/20 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px] justify-center"
             >
-              <Check size={18} />
-              Apply Crop
+              {isApplying ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Check size={18} />
+              )}
+              {isApplying ? 'Applying...' : 'Apply Changes'}
             </button>
           </div>
         </div>
