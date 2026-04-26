@@ -50,12 +50,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     setZoom(1)
     setCrop({ x: 0, y: 0 })
     if (mediaSize.width > 0) {
-        setCroppedAreaPixels({
-            x: 0,
-            y: 0,
-            width: mediaSize.width,
-            height: mediaSize.height
-        })
+        setCurrentAspect(mediaSize.width / mediaSize.height)
     }
   }
 
@@ -186,6 +181,14 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
                     >
                         Free Form
                     </button>
+                    {mediaSize.width > 0 && (
+                        <button 
+                            onClick={() => setCurrentAspect(mediaSize.width / mediaSize.height)} 
+                            className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${currentAspect === (mediaSize.width / mediaSize.height) ? 'bg-tan text-white shadow-sm' : 'bg-cream text-charcoal/40 hover:text-charcoal'}`}
+                        >
+                            Original Aspect
+                        </button>
+                    )}
                 </div>
                 <button 
                     type="button"
