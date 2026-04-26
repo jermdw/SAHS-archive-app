@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Plus, Search, FileText, Tag, Users, Maximize2, Lock, Camera } from 'lucide-react';
+import { Upload, Image as ImageIcon, CheckCircle, AlertCircle, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Plus, Search, FileText, Tag, Users, Maximize2, Lock, Camera, RotateCw } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { useSearchParams } from 'react-router-dom';
 import { collection, addDoc, getDocs, query } from 'firebase/firestore';
@@ -811,8 +811,8 @@ export function AddItem() {
                                                                 className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
                                                                 title="Crop & Center"
                                                             >
-                                                                <Maximize2 size={12} />
-                                                                Center
+                                                                 <RotateCw size={12} />
+                                                                 Edit / Rotate
                                                             </button>
                                                         )}
                                                         <button

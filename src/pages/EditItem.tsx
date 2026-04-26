@@ -76,8 +76,8 @@ const PendingFilePreview = ({
                         className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
                         title="Crop & Center"
                     >
-                        <Maximize2 size={12} />
-                        Center
+                        <RotateCw size={12} />
+                        Edit / Rotate
                     </button>
                 )}
             </div>
@@ -1022,8 +1022,8 @@ export default function EditItem() {
                                                             className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
                                                             title="Crop & Center"
                                                         >
-                                                            <Maximize2 size={12} />
-                                                            Center
+                                                            <RotateCw size={12} />
+                                                            Edit / Rotate
                                                         </button>
                                                 </div>
                                                 <button

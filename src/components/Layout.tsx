@@ -14,7 +14,7 @@ export default function Layout() {
             />
             <main className="flex-1 flex flex-col min-w-0">
                 {/* Mobile Header */}
-                <header className="md:hidden flex flex-shrink-0 items-center justify-between p-4 bg-white border-b border-tan-light shadow-[0_2px_8px_rgba(0,0,0,0.02)] z-10 sticky top-0">
+                <header className="md:hidden flex flex-shrink-0 items-center justify-between p-4 bg-white border-b border-tan-light shadow-[0_2px_8px_rgba(0,0,0,0.02)] z-50 sticky top-0">
                     <div className="flex items-center gap-3">
                         <button 
                             onClick={() => setIsMobileMenuOpen(true)}

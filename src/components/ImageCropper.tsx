@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import Cropper from 'react-easy-crop'
-import { X, Check, RotateCcw } from 'lucide-react'
+import { X, Check, RotateCcw, RotateCw } from 'lucide-react'
 import getCroppedImg from '../utils/imageUtils'
 
 interface ImageCropperProps {
@@ -57,7 +57,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         {/* Header */}
         <div className="flex flex-col p-4 border-b border-charcoal/10 bg-white z-10">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-serif font-bold text-charcoal">Crop & Center Portrait</h3>
+            <h3 className="text-lg font-serif font-bold text-charcoal">Edit & Rotate Image</h3>
             <button
               onClick={onCancel}
               className="p-2 hover:bg-charcoal/5 rounded-full text-charcoal/50 hover:text-charcoal transition-colors"
@@ -102,6 +102,22 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-charcoal/60 w-12">Rotate</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setRotation((prev) => (prev - 90 + 360) % 360)}
+                  className="p-2 bg-tan/10 text-tan hover:bg-tan hover:text-white rounded-lg transition-all flex items-center gap-2 text-xs font-bold"
+                  title="Rotate 90° CCW"
+                >
+                  <RotateCcw size={16} /> -90°
+                </button>
+                <button
+                  onClick={() => setRotation((prev) => (prev + 90) % 360)}
+                  className="p-2 bg-tan/10 text-tan hover:bg-tan hover:text-white rounded-lg transition-all flex items-center gap-2 text-xs font-bold"
+                  title="Rotate 90° CW"
+                >
+                  <RotateCw size={16} /> +90°
+                </button>
+              </div>
               <input
                 type="range"
                 value={rotation}
@@ -115,6 +131,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
               <button
                 onClick={() => setRotation(0)}
                 className="p-1 hover:bg-charcoal/5 rounded-full text-charcoal/40 hover:text-charcoal"
+                title="Reset Rotation"
               >
                 <RotateCcw size={16} />
               </button>
