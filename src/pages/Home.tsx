@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Library, Users, FileText, Building, Box, Linkedin, Instagram, Facebook, Youtube, Share2, QrCode } from 'lucide-react';
+import { Search, Library, Users, FileText, Building, Box, Linkedin, Instagram, Facebook, Youtube, Share2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';

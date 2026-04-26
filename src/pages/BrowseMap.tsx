@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, Info } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import type { ArchiveItem, Collection } from '../types/database';
+import type { ArchiveItem } from '../types/database';
 import { ArchiveMap } from '../components/ArchiveMap';
 import { useAuth } from '../contexts/AuthContext';
 
