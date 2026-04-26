@@ -23,6 +23,7 @@ export function SearchArchive() {
     const [localArtifactId, setLocalArtifactId] = useState(searchParams.get('id') || '');
     const [localLocId, setLocalLocId] = useState(searchParams.get('loc_id') || '');
     const [localStage, setLocalStage] = useState(searchParams.get('stage') || '');
+    const [localMissingLocation, setLocalMissingLocation] = useState(searchParams.get('missing_loc') === 'true');
     const [showAdvanced, setShowAdvanced] = useState(false);
     
     // Multi-Exclusion States
@@ -96,6 +97,15 @@ export function SearchArchive() {
         }, 300);
         return () => clearTimeout(h);
     }, [localStage]);
+
+    useEffect(() => {
+        const h = setTimeout(() => {
+            const params = new URLSearchParams(searchParams);
+            if (localMissingLocation) params.set('missing_loc', 'true'); else params.delete('missing_loc');
+            setSearchParams(params, { replace: true });
+        }, 300);
+        return () => clearTimeout(h);
+    }, [localMissingLocation]);
 
     // Exclusion Debounce Effects
     useEffect(() => {
@@ -211,6 +221,10 @@ export function SearchArchive() {
             // Stage match
             const matchesStage = !localStage || item.stage === localStage;
 
+            // Missing Location match
+            const matchesMissingLoc = !localMissingLocation || 
+                (!item.museum_location_id && (!item.museum_location_ids || item.museum_location_ids.length === 0));
+
             // --- EXCLUSION LOGIC ---
             
             // 1. Exclude Keywords (checks if ANY of the excluded terms appear)
@@ -240,7 +254,7 @@ export function SearchArchive() {
                 if (isItemPrivate || isCollectionPrivate) return false;
             }
 
-            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId && matchesStage &&
+            return matchesKeyword && matchesType && matchesYear && matchesPlace && matchesTag && matchesArtifactId && matchesLocId && matchesStage && matchesMissingLoc &&
                    !isExcludedByKeyword && !isExcludedByTag && !isExcludedByType;
         }).sort((a, b) => {
             if (sortBy === 'newest') {
@@ -281,6 +295,7 @@ export function SearchArchive() {
         setLocalArtifactId('');
         setLocalLocId('');
         setLocalStage('');
+        setLocalMissingLocation(false);
         setLocalExcludeKeyword('');
         setLocalExcludeTag('');
         setLocalExcludeTypes([]);
@@ -459,6 +474,20 @@ export function SearchArchive() {
                                     </select>
                                     <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-charcoal/30 pointer-events-none" size={20} />
                                 </div>
+                            </div>
+
+                            {/* Filter: Missing Location */}
+                            <div className="flex items-center gap-3 pt-6 border-t border-tan-light/30 md:col-span-2">
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        className="sr-only peer"
+                                        checked={localMissingLocation}
+                                        onChange={(e) => setLocalMissingLocation(e.target.checked)}
+                                    />
+                                    <div className="w-11 h-6 bg-cream peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tan"></div>
+                                    <span className="ml-3 text-sm font-bold text-charcoal/70 uppercase tracking-widest">Only show items without a physical location</span>
+                                </label>
                             </div>
 
                             {/* --- EXCLUSION SECTION --- */}

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-type AuditIssue = 'no-image' | 'no-date' | 'no-geo' | 'no-id' | 'no-desc';
+type AuditIssue = 'no-image' | 'no-date' | 'no-geo' | 'no-id' | 'no-desc' | 'no-location';
 type SortOption = 'health-asc' | 'health-desc' | 'newest';
 
 interface AuditStats {
@@ -32,6 +32,7 @@ interface AuditStats {
     missingDates: number;
     missingGeo: number;
     missingIds: number;
+    missingLocations: number;
     criticalGaps: number;
 }
 
@@ -99,7 +100,13 @@ export function AuditDashboard() {
 
         // 5. Inventory/Artifact ID (Support Archive Reference for Documents)
         if (item.artifact_id || (item.item_type === 'Document' && item.archive_reference) || item.item_type === 'Historic Figure') {
-            score += 20; 
+            score += 15; 
+        }
+
+        // 6. Physical Museum Location (The "Shelf" assignment)
+        const hasLocation = item.museum_location_id || (item.museum_location_ids && item.museum_location_ids.length > 0);
+        if (hasLocation || item.item_type === 'Historic Figure' || item.item_type === 'Historic Organization') {
+            score += 20;
         }
 
         return Math.min(score, 100);
@@ -113,6 +120,7 @@ export function AuditDashboard() {
             missingDates: 0,
             missingGeo: 0,
             missingIds: 0,
+            missingLocations: 0,
             criticalGaps: 0
         };
 
@@ -145,6 +153,12 @@ export function AuditDashboard() {
             if (!hasId && (item.item_type === 'Artifact' || item.item_type === 'Document')) {
                 issues.push('no-id');
                 stats.missingIds++;
+            }
+
+            const hasLocation = item.museum_location_id || (item.museum_location_ids && item.museum_location_ids.length > 0);
+            if (!hasLocation && (item.item_type === 'Artifact' || item.item_type === 'Document')) {
+                issues.push('no-location');
+                stats.missingLocations++;
             }
             
             if (!item.description || item.description.length < 10) {
@@ -245,7 +259,8 @@ export function AuditDashboard() {
                     { label: 'Unpictured Items', count: stats.missingImages, icon: <ImageIcon size={28} />, color: 'text-red-500', bg: 'bg-red-50', id: 'no-image' },
                     { label: 'Undated Records', count: stats.missingDates, icon: <Calendar size={28} />, color: 'text-amber-500', bg: 'bg-amber-50', id: 'no-date' },
                     { label: 'No Geographic Origin', count: stats.missingGeo, icon: <MapPin size={28} />, color: 'text-blue-500', bg: 'bg-blue-50', id: 'no-geo' },
-                    { label: 'Inventory ID Gaps', count: stats.missingIds, icon: <Tag size={28} />, color: 'text-purple-500', bg: 'bg-purple-50', id: 'no-id' }
+                    { label: 'Inventory ID Gaps', count: stats.missingIds, icon: <Tag size={28} />, color: 'text-purple-500', bg: 'bg-purple-50', id: 'no-id' },
+                    { label: 'Unplaced Artifacts', count: stats.missingLocations, icon: <MapPin size={28} />, color: 'text-rose-500', bg: 'bg-rose-50', id: 'no-location' }
                 ].map((stat, i) => (
                     <button 
                         key={i}
@@ -431,12 +446,14 @@ export function AuditDashboard() {
                                                     issue === 'no-date' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                                                     issue === 'no-geo' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                                                     issue === 'no-id' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                                                    issue === 'no-location' ? 'bg-rose-50 text-rose-600 border-rose-100' :
                                                     'bg-charcoal/5 text-charcoal/60 border-charcoal/10'
                                                 }`}>
                                                     {issue === 'no-image' && <ImageIcon size={10} />}
                                                     {issue === 'no-date' && <Calendar size={10} />}
                                                     {issue === 'no-geo' && <MapPin size={10} />}
                                                     {issue === 'no-id' && <Tag size={10} />}
+                                                    {issue === 'no-location' && <MapPin size={10} />}
                                                     {issue.replace('no-', 'missing ')}
                                                 </span>
                                             ))}
