@@ -604,8 +604,8 @@ export default function EditItem() {
         return null;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (!id || !item) return;
 
         setIsSubmitting(true);
@@ -890,6 +890,7 @@ export default function EditItem() {
                     <button onClick={() => navigate(-1)} className="text-sm font-medium text-charcoal/60 hover:text-charcoal">Cancel</button>
                     {fromAudit ? (
                         <button 
+                            type="button"
                             onClick={() => navigate('/audit')}
                             className="flex items-center gap-2 px-6 py-2.5 bg-tan text-white rounded-lg text-sm font-bold hover:bg-charcoal transition-all shadow-md active:scale-95"
                         >
@@ -897,12 +898,26 @@ export default function EditItem() {
                         </button>
                     ) : lastSearchPath && (
                         <button 
+                            type="button"
                             onClick={() => navigate(lastSearchPath)}
                             className="flex items-center gap-2 px-6 py-2.5 bg-charcoal text-white rounded-lg text-sm font-bold hover:bg-charcoal/80 transition-all shadow-md active:scale-95"
                         >
                             <ArrowLeft size={16} /> Back to Search
                         </button>
                     )}
+                    <button 
+                        type="button" 
+                        onClick={() => handleSubmit()}
+                        disabled={isSubmitting}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-tan text-white rounded-lg text-sm font-bold hover:bg-charcoal transition-all shadow-md active:scale-95 disabled:opacity-50"
+                    >
+                        {isSubmitting ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <CheckCircle size={18} />
+                        )}
+                        {isSubmitting ? 'Saving...' : 'Save Changes'}
+                    </button>
                 </div>
             </div>
 
@@ -938,7 +953,7 @@ export default function EditItem() {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-tan-light/50 shadow-sm flex flex-col overflow-hidden">
+            <form id="edit-item-form" onSubmit={handleSubmit} className="bg-white rounded-xl border border-tan-light/50 shadow-sm flex flex-col overflow-hidden">
 
                 {/* Top Section: Item Type & Primary File */}
                 <div className="p-8 border-b border-tan-light/50 bg-cream/30">
