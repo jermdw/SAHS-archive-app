@@ -612,7 +612,8 @@ export default function EditItem() {
         setError(null);
 
         try {
-            const formData = new FormData(e.target as HTMLFormElement);
+            const formElement = e?.target as HTMLFormElement || document.getElementById('edit-item-form');
+            const formData = new FormData(formElement as HTMLFormElement);
             
             const historical_address = formData.get('historical_address') as string || "";
             let coordinates = item.coordinates || null;
