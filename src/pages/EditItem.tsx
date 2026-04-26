@@ -109,7 +109,6 @@ export default function EditItem() {
     const [isLoading, setIsLoading] = useState(true);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isProcessingExistingImage, setIsProcessingExistingImage] = useState<string | null>(null);
     const [item, setItem] = useState<ArchiveItem | null>(null);
     const [itemType, setItemType] = useState<ItemType>('Document');
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
@@ -128,6 +127,7 @@ export default function EditItem() {
     const [isConvertingPdf, setIsConvertingPdf] = useState(false);
     const [pdfConvertProgress, setPdfConvertProgress] = useState(0);
     const [croppingImageIndex, setCroppingImageIndex] = useState<number | null>(null);
+    const [croppingImageUrl, setCroppingImageUrl] = useState<string | null>(null);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [selectedRelatedFigures, setSelectedRelatedFigures] = useState<{ id: string, full_name: string }[]>([]);
     const [selectedRelatedDocs, setSelectedRelatedDocs] = useState<{ id: string, title: string }[]>([]);
@@ -220,15 +220,33 @@ export default function EditItem() {
     }, []); // Only runs on component destroy
 
     const handleCropComplete = (croppedBlob: Blob) => {
-        if (croppingImageIndex === null) return;
+        if (croppingImageIndex === null && !croppingImageUrl) return;
         
-        const originalFile = selectedFiles[croppingImageIndex];
-        const originalObjectURL = fileObjectURLs.get(originalFile);
-        const croppedFile = new File([croppedBlob], originalFile.name, { type: 'image/jpeg' });
+        // Determine original filename
+        let fileName = 'edited_image.jpg';
+        let originalObjectURL: string | null = null;
+
+        if (croppingImageIndex !== null) {
+            const originalFile = selectedFiles[croppingImageIndex];
+            fileName = originalFile.name;
+            originalObjectURL = fileObjectURLs.get(originalFile) || null;
+        } else if (croppingImageUrl) {
+            fileName = croppingImageUrl.split('/').pop()?.split('?')[0] || 'existing_image.jpg';
+            originalObjectURL = croppingImageUrl;
+        }
+
+        const croppedFile = new File([croppedBlob], fileName, { type: 'image/jpeg' });
         const croppedObjectURL = URL.createObjectURL(croppedFile);
         
-        const newFiles = [...selectedFiles];
-        newFiles[croppingImageIndex] = croppedFile;
+        if (croppingImageIndex !== null) {
+            // Replacing a new pending file
+            const newFiles = [...selectedFiles];
+            newFiles[croppingImageIndex] = croppedFile;
+            setSelectedFiles(newFiles);
+        } else {
+            // Adding a modified version of an existing file
+            setSelectedFiles(prev => [...prev, croppedFile]);
+        }
 
         setFileObjectURLs(prev => {
             const next = new Map(prev);
@@ -236,12 +254,13 @@ export default function EditItem() {
             return next;
         });
 
+        // If the original was the featured image, make the new one featured
         if (featuredImageUrl === originalObjectURL) {
             setFeaturedImageUrl(croppedObjectURL);
         }
         
-        setSelectedFiles(newFiles);
         setCroppingImageIndex(null);
+        setCroppingImageUrl(null);
     };
 
 
@@ -283,25 +302,8 @@ export default function EditItem() {
     useClickOutside(docRef, () => setShowDocResults(false));
     useClickOutside(orgRef, () => setShowOrgResults(false));
 
-    const cropExistingImage = async (url: string) => {
-        setIsProcessingExistingImage(url);
-        try {
-            // Using getBlob from Firebase SDK is more reliable for CORS than native fetch
-            const storageRef = ref(storage, url);
-            const blob = await getBlob(storageRef);
-            
-            const fileName = url.split('/').pop()?.split('?')[0] || 'existing_image.jpg';
-            const file = new File([blob], fileName, { type: blob.type });
-            
-            const newIndex = selectedFiles.length;
-            setSelectedFiles(prev => [...prev, file]);
-            setCroppingImageIndex(newIndex);
-        } catch (err) {
-            console.error("Error cropping existing image:", err);
-            setError("The archive server is currently preventing direct photo editing due to 'CORS' security settings. Please re-upload the photo to rotate it, or ask an admin to enable 'Storage CORS'.");
-        } finally {
-            setIsProcessingExistingImage(null);
-        }
+    const cropExistingImage = (url: string) => {
+        setCroppingImageUrl(url);
     };
 
     const handleCollectionChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -862,11 +864,14 @@ export default function EditItem() {
             )}
 
             {/* Cropper Modal */}
-            {croppingImageIndex !== null && (
+            {(croppingImageIndex !== null || croppingImageUrl !== null) && (
                 <ImageCropper
-                    image={fileObjectURLs.get(selectedFiles[croppingImageIndex]) || ''}
+                    image={croppingImageIndex !== null ? (fileObjectURLs.get(selectedFiles[croppingImageIndex]) || '') : (croppingImageUrl || '')}
                     onCropComplete={handleCropComplete}
-                    onCancel={() => setCroppingImageIndex(null)}
+                    onCancel={() => {
+                        setCroppingImageIndex(null);
+                        setCroppingImageUrl(null);
+                    }}
                     aspectRatio={itemType === 'Historic Figure' ? 0.75 : undefined}
                 />
             )}
@@ -1028,16 +1033,11 @@ export default function EditItem() {
                                                                 e.stopPropagation();
                                                                 cropExistingImage(url);
                                                             }}
-                                                            disabled={isProcessingExistingImage === url}
-                                                            className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30 disabled:opacity-50"
+                                                            className="flex items-center gap-1.5 px-2 py-1 bg-white/20 hover:bg-tan rounded-full text-white backdrop-blur-sm transition-all text-[10px] font-bold border border-white/30"
                                                             title="Edit & Rotate"
                                                         >
-                                                            {isProcessingExistingImage === url ? (
-                                                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                            ) : (
-                                                                <RotateCw size={12} />
-                                                            )}
-                                                            {isProcessingExistingImage === url ? 'Loading...' : 'Edit / Rotate'}
+                                                            <RotateCw size={12} />
+                                                            Edit / Rotate
                                                         </button>
                                                 </div>
                                                 <button
