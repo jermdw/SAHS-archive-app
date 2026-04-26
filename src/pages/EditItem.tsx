@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Image as ImageIcon, CheckCircle, ChevronDown, ChevronUp, X, Maximize2, FileText, ArrowLeft, Lock, Camera, Upload, Edit2, BookOpen, Sparkles, AlertCircle, Users } from 'lucide-react';
+import { Image as ImageIcon, CheckCircle, ChevronDown, ChevronUp, X, Maximize2, FileText, ArrowLeft, Lock, Camera, Upload, Edit2, BookOpen, Sparkles, AlertCircle, Users, RotateCw } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
