@@ -23,6 +23,7 @@ export function ItemDetail() {
     const [relatedFigureItems, setRelatedFigureItems] = useState<ArchiveItem[]>([]);
     const [relatedDocumentItems, setRelatedDocumentItems] = useState<ArchiveItem[]>([]);
     const [relatedOrganizationItems, setRelatedOrganizationItems] = useState<ArchiveItem[]>([]);
+    const [exploreItems, setExploreItems] = useState<ArchiveItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -172,6 +173,27 @@ export function ItemDetail() {
                     // or we can separate them. For now, we put Docs + Artifacts + any other type into relatedDocumentItems
                     const cards = uniqueLinked.filter(i => i.item_type !== 'Historic Figure' && i.item_type !== 'Historic Organization');
                     setRelatedDocumentItems(cards);
+
+                    // --- Fetch "Keep Exploring" items ---
+                    let exploreQuery;
+                    if (data.collection_id) {
+                        exploreQuery = query(collection(db, 'archive_items'), where('collection_id', '==', data.collection_id));
+                    } else {
+                        exploreQuery = query(collection(db, 'archive_items'), where('item_type', '==', data.item_type));
+                    }
+                    
+                    const exploreSnap = await getDocs(exploreQuery);
+                    let eItems = exploreSnap.docs.map(d => ({ id: d.id, ...d.data() })) as ArchiveItem[];
+                    
+                    if (!isSAHSUser) {
+                        eItems = eItems.filter(i => !i.is_private);
+                    }
+                    
+                    const explicitlyLinkedIds = new Set(uniqueLinked.map(i => i.id));
+                    eItems = eItems.filter(i => i.id !== id && !explicitlyLinkedIds.has(i.id));
+                    
+                    eItems = eItems.sort(() => 0.5 - Math.random()).slice(0, 4);
+                    setExploreItems(eItems);
                 }
 
             } catch (error) {
@@ -1129,6 +1151,27 @@ export function ItemDetail() {
                     </div>
                 )}
             </div>
+
+            {/* Keep Exploring Section */}
+            {exploreItems.length > 0 && (
+                <div className="mt-16 pt-12 border-t border-tan-light/50">
+                    <div className="mb-8 text-center">
+                        <h2 className="text-3xl font-serif font-bold text-charcoal mb-3">Keep Exploring</h2>
+                        <p className="text-charcoal/60 font-sans max-w-2xl mx-auto">
+                            Discover more from our archives that share similar themes or origins with this item.
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {exploreItems.map(exploreItem => (
+                            <DocumentCard 
+                                key={exploreItem.id} 
+                                item={exploreItem} 
+                                galleryIds={exploreItems.map(i => i.id || '')} 
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

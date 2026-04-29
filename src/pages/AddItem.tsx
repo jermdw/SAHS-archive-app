@@ -4,7 +4,6 @@ import { db, storage } from '../lib/firebase';
 import { useSearchParams } from 'react-router-dom';
 import { collection, addDoc, getDocs, query } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { extractMetadataFromFile } from '../lib/gemini';
 import type { ItemType, Collection, ArchiveItem } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
@@ -95,7 +94,6 @@ export function AddItem() {
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [itemType, setItemType] = useState<ItemType>('Document');
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
-    const [isExtracting, setIsExtracting] = useState(false);
 
     // New Fields & Data State
     const [collections, setCollections] = useState<Collection[]>([]);
@@ -218,74 +216,6 @@ export function AddItem() {
         fetchInitialData();
     }, []);
 
-    const handleAutoExtract = async (mode: 'full' | 'transcription' = 'full') => {
-        if (selectedFiles.length === 0) {
-            setError("Please select a file first before extracting metadata.");
-            return;
-        }
-
-        const file = selectedFiles[0];
-        setIsExtracting(true);
-        setError(null);
-
-        try {
-            const metadata = await extractMetadataFromFile(file, mode);
-            console.log("Extracted Metadata:", metadata);
-
-            const form = document.getElementById('add-item-form') as HTMLFormElement;
-            if (!form) return;
-
-            const setVal = (name: string, val?: string | null) => {
-                const el = form.elements.namedItem(name);
-                if (el) (el as HTMLInputElement).value = val || '';
-            }
-
-            if (mode === 'transcription') {
-                setVal('transcription', metadata.transcription);
-                (form.elements.namedItem('transcription') as HTMLTextAreaElement)?.focus();
-                return;
-            }
-
-            if (metadata.dc_type?.toLowerCase().includes('text') || metadata.dc_type?.toLowerCase().includes('document')) {
-                setItemType('Document');
-            } else if (metadata.dc_type?.toLowerCase().includes('person') || metadata.dc_type?.toLowerCase().includes('figure')) {
-                setItemType('Historic Figure');
-            } else if (metadata.dc_type?.toLowerCase().includes('organization') || metadata.dc_type?.toLowerCase().includes('business') || metadata.dc_type?.toLowerCase().includes('church')) {
-                setItemType('Historic Organization');
-            }
-
-            setVal('title', metadata.title);
-            setVal('description', metadata.description);
-            setVal('transcription', metadata.transcription);
-            setVal('date', metadata.date);
-            setVal('creator', metadata.creator);
-            setVal('subject', metadata.subject);
-            setVal('archive_reference', metadata.archive_reference);
-            setVal('location', metadata.coverage);
-
-            if (metadata.tags) {
-                setCurrentTags(prev => Array.from(new Set([...prev, ...(metadata.tags || [])])));
-            }
-
-            // Extended fields
-            setVal('publisher', metadata.publisher);
-            setVal('language', metadata.language);
-            setVal('format', metadata.format);
-            setVal('identifier', metadata.identifier);
-            setVal('source', metadata.source);
-
-            if (metadata.publisher || metadata.language || metadata.format || metadata.identifier) {
-                setShowAdvancedDC(true);
-            }
-
-            (form.elements.namedItem('title') as HTMLInputElement)?.focus();
-
-        } catch (err: any) {
-            setError(err.message || "Something went wrong during AI extraction.");
-        } finally {
-            setIsExtracting(false);
-        }
-    };
 
     const processFiles = async (files: FileList | File[]) => {
         const fileArray = Array.from(files);
@@ -853,39 +783,7 @@ export function AddItem() {
                                 )}
                             </div>
 
-                            {isSAHSUser && (
-                                <div className="space-y-3 mt-6">
-                                    {isAdmin && (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAutoExtract('full')}
-                                            disabled={isExtracting || selectedFiles.length === 0}
-                                            className={`w-full flex items-center justify-center gap-3 py-4 px-4 rounded-xl font-bold text-sm transition-all border-2 ${isExtracting
-                                                ? 'bg-tan-light/10 text-tan border-tan-light/30 cursor-not-allowed'
-                                                : selectedFiles.length === 0
-                                                    ? 'bg-cream/50 text-charcoal/20 border-tan-light/20 cursor-not-allowed'
-                                                    : 'bg-indigo-50/50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 hover:shadow-md'
-                                                }`}
-                                        >
-                                            <Sparkles size={18} className={isExtracting ? 'animate-pulse' : ''} />
-                                            {isExtracting ? 'Analyzing Document Content...' : 'Full AI Extraction'}
-                                        </button>
-                                    )}
-                                    
-                                    <button
-                                        type="button"
-                                        onClick={() => handleAutoExtract('transcription')}
-                                        disabled={isExtracting || selectedFiles.length === 0}
-                                        className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-bold text-xs transition-all border-2 ${isExtracting || selectedFiles.length === 0
-                                            ? 'bg-cream/20 text-charcoal/20 border-tan-light/10 cursor-not-allowed'
-                                            : 'bg-white text-indigo-500 border-indigo-100 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm'
-                                            }`}
-                                    >
-                                        <FileText size={16} />
-                                        AI Transcription Only
-                                    </button>
-                                </div>
-                            )}
+
                         </div>
 
                         <div className="space-y-6">

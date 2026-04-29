@@ -150,6 +150,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                             <NavLink to="/map" className={navLinkClass} onClick={handleLinkClick}>
                                 <MapPin size={20} /> Map View
                             </NavLink>
+                            <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
+                                <FolderOpen size={20} /> Curated Collections
+                            </NavLink>
                         </nav>
                     </div>
 
@@ -216,9 +219,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                                 <Activity size={20} /> Data Quality Audit
                                             </NavLink>
                                         )}
-                                        <NavLink to="/collections" className={navLinkClass} onClick={handleLinkClick}>
-                                            <FolderOpen size={20} /> Collections
-                                        </NavLink>
                                     </>
                                 )}
                                 {realIsAdmin && (

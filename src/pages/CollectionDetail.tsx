@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, FolderOpen, Image as ImageIcon, Lock, Users, Plus, X, Search, CheckCircle, AlertTriangle, Minus } from 'lucide-react';
+import { ChevronLeft, FolderOpen, Image as ImageIcon, Lock, Users, Plus, X, Search, CheckCircle, AlertTriangle, Minus, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
@@ -208,9 +208,16 @@ export function CollectionDetail() {
 
     return (
         <div className="max-w-full mx-auto h-full flex flex-col animate-in fade-in duration-500">
-            <Link to="/collections" className="inline-flex items-center text-sm font-bold text-tan uppercase tracking-wider mb-6 hover:text-charcoal transition-colors">
-                <ChevronLeft size={16} className="mr-1" /> Back to Collections
-            </Link>
+            <div className="flex justify-between items-center mb-6">
+                <Link to="/collections" className="inline-flex items-center text-sm font-bold text-tan uppercase tracking-wider hover:text-charcoal transition-colors">
+                    <ChevronLeft size={16} className="mr-1" /> Back to Collections
+                </Link>
+                {isSAHSUser && (
+                    <Link to={`/edit-collection/${collectionData.id}`} className="inline-flex items-center gap-2 text-sm font-bold bg-tan/10 text-tan hover:bg-tan hover:text-white px-4 py-2 rounded-lg transition-colors">
+                        <Edit2 size={16} /> Edit Collection
+                    </Link>
+                )}
+            </div>
 
             <div className="bg-white rounded-2xl border border-tan-light/50 overflow-hidden mb-10 shadow-sm flex flex-col md:flex-row">
                 <div className="md:w-1/3 bg-tan-light/20 relative min-h-[250px] md:min-h-full flex-shrink-0">

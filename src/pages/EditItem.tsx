@@ -4,7 +4,6 @@ import { db, storage } from '../lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, addDoc } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { extractMetadataFromFile } from '../lib/gemini';
 import type { ArchiveItem, ItemType, Collection } from '../types/database';
 import { useAuth } from '../contexts/AuthContext';
 import { ImageCropper } from '../components/ImageCropper';
@@ -112,7 +111,6 @@ export default function EditItem() {
     const [item, setItem] = useState<ArchiveItem | null>(null);
     const [itemType, setItemType] = useState<ItemType>('Document');
     const [showAdvancedDC, setShowAdvancedDC] = useState(false);
-    const [isExtracting, setIsExtracting] = useState(false);
     const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [existingFileUrls, setExistingFileUrls] = useState<string[]>([]);
@@ -448,76 +446,7 @@ export default function EditItem() {
         }
     }, [item, allFigures, allDocs, allOrgs]);
 
-    const handleAutoExtract = async (mode: 'full' | 'transcription' = 'full') => {
-        let file: File | null = null;
-        
-        if (selectedFiles.length > 0) {
-            file = selectedFiles[0];
-        }
 
-        if (!file && !featuredImageUrl) {
-            setError("Please select a file first or ensure an image is available for analysis.");
-            return;
-        }
-
-        setIsExtracting(true);
-        setError(null);
-
-        try {
-            const metadata = await extractMetadataFromFile(file, mode, featuredImageUrl || undefined);
-            console.log("Extracted Metadata:", metadata);
-
-            const form = document.querySelector('form') as HTMLFormElement;
-            if (!form) return;
-
-            const setVal = (name: string, val?: string | null) => {
-                const el = form.elements.namedItem(name);
-                if (el) (el as HTMLInputElement).value = val || '';
-            }
-
-            if (mode === 'transcription') {
-                setVal('transcription', metadata.transcription);
-                (form.elements.namedItem('transcription') as HTMLTextAreaElement)?.focus();
-                return;
-            }
-
-            if (metadata.dc_type?.toLowerCase().includes('text') || metadata.dc_type?.toLowerCase().includes('document')) {
-                setItemType('Document');
-            } else if (metadata.dc_type?.toLowerCase().includes('person') || metadata.dc_type?.toLowerCase().includes('figure')) {
-                setItemType('Historic Figure');
-            }
-
-            setVal('title', metadata.title);
-            setVal('description', metadata.description);
-            setVal('transcription', metadata.transcription);
-            setVal('date', metadata.date);
-            setVal('creator', metadata.creator);
-            setVal('subject', metadata.subject);
-            setVal('tags', metadata.tags?.join(', '));
-            setVal('publisher', metadata.publisher);
-            setVal('contributor', metadata.contributor);
-            setVal('rights', metadata.rights);
-            setVal('relation', metadata.relation);
-            setVal('format', metadata.format);
-            setVal('language', metadata.language);
-            setVal('dc_type', metadata.dc_type);
-            setVal('archive_reference', metadata.archive_reference);
-            setVal('identifier', metadata.identifier);
-            setVal('source', metadata.source);
-            setVal('coverage', metadata.coverage);
-
-            if (metadata.publisher || metadata.language || metadata.format || metadata.identifier || metadata.coverage) {
-                setShowAdvancedDC(true);
-            }
-
-            (form.elements.namedItem('title') as HTMLInputElement)?.focus();
-
-        } catch (err: any) {
-            setError(err.message || "Something went wrong during AI extraction.");
-        } finally {
-            setIsExtracting(false);
-        }
-    };
 
     const processFiles = async (files: FileList | File[]) => {
         const fileArray = Array.from(files);
@@ -1098,39 +1027,7 @@ export default function EditItem() {
                                 </div>
                             )}
 
-                            {isSAHSUser && (
-                                <div className="space-y-3 mt-6">
-                                    {isAdmin && (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAutoExtract('full')}
-                                            disabled={isExtracting || (selectedFiles.length === 0 && !featuredImageUrl)}
-                                            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-bold text-sm transition-all border ${isExtracting
-                                                ? 'bg-tan-light/20 text-tan border-tan-light/50 cursor-not-allowed'
-                                                : (selectedFiles.length === 0 && !featuredImageUrl)
-                                                    ? 'bg-cream/50 text-charcoal/30 border-tan-light/30 cursor-not-allowed'
-                                                    : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm'
-                                                }`}
-                                        >
-                                            <Sparkles size={16} className={isExtracting ? 'animate-pulse' : ''} />
-                                            {isExtracting ? 'Analyzing Document Content...' : 'Full AI Extraction'}
-                                        </button>
-                                    )}
-                                    
-                                    <button
-                                        type="button"
-                                        onClick={() => handleAutoExtract('transcription')}
-                                        disabled={isExtracting || (selectedFiles.length === 0 && !featuredImageUrl)}
-                                        className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-xs transition-all border ${isExtracting || (selectedFiles.length === 0 && !featuredImageUrl)
-                                            ? 'bg-cream/20 text-charcoal/20 border-tan-light/10 cursor-not-allowed'
-                                            : 'bg-white text-indigo-500 border-indigo-100 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm'
-                                            }`}
-                                    >
-                                        <FileText size={14} />
-                                        AI Transcription Only
-                                    </button>
-                                </div>
-                            )}
+
                         </div>
 
                         <div className="space-y-6">

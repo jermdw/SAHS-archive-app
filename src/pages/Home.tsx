@@ -369,6 +369,13 @@ export function Home() {
                         All information, documents, photographs, and materials provided on this website are the exclusive property of the Senoia Area Historical Society. All rights are reserved. The materials are made available for personal, educational, and non-commercial research purposes only. Any reproduction, distribution, modification, public display, or commercial use of any photographs, scans, documents, or other content found on this website is strictly prohibited without the express written permission of the Senoia Area Historical Society.
                     </p>
                     <div className="w-12 h-px bg-tan-light/20 mb-8"></div>
+                    <h4 className="text-cream font-bold mb-6 tracking-widest uppercase text-xs">Authenticity & AI Disclaimer</h4>
+                    <p className="mb-8 leading-loose max-w-3xl">
+                        The Senoia Area Historical Society is committed to preserving history. No artificial intelligence (AI) is used to generate, transcribe, alter, or enhance the historical documents, photographs, and metadata within this archive. All historical materials are manually curated, researched, and transcribed by our dedicated curators and volunteers to ensure complete authenticity.
+                        <br /><br />
+                        While AI tools were utilized to assist our development team in coding and building the software infrastructure of this website, AI is strictly prohibited from interacting with or altering the historical records themselves.
+                    </p>
+                    <div className="w-12 h-px bg-tan-light/20 mb-8"></div>
                     <p className="text-cream/50 font-medium tracking-wide">
                         © 2026 Senoia Area Historical Society. All rights reserved.
                     </p>
