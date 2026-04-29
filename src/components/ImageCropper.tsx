@@ -12,7 +12,7 @@ interface ImageCropperProps {
 
 export const ImageCropper: React.FC<ImageCropperProps> = ({
   image,
-  aspectRatio = undefined,
+  aspectRatio,
   onCropComplete,
   onCancel,
 }) => {
@@ -22,8 +22,8 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
   const [isApplying, setIsApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentAspect, setCurrentAspect] = useState<number | undefined>(undefined)
-  const [isOriginalAspect, setIsOriginalAspect] = useState(true)
+  const [currentAspect, setCurrentAspect] = useState<number | undefined>(aspectRatio)
+  const [isOriginalAspect, setIsOriginalAspect] = useState(aspectRatio === undefined)
   const [mediaSize, setMediaSize] = useState({ width: 0, height: 0 })
 
   const onCropChange = (crop: { x: number; y: number }) => {
