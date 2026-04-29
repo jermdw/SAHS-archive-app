@@ -79,6 +79,9 @@ export function AuditDashboard() {
     const calculateItemScore = (item: ArchiveItem) => {
         let score = 0;
         
+        const rawType = item.item_type || '';
+        const type = typeof rawType === 'string' ? rawType.trim().toLowerCase() : '';
+        
         // 1. Title/Identity (Support type-specific names)
         const hasTitle = item.title || item.full_name || item.org_name;
         if (hasTitle && item.description && item.description.length > 20) score += 20;
@@ -86,7 +89,7 @@ export function AuditDashboard() {
         // 2. Visual Representation
         if (item.featured_image_url || (item.file_urls && item.file_urls.length > 0)) {
             score += 20;
-        } else if (item.item_type === 'Historic Organization') {
+        } else if (type === 'historic organization') {
             score += 10; // Organizations get partial credit without photos
         }
 
@@ -95,13 +98,13 @@ export function AuditDashboard() {
         if (hasDate) score += 20;
 
         // 4. Inventory/Artifact ID (Support Archive Reference for Documents)
-        if (item.artifact_id || (item.item_type === 'Document' && item.archive_reference) || item.item_type === 'Historic Figure') {
+        if (item.artifact_id || (type === 'document' && item.archive_reference) || type === 'historic figure') {
             score += 20; 
         }
 
         // 5. Physical Museum Location (The "Shelf" assignment)
-        const hasLocation = item.museum_location_id || (item.museum_location_ids && item.museum_location_ids.length > 0);
-        if (hasLocation || item.item_type === 'Historic Figure' || item.item_type === 'Historic Organization') {
+        const hasLocation = !!(item.museum_location_id || (item.museum_location_ids && item.museum_location_ids.length > 0));
+        if (hasLocation || type === 'historic figure' || type === 'historic organization') {
             score += 20;
         }
 
@@ -178,7 +181,10 @@ export function AuditDashboard() {
                 item.org_name?.toLowerCase().includes(searchTerm.toLowerCase());
             
             const matchesIssue = activeIssue === 'all' || item.auditIssues.includes(activeIssue);
-            const matchesType = selectedType === 'All Types' || item.item_type === selectedType;
+            const rawType = item.item_type || '';
+            const normalizedItemType = typeof rawType === 'string' ? rawType.trim().toLowerCase() : '';
+            const normalizedSelectedType = selectedType.trim().toLowerCase();
+            const matchesType = selectedType === 'All Types' || normalizedItemType === normalizedSelectedType;
             const matchesCollection = selectedCollection === 'All Collections' || item.collection_id === selectedCollection;
             
             return matchesSearch && matchesIssue && matchesType && matchesCollection;
